@@ -1,0 +1,62 @@
+[
+  {
+    "typeName": "CarWidgetExtension.ConfigurationAppIntent",
+    "mangledTypeName": "18CarWidgetExtension22ConfigurationAppIntentV",
+    "kind": "struct",
+    "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/AppIntent.swift",
+    "line": 30,
+    "conformances": [
+      "AppIntents.WidgetConfigurationIntent",
+      "AppIntents.AppIntent",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.Sendable",
+      "Swift.BitwiseCopyable"
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "NeverResult",
+        "substitutedTypeName": "Swift.Never",
+        "substitutedMangledTypeName": "s5NeverO"
+      },
+      {
+        "typeAliasName": "PerformResult",
+        "substitutedTypeName": "Swift.Never",
+        "substitutedMangledTypeName": "s5NeverO"
+      },
+      {
+        "typeAliasName": "SummaryContent",
+        "substitutedTypeName": "some AppIntents.ParameterSummary",
+        "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy18CarWidgetExtension013ConfigurationaC0V_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ParameterSummary"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      }
+    ],
+    "properties": [
+      {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/AppIntent.swift",
+        "line": 31,
+        "valueKind": "RawLiteral",
+        "value": "车辆小组件配置"
+      },
+      {
+        "label": "description",
+        "type": "AppIntents.IntentDescription",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/AppIntent.swift",
+        "line": 32,
+        "valueKind": "RawLiteral",
+        "value": "配置车辆信息小组件"
+      }
+    ]
+  }
+]

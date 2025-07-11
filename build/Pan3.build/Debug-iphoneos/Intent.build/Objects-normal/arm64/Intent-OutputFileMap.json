@@ -1,0 +1,38 @@
+{
+  "" : {
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent-master.dia",
+    "emit-module-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent-master-emit-module.dia",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent-master.swiftdeps"
+  },
+  "/Users/feng/Code/我的项目/Pan3/Intent/Intent.swift" : {
+    "const-values" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent.swiftconstvalues",
+    "dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent.d",
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent.dia",
+    "index-unit-output-path" : "/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent.o",
+    "llvm-bc" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent.bc",
+    "object" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent.o",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent.swiftdeps",
+    "swiftmodule" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/Intent~partial.swiftmodule"
+  },
+  "/Users/feng/Code/我的项目/Pan3/Intent/IntentExtension.swift" : {
+    "const-values" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/IntentExtension.swiftconstvalues",
+    "dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/IntentExtension.d",
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/IntentExtension.dia",
+    "index-unit-output-path" : "/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/IntentExtension.o",
+    "llvm-bc" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/IntentExtension.bc",
+    "object" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/IntentExtension.o",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/IntentExtension.swiftdeps",
+    "swiftmodule" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/IntentExtension~partial.swiftmodule"
+  },
+  "/Users/feng/Code/我的项目/Pan3/Pan3/Controller/ShortcutsViewController.swift" : {
+    "const-values" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/ShortcutsViewController.swiftconstvalues",
+    "dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/ShortcutsViewController.d",
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/ShortcutsViewController.dia",
+    "index-unit-output-path" : "/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/ShortcutsViewController.o",
+    "llvm-bc" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/ShortcutsViewController.bc",
+    "object" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/ShortcutsViewController.o",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/ShortcutsViewController.swiftdeps",
+    "swiftmodule" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphoneos/Intent.build/Objects-normal/arm64/ShortcutsViewController~partial.swiftmodule"
+  }
+}

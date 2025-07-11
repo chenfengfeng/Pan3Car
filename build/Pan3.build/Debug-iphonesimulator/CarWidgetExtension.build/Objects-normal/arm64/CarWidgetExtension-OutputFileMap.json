@@ -1,0 +1,68 @@
+{
+  "" : {
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetExtension-master.dia",
+    "emit-module-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetExtension-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetExtension-master-emit-module.dia",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetExtension-master.swiftdeps"
+  },
+  "/Users/feng/Code/我的项目/Pan3/CarWidget/AppIntent.swift" : {
+    "const-values" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/AppIntent.swiftconstvalues",
+    "dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/AppIntent.d",
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/AppIntent.dia",
+    "index-unit-output-path" : "/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/AppIntent.o",
+    "llvm-bc" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/AppIntent.bc",
+    "object" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/AppIntent.o",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/AppIntent.swiftdeps",
+    "swiftmodule" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/AppIntent~partial.swiftmodule"
+  },
+  "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift" : {
+    "const-values" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidget.swiftconstvalues",
+    "dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidget.d",
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidget.dia",
+    "index-unit-output-path" : "/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidget.o",
+    "llvm-bc" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidget.bc",
+    "object" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidget.o",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidget.swiftdeps",
+    "swiftmodule" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidget~partial.swiftmodule"
+  },
+  "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidgetBundle.swift" : {
+    "const-values" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetBundle.swiftconstvalues",
+    "dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetBundle.d",
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetBundle.dia",
+    "index-unit-output-path" : "/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetBundle.o",
+    "llvm-bc" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetBundle.bc",
+    "object" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetBundle.o",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetBundle.swiftdeps",
+    "swiftmodule" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetBundle~partial.swiftmodule"
+  },
+  "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidgetControl.swift" : {
+    "const-values" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetControl.swiftconstvalues",
+    "dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetControl.d",
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetControl.dia",
+    "index-unit-output-path" : "/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetControl.o",
+    "llvm-bc" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetControl.bc",
+    "object" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetControl.o",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetControl.swiftdeps",
+    "swiftmodule" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetControl~partial.swiftmodule"
+  },
+  "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidgetLiveActivity.swift" : {
+    "const-values" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetLiveActivity.swiftconstvalues",
+    "dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetLiveActivity.d",
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetLiveActivity.dia",
+    "index-unit-output-path" : "/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetLiveActivity.o",
+    "llvm-bc" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetLiveActivity.bc",
+    "object" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetLiveActivity.o",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetLiveActivity.swiftdeps",
+    "swiftmodule" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/CarWidgetLiveActivity~partial.swiftmodule"
+  },
+  "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/feng/Code/我的项目/Pan3/build/Pan3.build/Debug-iphonesimulator/CarWidgetExtension.build/Objects-normal/arm64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

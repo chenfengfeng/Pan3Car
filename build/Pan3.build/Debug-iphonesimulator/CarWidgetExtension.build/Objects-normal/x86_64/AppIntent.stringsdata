@@ -1,0 +1,24 @@
+{
+  "source": "/Users/feng/Code/我的项目/Pan3/CarWidget/AppIntent.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "车辆小组件配置",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 31
+        }
+      },
+      {
+        "comment": "",
+        "key": "配置车辆信息小组件",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 32
+        }
+      }
+    ]
+  },
+  "version": 1
+}

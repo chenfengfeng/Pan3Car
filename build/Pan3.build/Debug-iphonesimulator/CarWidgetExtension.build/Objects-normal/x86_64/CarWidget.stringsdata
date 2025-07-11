@@ -1,0 +1,232 @@
+{
+  "source": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "%lldkm",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 66
+        }
+      },
+      {
+        "comment": "",
+        "key": "更新于 %@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 77
+        }
+      },
+      {
+        "comment": "",
+        "key": "车锁操作",
+        "location": {
+          "startingColumn": 76,
+          "startingLine": 192
+        }
+      },
+      {
+        "comment": "",
+        "key": "锁车",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 194
+        }
+      },
+      {
+        "comment": "",
+        "key": "解锁",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 195
+        }
+      },
+      {
+        "comment": "",
+        "key": "车窗操作",
+        "location": {
+          "startingColumn": 76,
+          "startingLine": 203
+        }
+      },
+      {
+        "comment": "",
+        "key": "开窗",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 205
+        }
+      },
+      {
+        "comment": "",
+        "key": "关窗",
+        "location": {
+          "startingColumn": 17,
+          "startingLine": 206
+        }
+      },
+      {
+        "comment": "",
+        "key": "空调操作",
+        "location": {
+          "startingColumn": 76,
+          "startingLine": 214
+        }
+      },
+      {
+        "comment": "",
+        "key": "开启",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 216
+        }
+      },
+      {
+        "comment": "",
+        "key": "关闭",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 217
+        }
+      },
+      {
+        "comment": "",
+        "key": "车锁控制",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 223
+        }
+      },
+      {
+        "comment": "",
+        "key": "控制车辆锁定状态",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 224
+        }
+      },
+      {
+        "comment": "",
+        "key": "操作",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 226
+        }
+      },
+      {
+        "comment": "",
+        "key": "空调控制",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 243
+        }
+      },
+      {
+        "comment": "",
+        "key": "控制车辆空调开关",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 244
+        }
+      },
+      {
+        "comment": "",
+        "key": "操作",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 246
+        }
+      },
+      {
+        "comment": "",
+        "key": "车窗控制",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 262
+        }
+      },
+      {
+        "comment": "",
+        "key": "控制车窗开关状态",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 263
+        }
+      },
+      {
+        "comment": "",
+        "key": "操作",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 265
+        }
+      },
+      {
+        "comment": "",
+        "key": "寻车鸣笛",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 281
+        }
+      },
+      {
+        "comment": "",
+        "key": "让车辆发出鸣笛声以方便定位",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 282
+        }
+      },
+      {
+        "comment": "",
+        "key": "获取车辆信息",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 290
+        }
+      },
+      {
+        "comment": "",
+        "key": "获取最新的车辆状态信息",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 291
+        }
+      },
+      {
+        "comment": "",
+        "key": "刷新车辆信息",
+        "location": {
+          "startingColumn": 49,
+          "startingLine": 302
+        }
+      },
+      {
+        "comment": "",
+        "key": "获取最新的车辆状态信息",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 303
+        }
+      },
+      {
+        "comment": "",
+        "key": "车辆控制",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 325
+        }
+      },
+      {
+        "comment": "",
+        "key": "显示车辆状态并提供快速控制",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 326
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,291 @@
+
+/* Class = "UILabel"; text = "步骤1"; ObjectID = "0q8-9B-e6n"; */
+"0q8-9B-e6n.text" = "步骤1";
+
+/* Class = "UILabel"; text = "需要充到多少钱 (元)"; ObjectID = "0qi-ko-MZq"; */
+"0qi-ko-MZq.text" = "需要充到多少钱 (元)";
+
+/* Class = "UILabel"; text = "车辆位置"; ObjectID = "1uI-1D-5WX"; */
+"1uI-1D-5WX.text" = "车辆位置";
+
+/* Class = "UITextField"; placeholder = "例如： 30"; ObjectID = "3El-hY-jvE"; */
+"3El-hY-jvE.placeholder" = "例如： 30";
+
+/* Class = "UILabel"; text = "0"; ObjectID = "3IP-aF-aDp"; */
+"3IP-aF-aDp.text" = "0";
+
+/* Class = "UILabel"; text = "右后胎压：--"; ObjectID = "4gG-7o-GUC"; */
+"4gG-7o-GUC.text" = "右后胎压：--";
+
+/* Class = "UILabel"; text = "预计充满时间：00:00:00"; ObjectID = "5be-RH-tnN"; */
+"5be-RH-tnN.text" = "预计充满时间：00:00:00";
+
+/* Class = "UIBarButtonItem"; title = "电池信息"; ObjectID = "5fg-Za-Iy6"; */
+"5fg-Za-Iy6.title" = "电池信息";
+
+/* Class = "UILabel"; text = "右前车门：关闭"; ObjectID = "67O-nt-H1Q"; */
+"67O-nt-H1Q.text" = "右前车门：关闭";
+
+/* Class = "UILabel"; text = "步骤3"; ObjectID = "7I8-Mj-5PP"; */
+"7I8-Mj-5PP.text" = "步骤3";
+
+/* Class = "UILabel"; text = "使用Siri解锁"; ObjectID = "7S0-79-JFA"; */
+"7S0-79-JFA.text" = "使用Siri解锁";
+
+/* Class = "UILabel"; text = "右后车门：关闭"; ObjectID = "8Fl-Ex-vN3"; */
+"8Fl-Ex-vN3.text" = "右后车门：关闭";
+
+/* Class = "UILabel"; text = "步骤6"; ObjectID = "8Fq-SU-tJM"; */
+"8Fq-SU-tJM.text" = "步骤6";
+
+/* Class = "UILabel"; text = "先点击扫描按钮，出现弹窗后去轻触刚才写入的NFC芯片，然后给一个命名（你可以随意起一个，比如胖3解锁），点击下一步"; ObjectID = "9Fx-IU-cjk"; */
+"9Fx-IU-cjk.text" = "先点击扫描按钮，出现弹窗后去轻触刚才写入的NFC芯片，然后给一个命名（你可以随意起一个，比如胖3解锁），点击下一步";
+
+/* Class = "UILabel"; text = "对Siri说“胖3汽车 打开车窗”"; ObjectID = "AXU-mJ-rwf"; */
+"AXU-mJ-rwf.text" = "对Siri说“胖3汽车 打开车窗”";
+
+/* Class = "UILabel"; text = "km"; ObjectID = "DcV-YN-VTe"; */
+"DcV-YN-VTe.text" = "km";
+
+/* Class = "UILabel"; text = "找到NFC标签：例如“请点NFC标签时”"; ObjectID = "Ds1-XE-vMJ"; */
+"Ds1-XE-vMJ.text" = "找到NFC标签：例如“请点NFC标签时”";
+
+/* Class = "UILabel"; text = "对Siri说“胖3汽车 鸣笛”"; ObjectID = "E3W-ot-IOI"; */
+"E3W-ot-IOI.text" = "对Siri说“胖3汽车 鸣笛”";
+
+/* Class = "UILabel"; text = "车内温度"; ObjectID = "FQU-YR-UCo"; */
+"FQU-YR-UCo.text" = "车内温度";
+
+/* Class = "UILabel"; text = "使用Siri鸣笛找车"; ObjectID = "G8J-Xo-roU"; */
+"G8J-Xo-roU.text" = "使用Siri鸣笛找车";
+
+/* Class = "UILabel"; text = "左后车门：关闭"; ObjectID = "GyP-au-xoQ"; */
+"GyP-au-xoQ.text" = "左后车门：关闭";
+
+/* Class = "UILabel"; text = "点击写入按钮，将数据写入到NFC芯片"; ObjectID = "HlH-3R-7GT"; */
+"HlH-3R-7GT.text" = "点击写入按钮，将数据写入到NFC芯片";
+
+/* Class = "UILabel"; text = "需要充电量 (度)"; ObjectID = "Hri-6x-YPE"; */
+"Hri-6x-YPE.text" = "需要充电量 (度)";
+
+/* Class = "UILabel"; text = "对Siri说“胖3汽车 锁车”"; ObjectID = "Hyf-ji-BFo"; */
+"Hyf-ji-BFo.text" = "对Siri说“胖3汽车 锁车”";
+
+/* Class = "UILabel"; text = "位置"; ObjectID = "ICB-Pm-Pza"; */
+"ICB-Pm-Pza.text" = "位置";
+
+/* Class = "UILabel"; text = "步骤5"; ObjectID = "Iky-Wi-STM"; */
+"Iky-Wi-STM.text" = "步骤5";
+
+/* Class = "UILabel"; text = "使用Siri关车窗"; ObjectID = "IoQ-Tj-Ob3"; */
+"IoQ-Tj-Ob3.text" = "使用Siri关车窗";
+
+/* Class = "UIButton"; normalTitle = "启动自动停止充电任务"; ObjectID = "JOF-qU-RNe"; */
+"JOF-qU-RNe.normalTitle" = "启动自动停止充电任务";
+
+/* Class = "UILabel"; text = "使用Siri开空调"; ObjectID = "L16-cH-9sn"; */
+"L16-cH-9sn.text" = "使用Siri开空调";
+
+/* Class = "UILabel"; text = "车窗状态"; ObjectID = "L9B-cT-sse"; */
+"L9B-cT-sse.text" = "车窗状态";
+
+/* Class = "UILabel"; text = "左前车门：关闭"; ObjectID = "MXx-Nb-WWZ"; */
+"MXx-Nb-WWZ.text" = "左前车门：关闭";
+
+/* Class = "UILabel"; text = "胎压状态"; ObjectID = "MnV-9b-k1U"; */
+"MnV-9b-k1U.text" = "胎压状态";
+
+/* Class = "UILabel"; text = "当前没有在充电"; ObjectID = "Nf8-ey-9Aa"; */
+"Nf8-ey-9Aa.text" = "当前没有在充电";
+
+/* Class = "UILabel"; text = "减免服务费 (元)"; ObjectID = "Nmm-PP-B8Y"; */
+"Nmm-PP-B8Y.text" = "减免服务费 (元)";
+
+/* Class = "UILabel"; text = "空调已关闭"; ObjectID = "OjS-fI-oz1"; */
+"OjS-fI-oz1.text" = "空调已关闭";
+
+/* Class = "UILabel"; text = "步骤7"; ObjectID = "P9O-la-1Wh"; */
+"P9O-la-1Wh.text" = "步骤7";
+
+/* Class = "UILabel"; text = "对Siri说“胖3汽车 调节温度”"; ObjectID = "PIa-NF-Age"; */
+"PIa-NF-Age.text" = "对Siri说“胖3汽车 调节温度”";
+
+/* Class = "UISegmentedControl"; PWm-yo-9NN.segmentTitles[0] = "Siri指令"; ObjectID = "PWm-yo-9NN"; */
+"PWm-yo-9NN.segmentTitles[0]" = "Siri指令";
+
+/* Class = "UISegmentedControl"; PWm-yo-9NN.segmentTitles[1] = "NFC指令"; ObjectID = "PWm-yo-9NN"; */
+"PWm-yo-9NN.segmentTitles[1]" = "NFC指令";
+
+/* Class = "UITextField"; placeholder = "例如： 2.5"; ObjectID = "Q6C-xf-l8l"; */
+"Q6C-xf-l8l.placeholder" = "例如： 2.5";
+
+/* Class = "UILabel"; text = "如果只想把NFC用于解锁，就选择解锁就可以，如果想要轻触一下解锁，再轻触一下关锁，就选择切换锁车"; ObjectID = "QCj-Jy-zpM"; */
+"QCj-Jy-zpM.text" = "如果只想把NFC用于解锁，就选择解锁就可以，如果想要轻触一下解锁，再轻触一下关锁，就选择切换锁车";
+
+/* Class = "UIButton"; normalTitle = "手动停止充电"; ObjectID = "QaI-lJ-MTQ"; */
+"QaI-lJ-MTQ.normalTitle" = "手动停止充电";
+
+/* Class = "UILabel"; text = "昵称"; ObjectID = "QcE-Jp-IOz"; */
+"QcE-Jp-IOz.text" = "昵称";
+
+/* Class = "UILabel"; text = "开窗"; ObjectID = "R9v-Lm-abD"; */
+"R9v-Lm-abD.text" = "开窗";
+
+/* Class = "UILabel"; text = "使用Siri锁车"; ObjectID = "REd-Fw-dbI"; */
+"REd-Fw-dbI.text" = "使用Siri锁车";
+
+/* Class = "UITextField"; placeholder = "例如： 4"; ObjectID = "SZi-52-lPa"; */
+"SZi-52-lPa.placeholder" = "例如： 4";
+
+/* Class = "UIButton"; normalTitle = "🎉送你16元充电，超多平台可用，点击领取"; ObjectID = "Sfa-It-ZK3"; */
+"Sfa-It-ZK3.normalTitle" = "🎉送你16元充电，超多平台可用，点击领取";
+
+/* Class = "UILabel"; text = "开空调"; ObjectID = "UcR-XO-pEH"; */
+"UcR-XO-pEH.text" = "开空调";
+
+/* Class = "UILabel"; text = "km"; ObjectID = "W2O-FK-vSo"; */
+"W2O-FK-vSo.text" = "km";
+
+/* Class = "UIButton"; normalTitle = "写入到NFC"; ObjectID = "W5c-PU-G6t"; */
+"W5c-PU-G6t.normalTitle" = "写入到NFC";
+
+/* Class = "UILabel"; text = "左后胎压：--"; ObjectID = "a03-2y-v88"; */
+"a03-2y-v88.text" = "左后胎压：--";
+
+/* Class = "UILabel"; text = "使用Siri开空调并设定温度"; ObjectID = "bcc-zN-7LH"; */
+"bcc-zN-7LH.text" = "使用Siri开空调并设定温度";
+
+/* Class = "UILabel"; text = "最后"; ObjectID = "bye-CD-wxT"; */
+"bye-CD-wxT.text" = "最后";
+
+/* Class = "UILabel"; text = "左后车窗：关闭"; ObjectID = "dpS-H2-hon"; */
+"dpS-H2-hon.text" = "左后车窗：关闭";
+
+/* Class = "UITabBarItem"; title = "充电"; ObjectID = "eE5-uu-uPT"; */
+"eE5-uu-uPT.title" = "充电";
+
+/* Class = "UILabel"; text = "左前车窗：关闭"; ObjectID = "ebD-uF-kWu"; */
+"ebD-uF-kWu.text" = "左前车窗：关闭";
+
+/* Class = "UILabel"; text = "右后车窗：关闭"; ObjectID = "emV-tO-bcd"; */
+"emV-tO-bcd.text" = "右后车窗：关闭";
+
+/* Class = "UILabel"; text = "右前车窗：关闭"; ObjectID = "fEk-3j-lOt"; */
+"fEk-3j-lOt.text" = "右前车窗：关闭";
+
+/* Class = "UILabel"; text = "车门状态"; ObjectID = "fNZ-jN-b0B"; */
+"fNZ-jN-b0B.text" = "车门状态";
+
+/* Class = "UILabel"; text = "点击自动化，点击右上角的+号"; ObjectID = "fgx-dr-ohs"; */
+"fgx-dr-ohs.text" = "点击自动化，点击右上角的+号";
+
+/* Class = "UITextField"; placeholder = "例如： 5"; ObjectID = "go7-cy-2bi"; */
+"go7-cy-2bi.placeholder" = "例如： 5";
+
+/* Class = "UILabel"; text = "0"; ObjectID = "gsc-Id-R2z"; */
+"gsc-Id-R2z.text" = "0";
+
+/* Class = "UILabel"; text = "当前服务费价格（元/度）"; ObjectID = "h9h-Gh-IjU"; */
+"h9h-Gh-IjU.text" = "当前服务费价格（元/度）";
+
+/* Class = "UILabel"; text = "--˚"; ObjectID = "hQd-S2-cA3"; */
+"hQd-S2-cA3.text" = "--˚";
+
+/* Class = "UITabBarItem"; title = "车辆"; ObjectID = "hcY-ce-JA0"; */
+"hcY-ce-JA0.title" = "车辆";
+
+/* Class = "UILabel"; text = "对Siri说“胖3汽车 关闭空调”"; ObjectID = "i7f-wD-uaR"; */
+"i7f-wD-uaR.text" = "对Siri说“胖3汽车 关闭空调”";
+
+/* Class = "UILabel"; text = "寻车"; ObjectID = "iAX-At-bJP"; */
+"iAX-At-bJP.text" = "寻车";
+
+/* Class = "UILabel"; text = "车牌"; ObjectID = "iLV-cN-NRE"; */
+"iLV-cN-NRE.text" = "车牌";
+
+/* Class = "UILabel"; text = "步骤2"; ObjectID = "jQt-Nb-BrR"; */
+"jQt-Nb-BrR.text" = "步骤2";
+
+/* Class = "UILabel"; text = "对Siri说“胖3汽车 打开空调”"; ObjectID = "jca-4Y-ejZ"; */
+"jca-4Y-ejZ.text" = "对Siri说“胖3汽车 打开空调”";
+
+/* Class = "UINavigationItem"; title = "设置"; ObjectID = "kpK-yM-oPd"; */
+"kpK-yM-oPd.title" = "设置";
+
+/* Class = "UILabel"; text = "步骤8"; ObjectID = "kvd-pK-FW6"; */
+"kvd-pK-FW6.text" = "步骤8";
+
+/* Class = "UILabel"; text = "步骤4"; ObjectID = "l1L-t5-upa"; */
+"l1L-t5-upa.text" = "步骤4";
+
+/* Class = "UILabel"; text = "使用Siri关空调"; ObjectID = "mKi-dZ-1Hf"; */
+"mKi-dZ-1Hf.text" = "使用Siri关空调";
+
+/* Class = "UINavigationItem"; title = "快捷指令"; ObjectID = "mpf-r7-eaK"; */
+"mpf-r7-eaK.title" = "快捷指令";
+
+/* Class = "UILabel"; text = "写入成功后，打开快捷指令APP"; ObjectID = "nXP-tu-YEp"; */
+"nXP-tu-YEp.text" = "写入成功后，打开快捷指令APP";
+
+/* Class = "UILabel"; text = "你就可以实现用NFC来实现操作，你还可以扩展用于开窗、开空调等操作，具体需要你自己去探索，祝你玩的愉快😀"; ObjectID = "oPj-yy-kux"; */
+"oPj-yy-kux.text" = "你就可以实现用NFC来实现操作，你还可以扩展用于开窗、开空调等操作，具体需要你自己去探索，祝你玩的愉快😀";
+
+/* Class = "UITextField"; placeholder = "例如： 0.3"; ObjectID = "oQ0-0O-1sZ"; */
+"oQ0-0O-1sZ.placeholder" = "例如： 0.3";
+
+/* Class = "UILabel"; text = "预设温度 26˚"; ObjectID = "omP-7u-HpK"; */
+"omP-7u-HpK.text" = "预设温度 26˚";
+
+/* Class = "UILabel"; text = "使用Siri开车窗"; ObjectID = "pO1-ct-KoA"; */
+"pO1-ct-KoA.text" = "使用Siri开车窗";
+
+/* Class = "UILabel"; text = "在下面APP选择“胖3汽车”"; ObjectID = "pWj-Us-R5P"; */
+"pWj-Us-R5P.text" = "在下面APP选择“胖3汽车”";
+
+/* Class = "UILabel"; text = "当前充电价格 (元/度)"; ObjectID = "q61-uy-Nd0"; */
+"q61-uy-Nd0.text" = "当前充电价格 (元/度)";
+
+/* Class = "UITabBarItem"; title = "快捷指令"; ObjectID = "qV1-Ii-elz"; */
+"qV1-Ii-elz.title" = "快捷指令";
+
+/* Class = "UISegmentedControl"; tFt-aY-8Fa.segmentTitles[0] = "服务费计算"; ObjectID = "tFt-aY-8Fa"; */
+"tFt-aY-8Fa.segmentTitles[0]" = "服务费计算";
+
+/* Class = "UISegmentedControl"; tFt-aY-8Fa.segmentTitles[1] = "电量计算"; ObjectID = "tFt-aY-8Fa"; */
+"tFt-aY-8Fa.segmentTitles[1]" = "电量计算";
+
+/* Class = "UISegmentedControl"; tFt-aY-8Fa.segmentTitles[2] = "价格计算"; ObjectID = "tFt-aY-8Fa"; */
+"tFt-aY-8Fa.segmentTitles[2]" = "价格计算";
+
+/* Class = "UILabel"; text = "总里程：0km"; ObjectID = "trx-ni-iPq"; */
+"trx-ni-iPq.text" = "总里程：0km";
+
+/* Class = "UILabel"; text = "右前胎压：--"; ObjectID = "vMZ-OL-4XN"; */
+"vMZ-OL-4XN.text" = "右前胎压：--";
+
+/* Class = "UITabBarItem"; title = "设置"; ObjectID = "vji-Zq-nzH"; */
+"vji-Zq-nzH.title" = "设置";
+
+/* Class = "UILabel"; text = "对Siri说“胖3汽车 关闭车窗”"; ObjectID = "xBi-7f-Dcp"; */
+"xBi-7f-Dcp.text" = "对Siri说“胖3汽车 关闭车窗”";
+
+/* Class = "UILabel"; text = "你需要拥有一个NFC的芯片，如果没有可以去买，搜索关键词：NTAG213 / 215 / 216都可以"; ObjectID = "xJy-at-xcJ"; */
+"xJy-at-xcJ.text" = "你需要拥有一个NFC的芯片，如果没有可以去买，搜索关键词：NTAG213 / 215 / 216都可以";
+
+/* Class = "UIButton"; normalTitle = "打开快捷指令APP"; ObjectID = "yIq-fD-ksC"; */
+"yIq-fD-ksC.normalTitle" = "打开快捷指令APP";
+
+/* Class = "UILabel"; text = "后尾门：关闭"; ObjectID = "z3D-YO-zOa"; */
+"z3D-YO-zOa.text" = "后尾门：关闭";
+
+/* Class = "UIBarButtonItem"; title = "充电任务列表"; ObjectID = "zRr-tL-GMK"; */
+"zRr-tL-GMK.title" = "充电任务列表";
+
+/* Class = "UILabel"; text = "左前胎压：--"; ObjectID = "zTw-MB-CHh"; */
+"zTw-MB-CHh.text" = "左前胎压：--";
+
+/* Class = "UILabel"; text = "开锁"; ObjectID = "zhL-R4-rWx"; */
+"zhL-R4-rWx.text" = "开锁";
+
+/* Class = "UILabel"; text = "对Siri说“胖3汽车 解锁”"; ObjectID = "zxV-eX-xVA"; */
+"zxV-eX-xVA.text" = "对Siri说“胖3汽车 解锁”";

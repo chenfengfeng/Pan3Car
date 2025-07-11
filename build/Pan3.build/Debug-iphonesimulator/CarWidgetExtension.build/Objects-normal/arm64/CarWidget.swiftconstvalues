@@ -1,0 +1,1240 @@
+[
+  {
+    "typeName": "CarWidgetExtension.CarLockAction",
+    "mangledTypeName": "18CarWidgetExtension0A10LockActionO",
+    "kind": "enum",
+    "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+    "line": 188,
+    "conformances": [
+      "Swift.Equatable",
+      "Swift.Hashable",
+      "Swift.RawRepresentable",
+      "AppIntents.AppEnum",
+      "AppIntents.AppValue",
+      "AppIntents.StaticDisplayRepresentable",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents.TypeDisplayRepresentable",
+      "AppIntents._IntentValue",
+      "Swift.Sendable",
+      "AppIntents.CaseDisplayRepresentable",
+      "Foundation.CustomLocalizedStringResourceConvertible",
+      "Swift.CaseIterable",
+      "Swift.BitwiseCopyable"
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "RawValue",
+        "substitutedTypeName": "Swift.String",
+        "substitutedMangledTypeName": "SS"
+      },
+      {
+        "typeAliasName": "ValueType",
+        "substitutedTypeName": "CarWidgetExtension.CarLockAction",
+        "substitutedMangledTypeName": "18CarWidgetExtension0A10LockActionO"
+      },
+      {
+        "typeAliasName": "UnwrappedType",
+        "substitutedTypeName": "CarWidgetExtension.CarLockAction",
+        "substitutedMangledTypeName": "18CarWidgetExtension0A10LockActionO"
+      },
+      {
+        "typeAliasName": "Specification",
+        "substitutedTypeName": "some AppIntents.ResolverSpecification",
+        "substitutedMangledTypeName": "10AppIntents0A4EnumPAAE28defaultResolverSpecificationQrvpZQOy18CarWidgetExtension0G10LockActionO_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ResolverSpecification"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "AllCases",
+        "substitutedTypeName": "Swift.Array<CarWidgetExtension.CarLockAction>",
+        "substitutedMangledTypeName": "Say18CarWidgetExtension0A10LockActionOG"
+      }
+    ],
+    "properties": [
+      {
+        "label": "typeDisplayRepresentation",
+        "type": "AppIntents.TypeDisplayRepresentation",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 192,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.TypeDisplayRepresentation",
+          "arguments": [
+            {
+              "label": "name",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "车锁操作"
+            },
+            {
+              "label": "numericFormat",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            }
+          ]
+        }
+      },
+      {
+        "label": "caseDisplayRepresentations",
+        "type": "Swift.Dictionary<CarWidgetExtension.CarLockAction, AppIntents.DisplayRepresentation>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 193,
+        "valueKind": "Dictionary",
+        "value": [
+          {
+            "key": {
+              "valueKind": "Enum",
+              "value": {
+                "name": "lock"
+              }
+            },
+            "value": {
+              "valueKind": "RawLiteral",
+              "value": "锁车"
+            }
+          },
+          {
+            "key": {
+              "valueKind": "Enum",
+              "value": {
+                "name": "unlock"
+              }
+            },
+            "value": {
+              "valueKind": "RawLiteral",
+              "value": "解锁"
+            }
+          }
+        ]
+      },
+      {
+        "label": "allCases",
+        "type": "Swift.Array<CarWidgetExtension.CarLockAction>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "valueKind": "Array",
+        "value": [
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "lock"
+            }
+          },
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "unlock"
+            }
+          }
+        ]
+      },
+      {
+        "label": "rawValue",
+        "type": "Swift.String",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "valueKind": "Runtime"
+      }
+    ],
+    "cases": [
+      {
+        "name": "lock",
+        "rawValue": "lock"
+      },
+      {
+        "name": "unlock",
+        "rawValue": "unlock"
+      }
+    ]
+  },
+  {
+    "typeName": "CarWidgetExtension.WindowAction",
+    "mangledTypeName": "18CarWidgetExtension12WindowActionO",
+    "kind": "enum",
+    "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+    "line": 199,
+    "conformances": [
+      "Swift.Equatable",
+      "Swift.Hashable",
+      "Swift.RawRepresentable",
+      "AppIntents.AppEnum",
+      "AppIntents.AppValue",
+      "AppIntents.StaticDisplayRepresentable",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents.TypeDisplayRepresentable",
+      "AppIntents._IntentValue",
+      "Swift.Sendable",
+      "AppIntents.CaseDisplayRepresentable",
+      "Foundation.CustomLocalizedStringResourceConvertible",
+      "Swift.CaseIterable",
+      "Swift.BitwiseCopyable"
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "RawValue",
+        "substitutedTypeName": "Swift.String",
+        "substitutedMangledTypeName": "SS"
+      },
+      {
+        "typeAliasName": "ValueType",
+        "substitutedTypeName": "CarWidgetExtension.WindowAction",
+        "substitutedMangledTypeName": "18CarWidgetExtension12WindowActionO"
+      },
+      {
+        "typeAliasName": "UnwrappedType",
+        "substitutedTypeName": "CarWidgetExtension.WindowAction",
+        "substitutedMangledTypeName": "18CarWidgetExtension12WindowActionO"
+      },
+      {
+        "typeAliasName": "Specification",
+        "substitutedTypeName": "some AppIntents.ResolverSpecification",
+        "substitutedMangledTypeName": "10AppIntents0A4EnumPAAE28defaultResolverSpecificationQrvpZQOy18CarWidgetExtension12WindowActionO_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ResolverSpecification"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "AllCases",
+        "substitutedTypeName": "Swift.Array<CarWidgetExtension.WindowAction>",
+        "substitutedMangledTypeName": "Say18CarWidgetExtension12WindowActionOG"
+      }
+    ],
+    "properties": [
+      {
+        "label": "typeDisplayRepresentation",
+        "type": "AppIntents.TypeDisplayRepresentation",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 203,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.TypeDisplayRepresentation",
+          "arguments": [
+            {
+              "label": "name",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "车窗操作"
+            },
+            {
+              "label": "numericFormat",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            }
+          ]
+        }
+      },
+      {
+        "label": "caseDisplayRepresentations",
+        "type": "Swift.Dictionary<CarWidgetExtension.WindowAction, AppIntents.DisplayRepresentation>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 204,
+        "valueKind": "Dictionary",
+        "value": [
+          {
+            "key": {
+              "valueKind": "Enum",
+              "value": {
+                "name": "open"
+              }
+            },
+            "value": {
+              "valueKind": "RawLiteral",
+              "value": "开窗"
+            }
+          },
+          {
+            "key": {
+              "valueKind": "Enum",
+              "value": {
+                "name": "close"
+              }
+            },
+            "value": {
+              "valueKind": "RawLiteral",
+              "value": "关窗"
+            }
+          }
+        ]
+      },
+      {
+        "label": "allCases",
+        "type": "Swift.Array<CarWidgetExtension.WindowAction>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "valueKind": "Array",
+        "value": [
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "open"
+            }
+          },
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "close"
+            }
+          }
+        ]
+      },
+      {
+        "label": "rawValue",
+        "type": "Swift.String",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "valueKind": "Runtime"
+      }
+    ],
+    "cases": [
+      {
+        "name": "open",
+        "rawValue": "open"
+      },
+      {
+        "name": "close",
+        "rawValue": "close"
+      }
+    ]
+  },
+  {
+    "typeName": "CarWidgetExtension.AirConditionerAction",
+    "mangledTypeName": "18CarWidgetExtension20AirConditionerActionO",
+    "kind": "enum",
+    "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+    "line": 210,
+    "conformances": [
+      "Swift.Equatable",
+      "Swift.Hashable",
+      "Swift.RawRepresentable",
+      "AppIntents.AppEnum",
+      "AppIntents.AppValue",
+      "AppIntents.StaticDisplayRepresentable",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents.TypeDisplayRepresentable",
+      "AppIntents._IntentValue",
+      "Swift.Sendable",
+      "AppIntents.CaseDisplayRepresentable",
+      "Foundation.CustomLocalizedStringResourceConvertible",
+      "Swift.CaseIterable",
+      "Swift.BitwiseCopyable"
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "RawValue",
+        "substitutedTypeName": "Swift.String",
+        "substitutedMangledTypeName": "SS"
+      },
+      {
+        "typeAliasName": "ValueType",
+        "substitutedTypeName": "CarWidgetExtension.AirConditionerAction",
+        "substitutedMangledTypeName": "18CarWidgetExtension20AirConditionerActionO"
+      },
+      {
+        "typeAliasName": "UnwrappedType",
+        "substitutedTypeName": "CarWidgetExtension.AirConditionerAction",
+        "substitutedMangledTypeName": "18CarWidgetExtension20AirConditionerActionO"
+      },
+      {
+        "typeAliasName": "Specification",
+        "substitutedTypeName": "some AppIntents.ResolverSpecification",
+        "substitutedMangledTypeName": "10AppIntents0A4EnumPAAE28defaultResolverSpecificationQrvpZQOy18CarWidgetExtension20AirConditionerActionO_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ResolverSpecification"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "AllCases",
+        "substitutedTypeName": "Swift.Array<CarWidgetExtension.AirConditionerAction>",
+        "substitutedMangledTypeName": "Say18CarWidgetExtension20AirConditionerActionOG"
+      }
+    ],
+    "properties": [
+      {
+        "label": "typeDisplayRepresentation",
+        "type": "AppIntents.TypeDisplayRepresentation",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 214,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.TypeDisplayRepresentation",
+          "arguments": [
+            {
+              "label": "name",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "空调操作"
+            },
+            {
+              "label": "numericFormat",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            }
+          ]
+        }
+      },
+      {
+        "label": "caseDisplayRepresentations",
+        "type": "Swift.Dictionary<CarWidgetExtension.AirConditionerAction, AppIntents.DisplayRepresentation>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 215,
+        "valueKind": "Dictionary",
+        "value": [
+          {
+            "key": {
+              "valueKind": "Enum",
+              "value": {
+                "name": "turnOn"
+              }
+            },
+            "value": {
+              "valueKind": "RawLiteral",
+              "value": "开启"
+            }
+          },
+          {
+            "key": {
+              "valueKind": "Enum",
+              "value": {
+                "name": "turnOff"
+              }
+            },
+            "value": {
+              "valueKind": "RawLiteral",
+              "value": "关闭"
+            }
+          }
+        ]
+      },
+      {
+        "label": "allCases",
+        "type": "Swift.Array<CarWidgetExtension.AirConditionerAction>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "true",
+        "valueKind": "Array",
+        "value": [
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "turnOn"
+            }
+          },
+          {
+            "valueKind": "Enum",
+            "value": {
+              "name": "turnOff"
+            }
+          }
+        ]
+      },
+      {
+        "label": "rawValue",
+        "type": "Swift.String",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "valueKind": "Runtime"
+      }
+    ],
+    "cases": [
+      {
+        "name": "turnOn",
+        "rawValue": "turnOn"
+      },
+      {
+        "name": "turnOff",
+        "rawValue": "turnOff"
+      }
+    ]
+  },
+  {
+    "typeName": "CarWidgetExtension.CarLockControlIntent",
+    "mangledTypeName": "18CarWidgetExtension0A17LockControlIntentV",
+    "kind": "struct",
+    "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+    "line": 222,
+    "conformances": [
+      "AppIntents.AppIntent",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.Sendable"
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "PerformResult",
+        "substitutedTypeName": "some AppIntents.IntentResult",
+        "substitutedMangledTypeName": "18CarWidgetExtension0A17LockControlIntentV7performQryYaKFQOy_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.IntentResult"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "SummaryContent",
+        "substitutedTypeName": "some AppIntents.ParameterSummary",
+        "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy18CarWidgetExtension0f11LockControlC0V_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ParameterSummary"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      }
+    ],
+    "properties": [
+      {
+        "label": "_action",
+        "type": "AppIntents.IntentParameter<CarWidgetExtension.CarLockAction>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 227,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<CarWidgetExtension.CarLockAction>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "操作"
+            },
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "default",
+              "type": "Swift.Optional<CarWidgetExtension.CarLockAction>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestDisambiguationDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            },
+            {
+              "label": "supportedValues",
+              "type": "Swift.Array<CarWidgetExtension.CarLockAction>",
+              "valueKind": "Runtime"
+            }
+          ]
+        }
+      },
+      {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 223,
+        "valueKind": "RawLiteral",
+        "value": "车锁控制"
+      },
+      {
+        "label": "description",
+        "type": "AppIntents.IntentDescription",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 224,
+        "valueKind": "RawLiteral",
+        "value": "控制车辆锁定状态"
+      },
+      {
+        "label": "action",
+        "type": "CarWidgetExtension.CarLockAction",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 227,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<CarWidgetExtension.CarLockAction>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "操作"
+            },
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "default",
+              "type": "Swift.Optional<CarWidgetExtension.CarLockAction>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestDisambiguationDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            },
+            {
+              "label": "supportedValues",
+              "type": "Swift.Array<CarWidgetExtension.CarLockAction>",
+              "valueKind": "Runtime"
+            }
+          ]
+        },
+        "propertyWrappers": [
+          {
+            "type": "AppIntents.IntentParameter",
+            "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+            "line": 226,
+            "arguments": [
+              {
+                "label": "title",
+                "type": "Foundation.LocalizedStringResource",
+                "valueKind": "RawLiteral",
+                "value": "操作"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "$action",
+        "type": "AppIntents.IntentParameter<CarWidgetExtension.CarLockAction>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 227,
+        "valueKind": "Runtime"
+      }
+    ]
+  },
+  {
+    "typeName": "CarWidgetExtension.AirConditionerControlIntent",
+    "mangledTypeName": "18CarWidgetExtension27AirConditionerControlIntentV",
+    "kind": "struct",
+    "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+    "line": 242,
+    "conformances": [
+      "AppIntents.AppIntent",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.Sendable"
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "PerformResult",
+        "substitutedTypeName": "some AppIntents.IntentResult",
+        "substitutedMangledTypeName": "18CarWidgetExtension27AirConditionerControlIntentV7performQryYaKFQOy_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.IntentResult"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "SummaryContent",
+        "substitutedTypeName": "some AppIntents.ParameterSummary",
+        "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy18CarWidgetExtension021AirConditionerControlC0V_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ParameterSummary"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      }
+    ],
+    "properties": [
+      {
+        "label": "_action",
+        "type": "AppIntents.IntentParameter<CarWidgetExtension.AirConditionerAction>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 247,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<CarWidgetExtension.AirConditionerAction>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "操作"
+            },
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "default",
+              "type": "Swift.Optional<CarWidgetExtension.AirConditionerAction>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestDisambiguationDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            },
+            {
+              "label": "supportedValues",
+              "type": "Swift.Array<CarWidgetExtension.AirConditionerAction>",
+              "valueKind": "Runtime"
+            }
+          ]
+        }
+      },
+      {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 243,
+        "valueKind": "RawLiteral",
+        "value": "空调控制"
+      },
+      {
+        "label": "description",
+        "type": "AppIntents.IntentDescription",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 244,
+        "valueKind": "RawLiteral",
+        "value": "控制车辆空调开关"
+      },
+      {
+        "label": "action",
+        "type": "CarWidgetExtension.AirConditionerAction",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 247,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<CarWidgetExtension.AirConditionerAction>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "操作"
+            },
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "default",
+              "type": "Swift.Optional<CarWidgetExtension.AirConditionerAction>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestDisambiguationDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            },
+            {
+              "label": "supportedValues",
+              "type": "Swift.Array<CarWidgetExtension.AirConditionerAction>",
+              "valueKind": "Runtime"
+            }
+          ]
+        },
+        "propertyWrappers": [
+          {
+            "type": "AppIntents.IntentParameter",
+            "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+            "line": 246,
+            "arguments": [
+              {
+                "label": "title",
+                "type": "Foundation.LocalizedStringResource",
+                "valueKind": "RawLiteral",
+                "value": "操作"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "$action",
+        "type": "AppIntents.IntentParameter<CarWidgetExtension.AirConditionerAction>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 247,
+        "valueKind": "Runtime"
+      }
+    ]
+  },
+  {
+    "typeName": "CarWidgetExtension.WindowControlIntent",
+    "mangledTypeName": "18CarWidgetExtension19WindowControlIntentV",
+    "kind": "struct",
+    "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+    "line": 261,
+    "conformances": [
+      "AppIntents.AppIntent",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.Sendable"
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "PerformResult",
+        "substitutedTypeName": "some AppIntents.IntentResult",
+        "substitutedMangledTypeName": "18CarWidgetExtension19WindowControlIntentV7performQryYaKFQOy_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.IntentResult"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "SummaryContent",
+        "substitutedTypeName": "some AppIntents.ParameterSummary",
+        "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy18CarWidgetExtension013WindowControlC0V_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ParameterSummary"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      }
+    ],
+    "properties": [
+      {
+        "label": "_action",
+        "type": "AppIntents.IntentParameter<CarWidgetExtension.WindowAction>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 266,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<CarWidgetExtension.WindowAction>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "操作"
+            },
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "default",
+              "type": "Swift.Optional<CarWidgetExtension.WindowAction>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestDisambiguationDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            },
+            {
+              "label": "supportedValues",
+              "type": "Swift.Array<CarWidgetExtension.WindowAction>",
+              "valueKind": "Runtime"
+            }
+          ]
+        }
+      },
+      {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 262,
+        "valueKind": "RawLiteral",
+        "value": "车窗控制"
+      },
+      {
+        "label": "description",
+        "type": "AppIntents.IntentDescription",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 263,
+        "valueKind": "RawLiteral",
+        "value": "控制车窗开关状态"
+      },
+      {
+        "label": "action",
+        "type": "CarWidgetExtension.WindowAction",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 266,
+        "valueKind": "InitCall",
+        "value": {
+          "type": "AppIntents.IntentParameter<CarWidgetExtension.WindowAction>",
+          "arguments": [
+            {
+              "label": "title",
+              "type": "Foundation.LocalizedStringResource",
+              "valueKind": "RawLiteral",
+              "value": "操作"
+            },
+            {
+              "label": "description",
+              "type": "Swift.Optional<Foundation.LocalizedStringResource>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "default",
+              "type": "Swift.Optional<CarWidgetExtension.WindowAction>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestValueDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "requestDisambiguationDialog",
+              "type": "Swift.Optional<AppIntents.IntentDialog>",
+              "valueKind": "RawLiteral",
+              "value": "nil"
+            },
+            {
+              "label": "inputConnectionBehavior",
+              "type": "AppIntents.InputConnectionBehavior",
+              "valueKind": "Runtime"
+            },
+            {
+              "label": "supportedValues",
+              "type": "Swift.Array<CarWidgetExtension.WindowAction>",
+              "valueKind": "Runtime"
+            }
+          ]
+        },
+        "propertyWrappers": [
+          {
+            "type": "AppIntents.IntentParameter",
+            "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+            "line": 265,
+            "arguments": [
+              {
+                "label": "title",
+                "type": "Foundation.LocalizedStringResource",
+                "valueKind": "RawLiteral",
+                "value": "操作"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "$action",
+        "type": "AppIntents.IntentParameter<CarWidgetExtension.WindowAction>",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "false",
+        "isComputed": "true",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 266,
+        "valueKind": "Runtime"
+      }
+    ]
+  },
+  {
+    "typeName": "CarWidgetExtension.FindCarIntent",
+    "mangledTypeName": "18CarWidgetExtension04FindA6IntentV",
+    "kind": "struct",
+    "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+    "line": 280,
+    "conformances": [
+      "AppIntents.AppIntent",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.Sendable",
+      "Swift.BitwiseCopyable"
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "PerformResult",
+        "substitutedTypeName": "some AppIntents.IntentResult",
+        "substitutedMangledTypeName": "18CarWidgetExtension04FindA6IntentV7performQryYaKFQOy_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.IntentResult"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "SummaryContent",
+        "substitutedTypeName": "some AppIntents.ParameterSummary",
+        "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy18CarWidgetExtension04FindfC0V_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ParameterSummary"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      }
+    ],
+    "properties": [
+      {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 281,
+        "valueKind": "RawLiteral",
+        "value": "寻车鸣笛"
+      },
+      {
+        "label": "description",
+        "type": "AppIntents.IntentDescription",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 282,
+        "valueKind": "RawLiteral",
+        "value": "让车辆发出鸣笛声以方便定位"
+      }
+    ]
+  },
+  {
+    "typeName": "CarWidgetExtension.GetCarInfoIntent",
+    "mangledTypeName": "18CarWidgetExtension03GetA10InfoIntentV",
+    "kind": "struct",
+    "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+    "line": 289,
+    "conformances": [
+      "AppIntents.AppIntent",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.Sendable",
+      "Swift.BitwiseCopyable"
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "PerformResult",
+        "substitutedTypeName": "some AppIntents.IntentResult",
+        "substitutedMangledTypeName": "18CarWidgetExtension03GetA10InfoIntentV7performQryYaKFQOy_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.IntentResult"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "SummaryContent",
+        "substitutedTypeName": "some AppIntents.ParameterSummary",
+        "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy18CarWidgetExtension03Getf4InfoC0V_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ParameterSummary"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      }
+    ],
+    "properties": [
+      {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 290,
+        "valueKind": "RawLiteral",
+        "value": "获取车辆信息"
+      },
+      {
+        "label": "description",
+        "type": "AppIntents.IntentDescription",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 291,
+        "valueKind": "RawLiteral",
+        "value": "获取最新的车辆状态信息"
+      },
+      {
+        "label": "isDiscoverable",
+        "type": "Swift.Bool",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 292,
+        "valueKind": "RawLiteral",
+        "value": "false"
+      }
+    ]
+  },
+  {
+    "typeName": "CarWidgetExtension.RefreshCarInfoIntent",
+    "mangledTypeName": "18CarWidgetExtension07RefreshA10InfoIntentV",
+    "kind": "struct",
+    "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+    "line": 301,
+    "conformances": [
+      "AppIntents.AppIntent",
+      "AppIntents.PersistentlyIdentifiable",
+      "AppIntents._SupportsAppDependencies",
+      "Swift.Sendable",
+      "Swift.BitwiseCopyable"
+    ],
+    "associatedTypeAliases": [
+      {
+        "typeAliasName": "PerformResult",
+        "substitutedTypeName": "some AppIntents.IntentResult",
+        "substitutedMangledTypeName": "18CarWidgetExtension07RefreshA10InfoIntentV7performQryYaKFQOy_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.IntentResult"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      },
+      {
+        "typeAliasName": "SummaryContent",
+        "substitutedTypeName": "some AppIntents.ParameterSummary",
+        "substitutedMangledTypeName": "10AppIntents0A6IntentPAAE16parameterSummaryQrvpZQOy18CarWidgetExtension07Refreshf4InfoC0V_Qo_",
+        "opaqueTypeProtocolRequirements": [
+          "AppIntents.ParameterSummary"
+        ],
+        "opaqueTypeSameTypeRequirements": []
+      }
+    ],
+    "properties": [
+      {
+        "label": "title",
+        "type": "Foundation.LocalizedStringResource",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 302,
+        "valueKind": "RawLiteral",
+        "value": "刷新车辆信息"
+      },
+      {
+        "label": "description",
+        "type": "AppIntents.IntentDescription",
+        "mangledTypeName": "n/a - deprecated",
+        "isStatic": "true",
+        "isComputed": "false",
+        "file": "/Users/feng/Code/我的项目/Pan3/CarWidget/CarWidget.swift",
+        "line": 303,
+        "valueKind": "RawLiteral",
+        "value": "获取最新的车辆状态信息"
+      }
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>colors</key>
+	<array/>
+	<key>images</key>
+	<array>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/feng/Code/我的项目/Pan3/CarWidget/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameMyCar</string>
+			<key>relativePath</key>
+			<string>./my_car.imageset</string>
+			<key>swiftSymbol</key>
+			<string>myCar</string>
+		</dict>
+	</array>
+	<key>symbols</key>
+	<array/>
+</dict>
+</plist>

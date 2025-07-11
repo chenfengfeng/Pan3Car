@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>colors</key>
+	<array/>
+	<key>images</key>
+	<array>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/feng/Code/我的项目/Pan3/Pan3/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameCar</string>
+			<key>relativePath</key>
+			<string>./car.imageset</string>
+			<key>swiftSymbol</key>
+			<string>car</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/feng/Code/我的项目/Pan3/Pan3/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameLaunch</string>
+			<key>relativePath</key>
+			<string>./launch.imageset</string>
+			<key>swiftSymbol</key>
+			<string>launch</string>
+		</dict>
+		<dict>
+			<key>catalogPath</key>
+			<string>/Users/feng/Code/我的项目/Pan3/Pan3/Assets.xcassets</string>
+			<key>objcSymbol</key>
+			<string>ACImageNameLogin</string>
+			<key>relativePath</key>
+			<string>./login.imageset</string>
+			<key>swiftSymbol</key>
+			<string>login</string>
+		</dict>
+	</array>
+	<key>symbols</key>
+	<array/>
+</dict>
+</plist>
