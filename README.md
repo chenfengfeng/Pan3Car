@@ -26,3 +26,9 @@
 更多动画效果
 
 其他功能补充完善
+
+![screenshot1](https://upload.dreamforge.top/i/2025/07/12/hc5og2.png)
+
+![screenshot2](https://upload.dreamforge.top/i/2025/07/12/hc9poz.png)
+
+![screenshot3](https://upload.dreamforge.top/i/2025/07/12/hc9qmo.png)
