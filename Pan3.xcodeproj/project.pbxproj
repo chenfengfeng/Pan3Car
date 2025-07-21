@@ -19,8 +19,6 @@
 		B28332392E13DB3500A2E140 /* ACSelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28332382E13DB3500A2E140 /* ACSelectView.swift */; };
 		B287C6AE2E10470B00FDC1FD /* LoginViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B287C6AD2E10470B00FDC1FD /* LoginViewController.swift */; };
 		B287C6B32E104F7300FDC1FD /* CarModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B287C6AF2E104F7300FDC1FD /* CarModel.swift */; };
-		B287C6B42E104F7300FDC1FD /* UserModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B287C6B22E104F7300FDC1FD /* UserModel.swift */; };
-		B287C6B52E104F7300FDC1FD /* LoginModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B287C6B02E104F7300FDC1FD /* LoginModel.swift */; };
 		B287C6B62E104F7300FDC1FD /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B287C6B12E104F7300FDC1FD /* NetworkManager.swift */; };
 		B287C6BB2E10EA7700FDC1FD /* UserManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B287C6BA2E10EA7700FDC1FD /* UserManager.swift */; };
 		B287C6BD2E11216400FDC1FD /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B287C6BC2E11216400FDC1FD /* HomeViewController.swift */; };
@@ -28,6 +26,7 @@
 		B287C6C12E11239600FDC1FD /* ShortcutsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B287C6C02E11239600FDC1FD /* ShortcutsViewController.swift */; };
 		B287C6C32E1123A600FDC1FD /* SettingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B287C6C22E1123A600FDC1FD /* SettingViewController.swift */; };
 		B28C7C382E103F4300F33846 /* Login.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B28C7C372E103F4300F33846 /* Login.storyboard */; };
+		B296F99A2E24154F00440A5A /* AuthResponseModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B296F9992E24154F00440A5A /* AuthResponseModel.swift */; };
 		B2C867592E0F9D1B009A8FD6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2C867522E0F9D1B009A8FD6 /* Assets.xcassets */; };
 		B2C8675B2E0F9D1B009A8FD6 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B2C867552E0F9D1B009A8FD6 /* LaunchScreen.storyboard */; };
 		B2C8675C2E0F9D1B009A8FD6 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B2C867572E0F9D1B009A8FD6 /* Main.storyboard */; };
@@ -38,7 +37,10 @@
 		B2D172522E1A767A00922A0C /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172512E1A767A00922A0C /* WidgetKit.framework */; };
 		B2D172542E1A767A00922A0C /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172532E1A767A00922A0C /* SwiftUI.framework */; };
 		B2D172652E1A767C00922A0C /* CarWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		B2E8A0F12E18EB4D00CF4A41 /* SiriIntents.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = B2E8A0E82E18EB4D00CF4A41 /* SiriIntents.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B2F2E80F2E2AAFE300500C9D /* SharedAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F2E80D2E2AAFE300500C9D /* SharedAppIntents.swift */; };
+		B2F2E8102E2AAFE300500C9D /* SharedNetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F2E80E2E2AAFE300500C9D /* SharedNetworkManager.swift */; };
+		B2F2E8112E2AAFE300500C9D /* SharedAppIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F2E80D2E2AAFE300500C9D /* SharedAppIntents.swift */; };
+		B2F2E8122E2AAFE300500C9D /* SharedNetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F2E80E2E2AAFE300500C9D /* SharedNetworkManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,13 +50,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = B2D1724F2E1A767A00922A0C;
 			remoteInfo = CarWidgetExtension;
-		};
-		B2E8A0EF2E18EB4D00CF4A41 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B2C867312E0F9C45009A8FD6 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = B2E8A0E72E18EB4D00CF4A41;
-			remoteInfo = SiriIntents;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -86,7 +81,6 @@
 			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
 			dstSubfolderSpec = 16;
 			files = (
-				B2E8A0F12E18EB4D00CF4A41 /* SiriIntents.appex in Embed ExtensionKit Extensions */,
 			);
 			name = "Embed ExtensionKit Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -103,7 +97,6 @@
 		B223B0F42E1B8A6900D32AE5 /* QMUIConfigurationTemplate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = QMUIConfigurationTemplate.h; sourceTree = "<group>"; };
 		B223B0F52E1B8A6900D32AE5 /* QMUIConfigurationTemplate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = QMUIConfigurationTemplate.m; sourceTree = "<group>"; };
 		B2722A582E21552C0031A419 /* CarDataRefreshable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarDataRefreshable.swift; sourceTree = "<group>"; };
-		B2722A5C2E215DE50031A419 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Main.strings"; sourceTree = "<group>"; };
 		B28332122E13B68E00A2E140 /* Pan3-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Pan3-Bridging-Header.h"; sourceTree = "<group>"; };
 		B28332272E13B6A300A2E140 /* UIView+AZGradient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UIView+AZGradient.h"; sourceTree = "<group>"; };
 		B28332282E13B6A300A2E140 /* UIView+AZGradient.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "UIView+AZGradient.m"; sourceTree = "<group>"; };
@@ -111,15 +104,14 @@
 		B28332382E13DB3500A2E140 /* ACSelectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ACSelectView.swift; sourceTree = "<group>"; };
 		B287C6AD2E10470B00FDC1FD /* LoginViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginViewController.swift; sourceTree = "<group>"; };
 		B287C6AF2E104F7300FDC1FD /* CarModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarModel.swift; sourceTree = "<group>"; };
-		B287C6B02E104F7300FDC1FD /* LoginModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginModel.swift; sourceTree = "<group>"; };
 		B287C6B12E104F7300FDC1FD /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
-		B287C6B22E104F7300FDC1FD /* UserModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserModel.swift; sourceTree = "<group>"; };
 		B287C6BA2E10EA7700FDC1FD /* UserManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserManager.swift; sourceTree = "<group>"; };
 		B287C6BC2E11216400FDC1FD /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
 		B287C6BE2E11238F00FDC1FD /* ChargeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChargeViewController.swift; sourceTree = "<group>"; };
 		B287C6C02E11239600FDC1FD /* ShortcutsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutsViewController.swift; sourceTree = "<group>"; };
 		B287C6C22E1123A600FDC1FD /* SettingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingViewController.swift; sourceTree = "<group>"; };
 		B28C7C372E103F4300F33846 /* Login.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = Login.storyboard; sourceTree = "<group>"; };
+		B296F9992E24154F00440A5A /* AuthResponseModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthResponseModel.swift; sourceTree = "<group>"; };
 		B2C867392E0F9C45009A8FD6 /* Pan3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pan3.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2C867512E0F9D1B009A8FD6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		B2C867522E0F9D1B009A8FD6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -132,7 +124,9 @@
 		B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CarWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2D172512E1A767A00922A0C /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		B2D172532E1A767A00922A0C /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		B2E8A0E82E18EB4D00CF4A41 /* SiriIntents.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = SiriIntents.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B2E828C02E22E0D9006CB442 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Main.strings"; sourceTree = "<group>"; };
+		B2F2E80D2E2AAFE300500C9D /* SharedAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedAppIntents.swift; sourceTree = "<group>"; };
+		B2F2E80E2E2AAFE300500C9D /* SharedNetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedNetworkManager.swift; sourceTree = "<group>"; };
 		C1B597635421C2477B544AAE /* Pods_Pan3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Pan3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -144,13 +138,6 @@
 			);
 			target = B2D1724F2E1A767A00922A0C /* CarWidgetExtension */;
 		};
-		B2E8A0F22E18EB4D00CF4A41 /* Exceptions for "SiriIntents" folder in "SiriIntents" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = B2E8A0E72E18EB4D00CF4A41 /* SiriIntents */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -160,14 +147,6 @@
 				B2D172662E1A767C00922A0C /* Exceptions for "CarWidget" folder in "CarWidgetExtension" target */,
 			);
 			path = CarWidget;
-			sourceTree = "<group>";
-		};
-		B2E8A0E92E18EB4D00CF4A41 /* SiriIntents */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				B2E8A0F22E18EB4D00CF4A41 /* Exceptions for "SiriIntents" folder in "SiriIntents" target */,
-			);
-			path = SiriIntents;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -190,13 +169,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		B2E8A0E52E18EB4D00CF4A41 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -215,6 +187,8 @@
 			isa = PBXGroup;
 			children = (
 				B217BCA52E1C186D00EF6B59 /* CarWidgetAttributes.swift */,
+				B2F2E80E2E2AAFE300500C9D /* SharedNetworkManager.swift */,
+				B2F2E80D2E2AAFE300500C9D /* SharedAppIntents.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -257,8 +231,7 @@
 		B287C6B72E10511F00FDC1FD /* Model */ = {
 			isa = PBXGroup;
 			children = (
-				B287C6B02E104F7300FDC1FD /* LoginModel.swift */,
-				B287C6B22E104F7300FDC1FD /* UserModel.swift */,
+				B296F9992E24154F00440A5A /* AuthResponseModel.swift */,
 				B287C6AF2E104F7300FDC1FD /* CarModel.swift */,
 			);
 			path = Model;
@@ -292,7 +265,6 @@
 			isa = PBXGroup;
 			children = (
 				B2C867582E0F9D1B009A8FD6 /* Pan3 */,
-				B2E8A0E92E18EB4D00CF4A41 /* SiriIntents */,
 				B2D172552E1A767A00922A0C /* CarWidget */,
 				B217BCA42E1C184E00EF6B59 /* Shared */,
 				B2C8673A2E0F9C45009A8FD6 /* Products */,
@@ -305,7 +277,6 @@
 			isa = PBXGroup;
 			children = (
 				B2C867392E0F9C45009A8FD6 /* Pan3.app */,
-				B2E8A0E82E18EB4D00CF4A41 /* SiriIntents.appex */,
 				B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */,
 			);
 			name = Products;
@@ -324,8 +295,8 @@
 				B287C6B92E10512A00FDC1FD /* Controller */,
 				B287C6B72E10511F00FDC1FD /* Model */,
 				B287C6B82E10512400FDC1FD /* View */,
-				B2C867522E0F9D1B009A8FD6 /* Assets.xcassets */,
 				B2C867532E0F9D1B009A8FD6 /* Info.plist */,
+				B2C867522E0F9D1B009A8FD6 /* Assets.xcassets */,
 				B28C7C372E103F4300F33846 /* Login.storyboard */,
 				B2C867572E0F9D1B009A8FD6 /* Main.storyboard */,
 				B2C867552E0F9D1B009A8FD6 /* LaunchScreen.storyboard */,
@@ -362,7 +333,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				B2E8A0F02E18EB4D00CF4A41 /* PBXTargetDependency */,
 				B2D172642E1A767C00922A0C /* PBXTargetDependency */,
 			);
 			name = Pan3;
@@ -392,28 +362,6 @@
 			productReference = B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		B2E8A0E72E18EB4D00CF4A41 /* SiriIntents */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = B2E8A0F32E18EB4D00CF4A41 /* Build configuration list for PBXNativeTarget "SiriIntents" */;
-			buildPhases = (
-				B2E8A0E42E18EB4D00CF4A41 /* Sources */,
-				B2E8A0E52E18EB4D00CF4A41 /* Frameworks */,
-				B2E8A0E62E18EB4D00CF4A41 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				B2E8A0E92E18EB4D00CF4A41 /* SiriIntents */,
-			);
-			name = SiriIntents;
-			packageProductDependencies = (
-			);
-			productName = SiriIntents;
-			productReference = B2E8A0E82E18EB4D00CF4A41 /* SiriIntents.appex */;
-			productType = "com.apple.product-type.extensionkit-extension";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -429,9 +377,6 @@
 						LastSwiftMigration = 1620;
 					};
 					B2D1724F2E1A767A00922A0C = {
-						CreatedOnToolsVersion = 16.2;
-					};
-					B2E8A0E72E18EB4D00CF4A41 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -452,7 +397,6 @@
 			projectRoot = "";
 			targets = (
 				B2C867382E0F9C45009A8FD6 /* Pan3 */,
-				B2E8A0E72E18EB4D00CF4A41 /* SiriIntents */,
 				B2D1724F2E1A767A00922A0C /* CarWidgetExtension */,
 			);
 		};
@@ -471,13 +415,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B2D1724E2E1A767A00922A0C /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B2E8A0E62E18EB4D00CF4A41 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -517,9 +454,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Pan3/Pods-Pan3-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Pan3/Pods-Pan3-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -536,6 +477,8 @@
 				B287C6AE2E10470B00FDC1FD /* LoginViewController.swift in Sources */,
 				B287C6C32E1123A600FDC1FD /* SettingViewController.swift in Sources */,
 				B217BCA22E1C0DAC00EF6B59 /* LiveActivityManager.swift in Sources */,
+				B2F2E8112E2AAFE300500C9D /* SharedAppIntents.swift in Sources */,
+				B2F2E8122E2AAFE300500C9D /* SharedNetworkManager.swift in Sources */,
 				B287C6BF2E11238F00FDC1FD /* ChargeViewController.swift in Sources */,
 				B2D172472E19266900922A0C /* ChargeListController.swift in Sources */,
 				B2C8675D2E0F9D1B009A8FD6 /* AppDelegate.swift in Sources */,
@@ -551,8 +494,7 @@
 				B2D1724B2E1A6E0700922A0C /* HelpViewController.swift in Sources */,
 				B28332372E13D55500A2E140 /* ModalView.swift in Sources */,
 				B283322F2E13B6A300A2E140 /* UIView+AZGradient.m in Sources */,
-				B287C6B42E104F7300FDC1FD /* UserModel.swift in Sources */,
-				B287C6B52E104F7300FDC1FD /* LoginModel.swift in Sources */,
+				B296F99A2E24154F00440A5A /* AuthResponseModel.swift in Sources */,
 				B287C6B62E104F7300FDC1FD /* NetworkManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -563,13 +505,8 @@
 			files = (
 				B217BCA72E1C187F00EF6B59 /* CarWidgetAttributes.swift in Sources */,
 				B217BCA32E1C0DAC00EF6B59 /* LiveActivityManager.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B2E8A0E42E18EB4D00CF4A41 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+				B2F2E80F2E2AAFE300500C9D /* SharedAppIntents.swift in Sources */,
+				B2F2E8102E2AAFE300500C9D /* SharedNetworkManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -580,11 +517,6 @@
 			isa = PBXTargetDependency;
 			target = B2D1724F2E1A767A00922A0C /* CarWidgetExtension */;
 			targetProxy = B2D172632E1A767C00922A0C /* PBXContainerItemProxy */;
-		};
-		B2E8A0F02E18EB4D00CF4A41 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = B2E8A0E72E18EB4D00CF4A41 /* SiriIntents */;
-			targetProxy = B2E8A0EF2E18EB4D00CF4A41 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -601,7 +533,7 @@
 			isa = PBXVariantGroup;
 			children = (
 				B2C867562E0F9D1B009A8FD6 /* Base */,
-				B2722A5C2E215DE50031A419 /* zh-Hans */,
+				B2E828C02E22E0D9006CB442 /* zh-Hans */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
@@ -622,8 +554,8 @@
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pan3/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "胖3汽车";
-				INFOPLIST_KEY_NFCReaderUsageDescription = "此应用需要使用NFC功能来写入车辆控制信息";
+				INFOPLIST_KEY_CFBundleDisplayName = "胖3助手";
+				INFOPLIST_KEY_NFCReaderUsageDescription = "此应用需要NFC功能来写入卡实现快捷方式使用";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "通过保存相册的权限可以保存充电金二维码到你的相册";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "获取相册权限后可以更好的提供更多的帮助比如充电金或者头像";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -638,8 +570,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dream.car.pan3;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -664,8 +596,8 @@
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pan3/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "胖3汽车";
-				INFOPLIST_KEY_NFCReaderUsageDescription = "此应用需要使用NFC功能来写入车辆控制信息";
+				INFOPLIST_KEY_CFBundleDisplayName = "胖3助手";
+				INFOPLIST_KEY_NFCReaderUsageDescription = "此应用需要NFC功能来写入卡实现快捷方式使用";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "通过保存相册的权限可以保存充电金二维码到你的相册";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "获取相册权限后可以更好的提供更多的帮助比如充电金或者头像";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -680,8 +612,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dream.car.pan3;
+				MARKETING_VERSION = 1.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -835,7 +767,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dream.car.pan3.CarWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator watchos watchsimulator";
@@ -869,7 +801,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dream.car.pan3.CarWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator watchos watchsimulator";
@@ -878,60 +810,6 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,4";
 				WATCHOS_DEPLOYMENT_TARGET = 9.2;
-			};
-			name = Release;
-		};
-		B2E8A0F42E18EB4D00CF4A41 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = SiriIntents/SiriIntents.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2WP22Y7RSK;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = SiriIntents/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = SiriIntents;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dream.car.pan3.SiriIntents;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		B2E8A0F52E18EB4D00CF4A41 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = SiriIntents/SiriIntents.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 2WP22Y7RSK;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = SiriIntents/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = SiriIntents;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.dream.car.pan3.SiriIntents;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -961,15 +839,6 @@
 			buildConfigurations = (
 				B2D172682E1A767C00922A0C /* Debug */,
 				B2D172692E1A767C00922A0C /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		B2E8A0F32E18EB4D00CF4A41 /* Build configuration list for PBXNativeTarget "SiriIntents" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				B2E8A0F42E18EB4D00CF4A41 /* Debug */,
-				B2E8A0F52E18EB4D00CF4A41 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

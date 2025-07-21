@@ -32,10 +32,11 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
     }
     
     @IBAction func writeNFC(_ sender: Any) {
+        // 检查设备是否支持NFC
         guard NFCNDEFReaderSession.readingAvailable else {
-            let alert = UIAlertController(title: "NFC不可用", message: "此设备不支持NFC功能", preferredStyle: .alert)
+            let alert = UIAlertController(title: "不支持NFC", message: "此设备不支持NFC功能或NFC功能未启用", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "确定", style: .default))
-            present(alert, animated: true)
+            self.present(alert, animated: true)
             return
         }
         

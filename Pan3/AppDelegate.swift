@@ -76,10 +76,13 @@ extension UIControl {
     }
     
     @objc private func swizzled_sendAction(_ action: Selector, to target: Any?, for event: UIEvent?) {
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.prepare()
-        generator.impactOccurred()
-        
+        // 仅对 UIButton 或其子类生效
+        if self is UIButton {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.prepare()
+            generator.impactOccurred()
+        }
+
         // 调用原始实现（现在是 swizzled_sendAction）
         swizzled_sendAction(action, to: target, for: event)
     }

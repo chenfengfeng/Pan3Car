@@ -7,6 +7,7 @@
 
 import UIKit
 import QMUIKit
+import MJRefresh
 import SwifterSwift
 
 class ChargeViewController: UIViewController, CarDataRefreshable {
@@ -15,6 +16,7 @@ class ChargeViewController: UIViewController, CarDataRefreshable {
     @IBOutlet weak var chargeStatus: UILabel!
 
     @IBOutlet weak var segmentView: UISegmentedControl!
+    @IBOutlet weak var scrollView: UIScrollView!
     // 服务费view
     @IBOutlet weak var tipPriceView: UIStackView!
     @IBOutlet weak var tipUnitPrice: UITextField!
@@ -76,40 +78,31 @@ class ChargeViewController: UIViewController, CarDataRefreshable {
     // MARK: - 初始化界面
     func setupUI() {
         navigationItem.title = "便捷充电"
+        
+        let mj_header = MJRefreshNormalHeader(refreshingBlock: {
+            self.fetchCarInfo()
+        })
+        mj_header.lastUpdatedTimeLabel?.isHidden = true
+        scrollView.mj_header = mj_header
     }
     
     // MARK: - 获取车辆信息
     func fetchCarInfo() {
-        let userManager = UserManager.shared
-        guard let timaToken = userManager.timaToken else {
-            QMUITips.hideAllTips()
-            QMUITips.show(withText: "登录信息异常", in: view, hideAfterDelay: 2.0)
-            return
-        }
-        
-        let vins = userManager.allVins
-        guard !vins.isEmpty else {
-            QMUITips.hideAllTips()
-            QMUITips.show(withText: "未找到车辆信息", in: view, hideAfterDelay: 2.0)
-            return
-        }
-        
-        NetworkManager.shared.getCarInfo(
-            vins: vins,
-            timaToken: timaToken
-        ) { [weak self] result in
+        NetworkManager.shared.getInfo(completion: { [weak self] result in
             guard let self else { return }
+            self.scrollView.mj_header?.endRefreshing()
             DispatchQueue.main.async {
                 switch result {
-                case .success(let carModel):
+                case .success(let json):
                     // 保存车辆信息
-                    UserManager.shared.carModel = carModel
+                    let model = CarModel(json: json)
+                    UserManager.shared.updateCarInfo(with: model)
                     self.setupCarData()
                 case .failure(let error):
                     QMUITips.show(withText: "获取车辆信息失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
                 }
             }
-        }
+        })
     }
     
     // MARK: - 配置信息

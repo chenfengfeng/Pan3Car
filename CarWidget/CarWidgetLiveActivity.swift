@@ -5,9 +5,9 @@
 //  Created by Feng on 2025/1/2.
 //
 #if canImport(ActivityKit)
-import ActivityKit
-import WidgetKit
 import SwiftUI
+import WidgetKit
+import ActivityKit
 
 // MARK: - Live Activity View
 struct CarWidgetLiveActivity: Widget {
@@ -209,9 +209,17 @@ struct CompactTrailingView: View {
     let context: ActivityViewContext<CarWidgetAttributes>
     
     var body: some View {
-        Text("\(context.state.percentage)%")
+        Text(displayText)
             .font(.system(size: 14, weight: .semibold))
             .foregroundColor(.primary)
+    }
+    
+    private var displayText: String {
+        if context.state.status == "ready" {
+            return "等待充电"
+        } else {
+            return "\(context.state.percentage)%"
+        }
     }
 }
 

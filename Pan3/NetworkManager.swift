@@ -31,19 +31,35 @@ struct PaginationInfo {
 class NetworkManager {
     static let shared = NetworkManager()
     
-    private let baseURL = "https://yiweiauto.cn"
+    private let baseURL = "https://car.dreamforge.top"
     
     private init() {}
     
+    // 获取当前服务器类型
+    private func getServerType() -> String {
+        return UserDefaults.standard.string(forKey: "ServerType") ?? "main"
+    }
+    
+    // 根据服务器类型获取参数
+    private func getServerParameter() -> String? {
+        let serverType = getServerType()
+        return serverType == "spare" ? "spare" : nil
+    }
+    
     // MARK: - 登录接口
-    func login(userCode: String, password: String, completion: @escaping (Result<LoginModel, Error>) -> Void) {
-        let url = "\(baseURL)/api/jac-admin/admin/userBaseInformation/userLogin"
+    func login(userCode: String, password: String, completion: @escaping (Result<AuthResponseModel, Error>) -> Void) {
+        // 使用本地服务器的认证接口
+        let url = "\(baseURL)/auth"
         
-        let parameters: [String: Any] = [
-            "userType": "1",
+        var parameters: [String: Any] = [
             "userCode": userCode,
             "password": password
         ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
         
         AF.request(url,
                    method: .post,
@@ -56,11 +72,12 @@ class NetworkManager {
                 do {
                     let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
                     let json = JSON(jsonObject)
-                    if json["code"].intValue == 0 {
-                        let loginModel = LoginModel(json: json["data"])
-                        completion(.success(loginModel))
+                    if json["code"].intValue == 200 {
+                        let authResponse = AuthResponseModel(json: json)
+                        completion(.success(authResponse))
                     } else {
-                        let error = NSError(domain: "LoginError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: json["msg"].stringValue])
+                        let errorMsg = json["message"].stringValue.isEmpty ? "登录失败" : json["message"].stringValue
+                        let error = NSError(domain: "LoginError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
                         completion(.failure(error))
                     }
                 } catch {
@@ -72,21 +89,31 @@ class NetworkManager {
         }
     }
     
-    // MARK: - 用户信息接口
-    func getUserInfo(phone: String, userId: String, tspUserId: String, aaaUserID: String, timaToken: String, identityParam: String, completion: @escaping (Result<[UserModel], Error>) -> Void) {
-        let url = "\(baseURL)/api/jac-car-control/vehicle/find-vehicle-list"
+    
+    // MARK: - 退出登录
+    func logout(completion: @escaping (Result<Bool, Error>) -> Void) {
+        // 内部获取必要参数
+        guard let no = UserManager.shared.no,
+              let timaToken = UserManager.shared.timaToken else {
+            let error = NSError(domain: "LogoutError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录"])
+            completion(.failure(error))
+            return
+        }
         
-        let parameters: [String: Any] = [
-            "phone": phone,
-            "userId": userId,
-            "tspUserId": tspUserId,
-            "aaaUserID": aaaUserID
+        let url = "\(baseURL)/login_out"
+        
+        var parameters: [String: Any] = [
+            "no": no,
+            "timaToken": timaToken
         ]
         
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
+        
         let headers: HTTPHeaders = [
-            "Content-Type": "application/json",
-            "timaToken": timaToken,
-            "identityParam": identityParam
+            "Content-Type": "application/json"
         ]
         
         AF.request(url,
@@ -100,11 +127,12 @@ class NetworkManager {
                 do {
                     let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
                     let json = JSON(jsonObject)
-                    if json["returnSuccess"].boolValue {
-                        let userModels = json["data"].arrayValue.map { UserModel(json: $0) }
-                        completion(.success(userModels))
+                    // 根据实际API返回格式调整判断逻辑
+                    if json["code"].intValue == 200 {
+                        completion(.success(true))
                     } else {
-                        let error = NSError(domain: "UserInfoError", code: -1, userInfo: [NSLocalizedDescriptionKey: "获取用户信息失败"])
+                        let errorMsg = json["message"].stringValue.isEmpty ? json["msg"].stringValue : json["message"].stringValue
+                        let error = NSError(domain: "LogoutError", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMsg.isEmpty ? "退出登录失败" : errorMsg])
                         completion(.failure(error))
                     }
                 } catch {
@@ -117,12 +145,27 @@ class NetworkManager {
     }
     
     // MARK: - 车辆信息接口
-    func getCarInfo(vins: [String], timaToken: String, completion: @escaping (Result<CarModel, Error>) -> Void) {
-        let url = "\(baseURL)/api/jac-energy/jacenergy/vehicleInformation/energy-query-vehicle-new-condition"
+    // 获取车辆详细信息
+    func getInfo(completion: @escaping (Result<JSON, Error>) -> Void) {
+        // 内部获取必要参数
+        guard let vin = UserManager.shared.defaultVin,
+              let timaToken = UserManager.shared.timaToken else {
+            let error = NSError(domain: "CarInfoError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
         
-        let parameters: [String: Any] = [
-            "vins": vins
+        let url = "\(baseURL)/info"
+        
+        var parameters: [String: Any] = [
+            "vin": vin,
+            "timaToken": timaToken
         ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
         
         let headers: HTTPHeaders = [
             "Content-Type": "application/json",
@@ -140,11 +183,11 @@ class NetworkManager {
                 do {
                     let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
                     let json = JSON(jsonObject)
-                    if json["returnSuccess"].boolValue {
-                        let carModel = CarModel(json: json["data"])
-                        completion(.success(carModel))
+                    if json["code"].intValue == 200 {
+                        completion(.success(json["data"]))
                     } else {
-                        let error = NSError(domain: "CarInfoError", code: -1, userInfo: [NSLocalizedDescriptionKey: json["returnErrMsg"].stringValue.isEmpty ? "获取车辆信息失败" : json["returnErrMsg"].stringValue])
+                        let errorMsg = json["message"].stringValue.isEmpty ? "获取车辆信息失败" : json["message"].stringValue
+                        let error = NSError(domain: "CarInfoError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
                         completion(.failure(error))
                     }
                 } catch {
@@ -159,7 +202,7 @@ class NetworkManager {
     // MARK: - 车辆控制接口
     
     // 控制车锁
-    func controlCarLock(operation: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+    func energyLock(operation: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
         // 内部获取必要参数
         guard let vin = UserManager.shared.defaultVin,
               let timaToken = UserManager.shared.timaToken else {
@@ -168,17 +211,22 @@ class NetworkManager {
             return
         }
         
-        let url = "\(baseURL)/api/jac-energy/jacenergy/vehicleControl/energy-remote-vehicle-control"
+        let url = "\(baseURL)/energy"
         
-        let parameters: [String: Any] = [
+        var parameters: [String: Any] = [
             "vin": vin,
             "operation": operation, // 1关锁，2开锁
-            "operationType": "LOCK"
+            "operationType": "LOCK",
+            "timaToken": timaToken
         ]
         
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
+        
         let headers: HTTPHeaders = [
-            "Content-Type": "application/json",
-            "timaToken": timaToken
+            "Content-Type": "application/json"
         ]
         
         AF.request(url,
@@ -208,7 +256,7 @@ class NetworkManager {
     }
     
     // 控制空调
-    func controlAirConditioner(operation: Int, temperature: Int, duringTime: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+    func energyAirConditioner(operation: Int, temperature: Int, duringTime: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
         // 内部获取必要参数
         guard let vin = UserManager.shared.defaultVin,
               let timaToken = UserManager.shared.timaToken else {
@@ -217,21 +265,24 @@ class NetworkManager {
             return
         }
         
-        let url = "\(baseURL)/api/jac-energy/jacenergy/vehicleControl/energy-remote-vehicle-control"
+        let url = "\(baseURL)/energy"
         
-        let parameters: [String: Any] = [
-            "operation": operation, // 2表示开启，1表示关闭
-            "extParams": [
-                "temperature": temperature,
-                "duringTime": duringTime
-            ],
+        var parameters: [String: Any] = [
             "vin": vin,
-            "operationType": "INTELLIGENT_AIRCONDITIONER"
+            "operation": operation, // 2表示开启，1表示关闭
+            "operationType": "INTELLIGENT_AIRCONDITIONER",
+            "temperature": temperature,
+            "duringTime": duringTime,
+            "timaToken": timaToken
         ]
         
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
+        
         let headers: HTTPHeaders = [
-            "Content-Type": "application/json",
-            "timaToken": timaToken
+            "Content-Type": "application/json"
         ]
         
         AF.request(url,
@@ -261,7 +312,7 @@ class NetworkManager {
     }
     
     // 控制车窗
-    func controlWindow(operation: Int, openLevel: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
+    func energyWindow(operation: Int, openLevel: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
         // 内部获取必要参数
         guard let vin = UserManager.shared.defaultVin,
               let timaToken = UserManager.shared.timaToken else {
@@ -270,20 +321,23 @@ class NetworkManager {
             return
         }
         
-        let url = "\(baseURL)/api/jac-energy/jacenergy/vehicleControl/energy-remote-vehicle-control"
+        let url = "\(baseURL)/energy"
         
-        let parameters: [String: Any] = [
-            "operation": operation, // 执行动作类型，1关闭，2开启
-            "extParams": [
-                "openLevel": openLevel // 开窗等级：0=关闭，2=完全打开
-            ],
+        var parameters: [String: Any] = [
             "vin": vin,
-            "operationType": "WINDOW"
+            "operation": operation, // 执行动作类型，1关闭，2开启
+            "operationType": "WINDOW",
+            "openLevel": openLevel,
+            "timaToken": timaToken
         ]
         
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
+        
         let headers: HTTPHeaders = [
-            "Content-Type": "application/json",
-            "timaToken": timaToken
+            "Content-Type": "application/json"
         ]
         
         AF.request(url,
@@ -313,7 +367,7 @@ class NetworkManager {
     }
     
     // 鸣笛寻车
-    func findCar(completion: @escaping (Result<Bool, Error>) -> Void) {
+    func energyFind(completion: @escaping (Result<Bool, Error>) -> Void) {
         // 内部获取必要参数
         guard let vin = UserManager.shared.defaultVin,
               let timaToken = UserManager.shared.timaToken else {
@@ -322,17 +376,21 @@ class NetworkManager {
             return
         }
         
-        let url = "\(baseURL)/api/jac-energy/jacenergy/vehicleControl/energy-remote-vehicle-control"
+        let url = "\(baseURL)/energy"
         
-        let parameters: [String: Any] = [
+        var parameters: [String: Any] = [
             "vin": vin,
-            "operation": 1,
-            "operationType": "FIND_VEHICLE"
+            "operationType": "FIND_VEHICLE",
+            "timaToken": timaToken
         ]
         
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
+        
         let headers: HTTPHeaders = [
-            "Content-Type": "application/json",
-            "timaToken": timaToken
+            "Content-Type": "application/json"
         ]
         
         AF.request(url,
@@ -372,13 +430,18 @@ class NetworkManager {
             return
         }
         
-        let url = "https://api.dreamforge.top/car/add_charge"
+        let url = "\(baseURL)/add_charge"
         
-        let parameters: [String: Any] = [
+        var parameters: [String: Any] = [
             "charge_kwh": charge_kwh,
             "token": timaToken,
             "vin": vin
         ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
         
         let headers: HTTPHeaders = [
             "Content-Type": "application/json"
@@ -450,13 +513,18 @@ class NetworkManager {
             return
         }
         
-        let url = "https://api.dreamforge.top/car/update_charge"
+        let url = "\(baseURL)/update_charge"
         
-        let parameters: [String: Any] = [
+        var parameters: [String: Any] = [
             "vin": vin,
             "token": timaToken,
             "push_token": push_token
         ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
         
         let headers: HTTPHeaders = [
             "Content-Type": "application/json"
@@ -499,11 +567,16 @@ class NetworkManager {
             return
         }
         
-        let url = "https://api.dreamforge.top/car/cancel_charge"
+        let url = "\(baseURL)/cancel_charge"
         
-        let parameters: [String: Any] = [
+        var parameters: [String: Any] = [
             "vin": vin
         ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
         
         let headers: HTTPHeaders = [
             "Content-Type": "application/json"
@@ -547,12 +620,17 @@ class NetworkManager {
             return
         }
         
-        let url = "https://api.dreamforge.top/car/stop_charge"
+        let url = "\(baseURL)/stop_charge"
         
-        let parameters: [String: Any] = [
+        var parameters: [String: Any] = [
             "vin": vin,
             "token": timaToken
         ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
         
         let headers: HTTPHeaders = [
             "Content-Type": "application/json"
@@ -596,12 +674,17 @@ class NetworkManager {
             return
         }
         
-        let url = "https://api.dreamforge.top/car/get_charge_status"
+        let url = "\(baseURL)/get_charge_status"
         
-        let parameters: [String: Any] = [
+        var parameters: [String: Any] = [
             "token": timaToken,
             "vin": vin
         ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
         
         let headers: HTTPHeaders = [
             "Content-Type": "application/json"
@@ -675,12 +758,17 @@ class NetworkManager {
             return
         }
         
-        let url = "https://api.dreamforge.top/car/get_charge_list"
+        let url = "\(baseURL)/get_charge_list"
         
-        let parameters: [String: Any] = [
+        var parameters: [String: Any] = [
             "vin": vin,
             "page": page
         ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
         
         let headers: HTTPHeaders = [
             "Content-Type": "application/json"

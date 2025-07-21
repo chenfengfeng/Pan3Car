@@ -13,6 +13,11 @@ if (empty($params)) {
 // 获取用户提交的 vin 和 token
 $vin = $params['vin'];
 $token = $params['token'];
+// 获取服务器参数
+$server = $params['server'] ?? '';
+
+// 根据server参数选择API基础地址
+$baseApiUrl = ($server === 'spare') ? 'https://yiweiauto.cn' : 'https://jacsupperapp.jac.com.cn';
 
 // 验证必要参数
 if (empty($vin) || empty($token)) {
@@ -22,7 +27,7 @@ if (empty($vin) || empty($token)) {
 
 try {
     // 1. 先调用停止充电的API
-    $stopChargeUrl = 'https://yiweiauto.cn/api/jac-energy/jacenergy/vehicleControl/energy-remote-vehicle-control';
+    $stopChargeUrl = $baseApiUrl . '/api/jac-energy/jacenergy/vehicleControl/energy-remote-vehicle-control';
     $stopChargeData = [
         'operation' => 1,
         'extParams' => [

@@ -18,12 +18,13 @@ class LoginViewController: UIViewController {
     lazy var checkBox: QMUICheckbox = {
         let box = QMUICheckbox()
         box.tintColor = .label
+        box.isSelected = true
         return box
     }()
     
     // 协议URL占位符
-    private let privacyPolicyURL = "https://yiweiauto.cn/privacy"
-    private let userAgreementURL = "https://yiweiauto.cn/agreement"
+    private let privacyPolicyURL = "https://car.dreamforge.top/privacy"
+    private let userAgreementURL = "https://car.dreamforge.top/agreement"
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -39,92 +40,8 @@ class LoginViewController: UIViewController {
         }
     }
     
-    // MARK: - 获取用户信息
-    func fetchUserInfo() {
-        let userManager = UserManager.shared
-        guard let phone = userManager.userPhone,
-              let userId = userManager.userId,
-              let tspUserId = userManager.tspUserId,
-              let aaaUserId = userManager.aaaUserId,
-              let timaToken = userManager.timaToken,
-              let identityParam = userManager.identityParam else {
-            QMUITips.hideAllTips()
-            QMUITips.show(withText: "登录信息异常", in: view, hideAfterDelay: 2.0)
-            return
-        }
-        
-        NetworkManager.shared.getUserInfo(
-            phone: phone,
-            userId: userId,
-            tspUserId: tspUserId,
-            aaaUserID: aaaUserId,
-            timaToken: timaToken,
-            identityParam: identityParam
-        ) { [weak self] result in
-            guard let self else { return }
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let userModels):
-                    // 保存用户信息到单例
-                    UserManager.shared.userModels = userModels
-                    
-                    // 获取车辆信息
-                    self.fetchCarInfo()
-                    
-                case .failure(let error):
-                    QMUITips.hideAllTips()
-                    QMUITips.show(withText: "获取用户信息失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
-                }
-            }
-        }
-    }
-    
-    // MARK: - 获取车辆信息
-    func fetchCarInfo() {
-        let userManager = UserManager.shared
-        guard let timaToken = userManager.timaToken else {
-            QMUITips.hideAllTips()
-            QMUITips.show(withText: "登录信息异常", in: view, hideAfterDelay: 2.0)
-            return
-        }
-        
-        let vins = userManager.allVins
-        guard !vins.isEmpty else {
-            QMUITips.hideAllTips()
-            QMUITips.show(withText: "未找到车辆信息", in: view, hideAfterDelay: 2.0)
-            return
-        }
-        
-        NetworkManager.shared.getCarInfo(
-            vins: vins,
-            timaToken: timaToken
-        ) { [weak self] result in
-            guard let self else { return }
-            DispatchQueue.main.async {
-                QMUITips.hideAllTips()
-                switch result {
-                case .success(let carModel):
-                    // 保存车辆信息到单例
-                    UserManager.shared.carModel = carModel
-                    
-                    // 所有信息获取完成，跳转到主界面
-                    QMUITips.show(withText: "登录成功", in: self.view, hideAfterDelay: 1.0)
-                    
-                    // TODO: 跳转到主界面
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        self.navigateToMainViewController()
-                    }
-                    
-                case .failure(let error):
-                    QMUITips.show(withText: "获取车辆信息失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
-                    // 即使车辆信息获取失败，也可以跳转到主界面
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                        self.navigateToMainViewController()
-                    }
-                }
-            }
-        }
-    }
+    // MARK: - 注意：fetchUserInfo 和 fetchCarInfo 方法已被移除
+    // 新的认证接口 auth.php 已经包含了所有必要的信息，无需单独获取
     
     // MARK: - 跳转到主界面
     func navigateToMainViewController() {
@@ -274,17 +191,20 @@ class LoginViewController: UIViewController {
         NetworkManager.shared.login(userCode: phone, password: encryptedPassword) { [weak self] result in
             guard let self else {return}
             DispatchQueue.main.async {
+                QMUITips.hideAllTips()
                 switch result {
-                case .success(let loginModel):
-                    // 登录成功，保存登录信息到单例
-                    UserManager.shared.loginModel = loginModel
+                case .success(let authResponse):
+                    // 登录成功，保存认证响应信息到单例
+                    UserManager.shared.authResponse = authResponse
                     self.saveCredentials()
                     
-                    // 获取用户信息
-                    self.fetchUserInfo()
+                    // 登录成功，直接跳转到主界面（新接口已包含所有信息）
+                    QMUITips.show(withText: "登录成功", in: self.view, hideAfterDelay: 1.0)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        self.navigateToMainViewController()
+                    }
                     
                 case .failure(let error):
-                    QMUITips.hideAllTips()
                     QMUITips.show(withText: error.localizedDescription, in: self.view, hideAfterDelay: 2.0)
                 }
             }

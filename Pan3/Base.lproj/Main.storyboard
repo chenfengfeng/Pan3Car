@@ -44,7 +44,7 @@
                     <connections>
                         <segue destination="yFY-QM-SDY" kind="relationship" relationship="viewControllers" id="S4k-S5-rsK"/>
                         <segue destination="PkQ-R8-NJ5" kind="relationship" relationship="viewControllers" id="eu9-y5-QQr"/>
-                        <segue destination="D24-HR-1ku" kind="relationship" relationship="viewControllers" id="1mx-3U-kEz"/>
+                        <segue destination="D24-HR-1ku" kind="relationship" relationship="viewControllers" id="G71-Tw-jHK"/>
                         <segue destination="LgU-Ze-LJ6" kind="relationship" relationship="viewControllers" id="X1d-ph-Ewe"/>
                     </connections>
                 </tabBarController>
@@ -467,6 +467,7 @@
                         <outlet property="mile" destination="gsc-Id-R2z" id="nqq-9t-A6L"/>
                         <outlet property="price" destination="3El-hY-jvE" id="fpS-2I-qCJ"/>
                         <outlet property="priceView" destination="028-Pm-ZQn" id="6yT-Cv-9j1"/>
+                        <outlet property="scrollView" destination="IkW-YT-QeY" id="4Mz-ks-5cc"/>
                         <outlet property="segmentView" destination="tFt-aY-8Fa" id="fxN-O3-jS4"/>
                         <outlet property="soc" destination="dnj-Bh-gy3" id="y55-CY-Vgy"/>
                         <outlet property="stopChargeBtn" destination="QaI-lJ-MTQ" id="kr4-XC-h7U"/>
@@ -528,7 +529,7 @@
                                         <rect key="frame" x="0.0" y="0.0" width="362" height="559"/>
                                         <subviews>
                                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="2dq-4L-UZQ">
-                                                <rect key="frame" x="0.0" y="0.0" width="362" height="736"/>
+                                                <rect key="frame" x="0.0" y="0.0" width="362" height="460"/>
                                                 <subviews>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gFo-H3-Gco">
                                                         <rect key="frame" x="0.0" y="0.0" width="362" height="92"/>
@@ -536,14 +537,14 @@
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Yf4-TP-Ygv">
                                                                 <rect key="frame" x="10" y="10" width="342" height="72"/>
                                                                 <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri解锁" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7S0-79-JFA">
-                                                                        <rect key="frame" x="9.9999999999999929" y="10" width="109.33333333333331" height="24"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri读取车门状态" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7S0-79-JFA">
+                                                                        <rect key="frame" x="10" y="10" width="186" height="24"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                                                         <nil key="textColor"/>
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3汽车 解锁”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zxV-eX-xVA">
-                                                                        <rect key="frame" x="10" y="42" width="175" height="19.333333333333329"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3助手 车门状态”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zxV-eX-xVA">
+                                                                        <rect key="frame" x="10" y="42" width="207" height="19.333333333333329"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                                         <nil key="textColor"/>
                                                                         <nil key="highlightedColor"/>
@@ -578,14 +579,14 @@
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="3Pl-v2-CP1">
                                                                 <rect key="frame" x="10" y="10" width="342" height="72"/>
                                                                 <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri锁车" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="REd-Fw-dbI">
-                                                                        <rect key="frame" x="9.9999999999999929" y="10" width="109.33333333333331" height="24"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri读取空调状态" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="REd-Fw-dbI">
+                                                                        <rect key="frame" x="10" y="10" width="186" height="24"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                                                         <nil key="textColor"/>
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3汽车 锁车”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Hyf-ji-BFo">
-                                                                        <rect key="frame" x="10" y="42" width="175" height="19.333333333333329"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3助手 空调状态”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Hyf-ji-BFo">
+                                                                        <rect key="frame" x="10" y="42" width="207" height="19.333333333333329"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                                         <nil key="textColor"/>
                                                                         <nil key="highlightedColor"/>
@@ -620,13 +621,13 @@
                                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="GbO-Ha-Lz8">
                                                                 <rect key="frame" x="10" y="10" width="342" height="72"/>
                                                                 <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri开空调" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="L16-cH-9sn">
-                                                                        <rect key="frame" x="10" y="10" width="128.33333333333334" height="24"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri读取车窗状态" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="L16-cH-9sn">
+                                                                        <rect key="frame" x="10" y="10" width="186" height="24"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                                                         <nil key="textColor"/>
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3汽车 打开空调”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="jca-4Y-ejZ">
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3助手 车窗状态”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="jca-4Y-ejZ">
                                                                         <rect key="frame" x="10" y="42" width="207" height="19.333333333333329"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                                         <nil key="textColor"/>
@@ -656,19 +657,19 @@
                                                             <constraint firstItem="GbO-Ha-Lz8" firstAttribute="leading" secondItem="bMf-8P-h7r" secondAttribute="leading" constant="10" id="tQQ-G5-uJj"/>
                                                         </constraints>
                                                     </view>
-                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="rth-he-i02">
+                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="uRd-5B-gew">
                                                         <rect key="frame" x="0.0" y="276" width="362" height="92"/>
                                                         <subviews>
-                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="u6S-OP-GD4">
+                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gF7-2N-0hv">
                                                                 <rect key="frame" x="10" y="10" width="342" height="72"/>
                                                                 <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri关空调" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mKi-dZ-1Hf">
-                                                                        <rect key="frame" x="10" y="10" width="128.33333333333334" height="24"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri读取剩余里程" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5Mg-KY-rr4">
+                                                                        <rect key="frame" x="10" y="10" width="186" height="24"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                                                         <nil key="textColor"/>
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3汽车 关闭空调”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="i7f-wD-uaR">
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3助手 剩余里程”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ce6-Pd-EwS">
                                                                         <rect key="frame" x="10" y="42" width="207" height="19.333333333333329"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                                         <nil key="textColor"/>
@@ -677,10 +678,10 @@
                                                                 </subviews>
                                                                 <color key="backgroundColor" systemColor="tertiarySystemFillColor"/>
                                                                 <constraints>
-                                                                    <constraint firstItem="i7f-wD-uaR" firstAttribute="top" secondItem="mKi-dZ-1Hf" secondAttribute="bottom" constant="8" id="DK9-BO-wmy"/>
-                                                                    <constraint firstItem="mKi-dZ-1Hf" firstAttribute="top" secondItem="u6S-OP-GD4" secondAttribute="top" constant="10" id="aEI-BF-y7C"/>
-                                                                    <constraint firstItem="i7f-wD-uaR" firstAttribute="leading" secondItem="u6S-OP-GD4" secondAttribute="leading" constant="10" id="mGw-NM-aUP"/>
-                                                                    <constraint firstItem="mKi-dZ-1Hf" firstAttribute="leading" secondItem="u6S-OP-GD4" secondAttribute="leading" constant="10" id="yYF-9y-nez"/>
+                                                                    <constraint firstItem="Ce6-Pd-EwS" firstAttribute="leading" secondItem="gF7-2N-0hv" secondAttribute="leading" constant="10" id="3no-7w-DwM"/>
+                                                                    <constraint firstItem="Ce6-Pd-EwS" firstAttribute="top" secondItem="5Mg-KY-rr4" secondAttribute="bottom" constant="8" id="Dpc-x5-xKN"/>
+                                                                    <constraint firstItem="5Mg-KY-rr4" firstAttribute="top" secondItem="gF7-2N-0hv" secondAttribute="top" constant="10" id="NTU-RL-4gl"/>
+                                                                    <constraint firstItem="5Mg-KY-rr4" firstAttribute="leading" secondItem="gF7-2N-0hv" secondAttribute="leading" constant="10" id="Vc6-8s-dao"/>
                                                                 </constraints>
                                                                 <userDefinedRuntimeAttributes>
                                                                     <userDefinedRuntimeAttribute type="number" keyPath="layerCornerRadius">
@@ -691,26 +692,26 @@
                                                         </subviews>
                                                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                                         <constraints>
-                                                            <constraint firstAttribute="trailing" secondItem="u6S-OP-GD4" secondAttribute="trailing" constant="10" id="6vt-Yg-4yk"/>
-                                                            <constraint firstItem="u6S-OP-GD4" firstAttribute="leading" secondItem="rth-he-i02" secondAttribute="leading" constant="10" id="Csz-SN-1l6"/>
-                                                            <constraint firstItem="u6S-OP-GD4" firstAttribute="top" secondItem="rth-he-i02" secondAttribute="top" constant="10" id="Pac-XG-ITO"/>
-                                                            <constraint firstAttribute="height" constant="92" id="Un1-rs-ciS"/>
-                                                            <constraint firstAttribute="bottom" secondItem="u6S-OP-GD4" secondAttribute="bottom" constant="10" id="dJ2-cM-nFP"/>
+                                                            <constraint firstAttribute="bottom" secondItem="gF7-2N-0hv" secondAttribute="bottom" constant="10" id="5pR-Ap-LP9"/>
+                                                            <constraint firstAttribute="height" constant="92" id="EJj-z8-cP5"/>
+                                                            <constraint firstItem="gF7-2N-0hv" firstAttribute="leading" secondItem="uRd-5B-gew" secondAttribute="leading" constant="10" id="d1v-RG-GZ4"/>
+                                                            <constraint firstAttribute="trailing" secondItem="gF7-2N-0hv" secondAttribute="trailing" constant="10" id="e0M-If-xmn"/>
+                                                            <constraint firstItem="gF7-2N-0hv" firstAttribute="top" secondItem="uRd-5B-gew" secondAttribute="top" constant="10" id="zte-EZ-Z2W"/>
                                                         </constraints>
                                                     </view>
-                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="PyI-vM-IHu">
+                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="oMF-nd-h6q">
                                                         <rect key="frame" x="0.0" y="368" width="362" height="92"/>
                                                         <subviews>
-                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Up5-Ek-aLx">
+                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="xpX-ei-DvV">
                                                                 <rect key="frame" x="10" y="10" width="342" height="72"/>
                                                                 <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri开空调并设定温度" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bcc-zN-7LH">
-                                                                        <rect key="frame" x="10" y="10" width="224.33333333333334" height="24"/>
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri读取剩余电量" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="hfO-06-r1V">
+                                                                        <rect key="frame" x="10" y="10" width="186" height="24"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                                                         <nil key="textColor"/>
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3汽车 调节温度”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="PIa-NF-Age">
+                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3助手 剩余电量”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="AlN-rV-Ziw">
                                                                         <rect key="frame" x="10" y="42" width="207" height="19.333333333333329"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                                         <nil key="textColor"/>
@@ -719,10 +720,10 @@
                                                                 </subviews>
                                                                 <color key="backgroundColor" systemColor="tertiarySystemFillColor"/>
                                                                 <constraints>
-                                                                    <constraint firstItem="PIa-NF-Age" firstAttribute="top" secondItem="bcc-zN-7LH" secondAttribute="bottom" constant="8" id="AU1-kY-jTa"/>
-                                                                    <constraint firstItem="bcc-zN-7LH" firstAttribute="leading" secondItem="Up5-Ek-aLx" secondAttribute="leading" constant="10" id="L3q-Fk-E27"/>
-                                                                    <constraint firstItem="PIa-NF-Age" firstAttribute="leading" secondItem="Up5-Ek-aLx" secondAttribute="leading" constant="10" id="eom-tA-e9A"/>
-                                                                    <constraint firstItem="bcc-zN-7LH" firstAttribute="top" secondItem="Up5-Ek-aLx" secondAttribute="top" constant="10" id="uE2-3F-zfE"/>
+                                                                    <constraint firstItem="AlN-rV-Ziw" firstAttribute="top" secondItem="hfO-06-r1V" secondAttribute="bottom" constant="8" id="P45-1P-xSP"/>
+                                                                    <constraint firstItem="AlN-rV-Ziw" firstAttribute="leading" secondItem="xpX-ei-DvV" secondAttribute="leading" constant="10" id="Tri-cn-Qcx"/>
+                                                                    <constraint firstItem="hfO-06-r1V" firstAttribute="top" secondItem="xpX-ei-DvV" secondAttribute="top" constant="10" id="dgJ-vk-cdL"/>
+                                                                    <constraint firstItem="hfO-06-r1V" firstAttribute="leading" secondItem="xpX-ei-DvV" secondAttribute="leading" constant="10" id="oAm-Fd-lZ4"/>
                                                                 </constraints>
                                                                 <userDefinedRuntimeAttributes>
                                                                     <userDefinedRuntimeAttribute type="number" keyPath="layerCornerRadius">
@@ -733,137 +734,11 @@
                                                         </subviews>
                                                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                                         <constraints>
-                                                            <constraint firstAttribute="bottom" secondItem="Up5-Ek-aLx" secondAttribute="bottom" constant="10" id="Icl-4Y-GrT"/>
-                                                            <constraint firstAttribute="height" constant="92" id="MXH-Kv-rp6"/>
-                                                            <constraint firstItem="Up5-Ek-aLx" firstAttribute="top" secondItem="PyI-vM-IHu" secondAttribute="top" constant="10" id="Wn4-Xm-wXe"/>
-                                                            <constraint firstItem="Up5-Ek-aLx" firstAttribute="leading" secondItem="PyI-vM-IHu" secondAttribute="leading" constant="10" id="dZ6-AI-mv7"/>
-                                                            <constraint firstAttribute="trailing" secondItem="Up5-Ek-aLx" secondAttribute="trailing" constant="10" id="zNH-IR-ESe"/>
-                                                        </constraints>
-                                                    </view>
-                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="7Ag-Ae-mfT">
-                                                        <rect key="frame" x="0.0" y="460" width="362" height="92"/>
-                                                        <subviews>
-                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Vnf-uo-cY3">
-                                                                <rect key="frame" x="10" y="10" width="342" height="72"/>
-                                                                <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri开车窗" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="pO1-ct-KoA">
-                                                                        <rect key="frame" x="10" y="10" width="128.33333333333334" height="24"/>
-                                                                        <fontDescription key="fontDescription" type="system" pointSize="20"/>
-                                                                        <nil key="textColor"/>
-                                                                        <nil key="highlightedColor"/>
-                                                                    </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3汽车 打开车窗”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="AXU-mJ-rwf">
-                                                                        <rect key="frame" x="10" y="42" width="207" height="19.333333333333329"/>
-                                                                        <fontDescription key="fontDescription" type="system" pointSize="16"/>
-                                                                        <nil key="textColor"/>
-                                                                        <nil key="highlightedColor"/>
-                                                                    </label>
-                                                                </subviews>
-                                                                <color key="backgroundColor" systemColor="tertiarySystemFillColor"/>
-                                                                <constraints>
-                                                                    <constraint firstItem="pO1-ct-KoA" firstAttribute="leading" secondItem="Vnf-uo-cY3" secondAttribute="leading" constant="10" id="ACq-Ci-xe3"/>
-                                                                    <constraint firstItem="AXU-mJ-rwf" firstAttribute="leading" secondItem="Vnf-uo-cY3" secondAttribute="leading" constant="10" id="I4s-jy-3FK"/>
-                                                                    <constraint firstItem="AXU-mJ-rwf" firstAttribute="top" secondItem="pO1-ct-KoA" secondAttribute="bottom" constant="8" id="ODe-vQ-ueR"/>
-                                                                    <constraint firstItem="pO1-ct-KoA" firstAttribute="top" secondItem="Vnf-uo-cY3" secondAttribute="top" constant="10" id="VDI-ye-bGr"/>
-                                                                </constraints>
-                                                                <userDefinedRuntimeAttributes>
-                                                                    <userDefinedRuntimeAttribute type="number" keyPath="layerCornerRadius">
-                                                                        <real key="value" value="12"/>
-                                                                    </userDefinedRuntimeAttribute>
-                                                                </userDefinedRuntimeAttributes>
-                                                            </view>
-                                                        </subviews>
-                                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" constant="92" id="8KY-JQ-L16"/>
-                                                            <constraint firstItem="Vnf-uo-cY3" firstAttribute="top" secondItem="7Ag-Ae-mfT" secondAttribute="top" constant="10" id="GTp-tE-x5w"/>
-                                                            <constraint firstAttribute="bottom" secondItem="Vnf-uo-cY3" secondAttribute="bottom" constant="10" id="IPn-Op-cyj"/>
-                                                            <constraint firstItem="Vnf-uo-cY3" firstAttribute="leading" secondItem="7Ag-Ae-mfT" secondAttribute="leading" constant="10" id="IqR-BN-a3w"/>
-                                                            <constraint firstAttribute="trailing" secondItem="Vnf-uo-cY3" secondAttribute="trailing" constant="10" id="fE1-jF-UNJ"/>
-                                                        </constraints>
-                                                    </view>
-                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="N3I-Yp-zki">
-                                                        <rect key="frame" x="0.0" y="552" width="362" height="92"/>
-                                                        <subviews>
-                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Dzn-TE-mPJ">
-                                                                <rect key="frame" x="10" y="10" width="342" height="72"/>
-                                                                <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri关车窗" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="IoQ-Tj-Ob3">
-                                                                        <rect key="frame" x="10" y="10" width="128.33333333333334" height="24"/>
-                                                                        <fontDescription key="fontDescription" type="system" pointSize="20"/>
-                                                                        <nil key="textColor"/>
-                                                                        <nil key="highlightedColor"/>
-                                                                    </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3汽车 关闭车窗”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="xBi-7f-Dcp">
-                                                                        <rect key="frame" x="10" y="42" width="207" height="19.333333333333329"/>
-                                                                        <fontDescription key="fontDescription" type="system" pointSize="16"/>
-                                                                        <nil key="textColor"/>
-                                                                        <nil key="highlightedColor"/>
-                                                                    </label>
-                                                                </subviews>
-                                                                <color key="backgroundColor" systemColor="tertiarySystemFillColor"/>
-                                                                <constraints>
-                                                                    <constraint firstItem="IoQ-Tj-Ob3" firstAttribute="top" secondItem="Dzn-TE-mPJ" secondAttribute="top" constant="10" id="7Kd-wG-NmV"/>
-                                                                    <constraint firstItem="xBi-7f-Dcp" firstAttribute="leading" secondItem="Dzn-TE-mPJ" secondAttribute="leading" constant="10" id="Asz-YK-U8g"/>
-                                                                    <constraint firstItem="xBi-7f-Dcp" firstAttribute="top" secondItem="IoQ-Tj-Ob3" secondAttribute="bottom" constant="8" id="ps0-hh-SWe"/>
-                                                                    <constraint firstItem="IoQ-Tj-Ob3" firstAttribute="leading" secondItem="Dzn-TE-mPJ" secondAttribute="leading" constant="10" id="rbg-Sg-Tcn"/>
-                                                                </constraints>
-                                                                <userDefinedRuntimeAttributes>
-                                                                    <userDefinedRuntimeAttribute type="number" keyPath="layerCornerRadius">
-                                                                        <real key="value" value="12"/>
-                                                                    </userDefinedRuntimeAttribute>
-                                                                </userDefinedRuntimeAttributes>
-                                                            </view>
-                                                        </subviews>
-                                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                                        <constraints>
-                                                            <constraint firstItem="Dzn-TE-mPJ" firstAttribute="top" secondItem="N3I-Yp-zki" secondAttribute="top" constant="10" id="CdU-qA-kdh"/>
-                                                            <constraint firstAttribute="height" constant="92" id="SBN-z8-Alo"/>
-                                                            <constraint firstAttribute="trailing" secondItem="Dzn-TE-mPJ" secondAttribute="trailing" constant="10" id="ZgM-K0-ACg"/>
-                                                            <constraint firstItem="Dzn-TE-mPJ" firstAttribute="leading" secondItem="N3I-Yp-zki" secondAttribute="leading" constant="10" id="bhU-Xo-tMU"/>
-                                                            <constraint firstAttribute="bottom" secondItem="Dzn-TE-mPJ" secondAttribute="bottom" constant="10" id="cYe-kK-Ljv"/>
-                                                        </constraints>
-                                                    </view>
-                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="RzW-94-d5M">
-                                                        <rect key="frame" x="0.0" y="644" width="362" height="92"/>
-                                                        <subviews>
-                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gnI-Jg-uiw">
-                                                                <rect key="frame" x="10" y="10" width="342" height="72"/>
-                                                                <subviews>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="使用Siri鸣笛找车" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="G8J-Xo-roU">
-                                                                        <rect key="frame" x="10" y="10" width="147.66666666666666" height="24"/>
-                                                                        <fontDescription key="fontDescription" type="system" pointSize="20"/>
-                                                                        <nil key="textColor"/>
-                                                                        <nil key="highlightedColor"/>
-                                                                    </label>
-                                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="对Siri说“胖3汽车 鸣笛”" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="E3W-ot-IOI">
-                                                                        <rect key="frame" x="10" y="42" width="175" height="19.333333333333329"/>
-                                                                        <fontDescription key="fontDescription" type="system" pointSize="16"/>
-                                                                        <nil key="textColor"/>
-                                                                        <nil key="highlightedColor"/>
-                                                                    </label>
-                                                                </subviews>
-                                                                <color key="backgroundColor" systemColor="tertiarySystemFillColor"/>
-                                                                <constraints>
-                                                                    <constraint firstItem="G8J-Xo-roU" firstAttribute="leading" secondItem="gnI-Jg-uiw" secondAttribute="leading" constant="10" id="BnS-Z5-nDB"/>
-                                                                    <constraint firstItem="E3W-ot-IOI" firstAttribute="top" secondItem="G8J-Xo-roU" secondAttribute="bottom" constant="8" id="OHi-Tq-Dfw"/>
-                                                                    <constraint firstItem="G8J-Xo-roU" firstAttribute="top" secondItem="gnI-Jg-uiw" secondAttribute="top" constant="10" id="iuv-Dy-kAI"/>
-                                                                    <constraint firstItem="E3W-ot-IOI" firstAttribute="leading" secondItem="gnI-Jg-uiw" secondAttribute="leading" constant="10" id="zgd-pf-Joh"/>
-                                                                </constraints>
-                                                                <userDefinedRuntimeAttributes>
-                                                                    <userDefinedRuntimeAttribute type="number" keyPath="layerCornerRadius">
-                                                                        <real key="value" value="12"/>
-                                                                    </userDefinedRuntimeAttribute>
-                                                                </userDefinedRuntimeAttributes>
-                                                            </view>
-                                                        </subviews>
-                                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="trailing" secondItem="gnI-Jg-uiw" secondAttribute="trailing" constant="10" id="5uH-hS-cOU"/>
-                                                            <constraint firstAttribute="height" constant="92" id="7rW-41-Xbn"/>
-                                                            <constraint firstAttribute="bottom" secondItem="gnI-Jg-uiw" secondAttribute="bottom" constant="10" id="RWr-CE-uy0"/>
-                                                            <constraint firstItem="gnI-Jg-uiw" firstAttribute="leading" secondItem="RzW-94-d5M" secondAttribute="leading" constant="10" id="rgh-GS-hRC"/>
-                                                            <constraint firstItem="gnI-Jg-uiw" firstAttribute="top" secondItem="RzW-94-d5M" secondAttribute="top" constant="10" id="y4p-ZI-rn7"/>
+                                                            <constraint firstItem="xpX-ei-DvV" firstAttribute="top" secondItem="oMF-nd-h6q" secondAttribute="top" constant="10" id="0vt-rV-c8w"/>
+                                                            <constraint firstItem="xpX-ei-DvV" firstAttribute="leading" secondItem="oMF-nd-h6q" secondAttribute="leading" constant="10" id="GW2-lF-rVM"/>
+                                                            <constraint firstAttribute="height" constant="92" id="dCW-Jr-Alu"/>
+                                                            <constraint firstAttribute="bottom" secondItem="xpX-ei-DvV" secondAttribute="bottom" constant="10" id="gC0-of-WUV"/>
+                                                            <constraint firstAttribute="trailing" secondItem="xpX-ei-DvV" secondAttribute="trailing" constant="10" id="uZD-KK-G28"/>
                                                         </constraints>
                                                     </view>
                                                 </subviews>
@@ -880,7 +755,7 @@
                                         <rect key="frame" x="0.0" y="0.0" width="362" height="0.0"/>
                                         <subviews>
                                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="EyI-JY-ife">
-                                                <rect key="frame" x="0.0" y="0.0" width="362" height="985"/>
+                                                <rect key="frame" x="0.0" y="0.0" width="362" height="869.66666666666663"/>
                                                 <subviews>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="步骤1" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="0q8-9B-e6n">
                                                         <rect key="frame" x="0.0" y="0.0" width="362" height="24"/>
@@ -1039,7 +914,7 @@
                                                         <nil key="textColor"/>
                                                         <nil key="highlightedColor"/>
                                                     </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="先点击扫描按钮，出现弹窗后去轻触刚才写入的NFC芯片，然后给一个命名（你可以随意起一个，比如胖3解锁），点击下一步" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9Fx-IU-cjk">
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="先点击扫描按钮，出现弹窗后去轻触刚才写入的NFC芯片，然后给一个命名（你可以随意起一个，比如胖3条件判断），点击下一步" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9Fx-IU-cjk">
                                                         <rect key="frame" x="0.0" y="561.66666666666663" width="362" height="57.333333333333371"/>
                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                         <nil key="textColor"/>
@@ -1058,52 +933,33 @@
                                                         <nil key="textColor"/>
                                                         <nil key="highlightedColor"/>
                                                     </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="在下面APP选择“胖3汽车”" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="pWj-Us-R5P">
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="在下面APP选择“胖3助手”" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="pWj-Us-R5P">
                                                         <rect key="frame" x="0.0" y="677" width="362" height="19.333333333333371"/>
                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                         <nil key="textColor"/>
                                                         <nil key="highlightedColor"/>
                                                     </label>
-                                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="eIt-5Z-p6X">
-                                                        <rect key="frame" x="0.0" y="704.33333333333337" width="362" height="10"/>
-                                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" constant="10" id="6c0-ZI-gXN"/>
-                                                        </constraints>
-                                                    </view>
-                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="步骤8" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="kvd-pK-FW6">
-                                                        <rect key="frame" x="0.0" y="722.33333333333337" width="362" height="24"/>
-                                                        <fontDescription key="fontDescription" type="system" pointSize="20"/>
-                                                        <nil key="textColor"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="如果只想把NFC用于解锁，就选择解锁就可以，如果想要轻触一下解锁，再轻触一下关锁，就选择切换锁车" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="QCj-Jy-zpM">
-                                                        <rect key="frame" x="0.0" y="754.33333333333337" width="362" height="57.333333333333371"/>
-                                                        <fontDescription key="fontDescription" type="system" pointSize="16"/>
-                                                        <nil key="textColor"/>
-                                                        <nil key="highlightedColor"/>
-                                                    </label>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="xyK-fr-xY2">
-                                                        <rect key="frame" x="0.0" y="819.66666666666674" width="362" height="10"/>
+                                                        <rect key="frame" x="0.0" y="704.33333333333337" width="362" height="10"/>
                                                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                                         <constraints>
                                                             <constraint firstAttribute="height" constant="10" id="lFI-Ju-kd0"/>
                                                         </constraints>
                                                     </view>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="最后" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bye-CD-wxT">
-                                                        <rect key="frame" x="0.0" y="837.66666666666674" width="362" height="24"/>
+                                                        <rect key="frame" x="0.0" y="722.33333333333337" width="362" height="24"/>
                                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                                         <nil key="textColor"/>
                                                         <nil key="highlightedColor"/>
                                                     </label>
-                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="你就可以实现用NFC来实现操作，你还可以扩展用于开窗、开空调等操作，具体需要你自己去探索，祝你玩的愉快😀" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="oPj-yy-kux">
-                                                        <rect key="frame" x="0.0" y="869.66666666666674" width="362" height="57.333333333333371"/>
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="你就可以实现用NFC来实现操作，你还可以扩展用于车窗，车门，空调状态等操作，具体需要你自己去探索，祝你玩的愉快😀" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="oPj-yy-kux">
+                                                        <rect key="frame" x="0.0" y="754.33333333333337" width="362" height="57.333333333333371"/>
                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                         <nil key="textColor"/>
                                                         <nil key="highlightedColor"/>
                                                     </label>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="g0K-16-562">
-                                                        <rect key="frame" x="0.0" y="935" width="362" height="50"/>
+                                                        <rect key="frame" x="0.0" y="819.66666666666674" width="362" height="50"/>
                                                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                                         <constraints>
                                                             <constraint firstAttribute="height" constant="50" id="qkW-fX-ge8"/>
@@ -1324,10 +1180,27 @@
                                 <rect key="frame" x="0.0" y="258" width="402" height="616"/>
                                 <subviews>
                                     <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="vMK-nw-6Kj">
-                                        <rect key="frame" x="20" y="0.0" width="362" height="797"/>
+                                        <rect key="frame" x="20" y="0.0" width="362" height="677"/>
                                         <subviews>
-                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="9TW-rD-p7W">
-                                                <rect key="frame" x="0.0" y="0.0" width="362" height="100"/>
+                                            <stackView hidden="YES" opaque="NO" contentMode="scaleToFill" distribution="equalSpacing" translatesAutoresizingMaskIntoConstraints="NO" id="7b6-su-SXJ">
+                                                <rect key="frame" x="0.0" y="0.0" width="362" height="0.0"/>
+                                                <subviews>
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="⚡️正在充电" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="6FD-ng-NgE">
+                                                        <rect key="frame" x="0.0" y="0.0" width="86.666666666666671" height="0.0"/>
+                                                        <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                                        <color key="textColor" systemColor="systemYellowColor"/>
+                                                        <nil key="highlightedColor"/>
+                                                    </label>
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="预计充满：0小时0分钟" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bna-A2-sFs">
+                                                        <rect key="frame" x="193.33333333333337" y="0.0" width="168.66666666666663" height="0.0"/>
+                                                        <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                                        <color key="textColor" systemColor="systemYellowColor"/>
+                                                        <nil key="highlightedColor"/>
+                                                    </label>
+                                                </subviews>
+                                            </stackView>
+                                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="9TW-rD-p7W">
+                                                <rect key="frame" x="0.0" y="-100" width="362" height="100"/>
                                                 <subviews>
                                                     <visualEffectView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="BcE-iA-e1R">
                                                         <rect key="frame" x="0.0" y="0.0" width="362" height="100"/>
@@ -1489,7 +1362,7 @@
                                                 </userDefinedRuntimeAttributes>
                                             </view>
                                             <stackView opaque="NO" contentMode="scaleToFill" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="uFb-Ta-m0W">
-                                                <rect key="frame" x="0.0" y="120" width="362" height="171"/>
+                                                <rect key="frame" x="0.0" y="0.0" width="362" height="171"/>
                                                 <subviews>
                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="3kh-SI-L6q">
                                                         <rect key="frame" x="0.0" y="0.0" width="171" height="171"/>
@@ -1508,7 +1381,7 @@
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
                                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="位置" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ICB-Pm-Pza">
-                                                                        <rect key="frame" x="8" y="47.666666666666629" width="155" height="14.333333333333336"/>
+                                                                        <rect key="frame" x="8" y="47.666666666666686" width="155" height="14.333333333333336"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="12"/>
                                                                         <color key="textColor" white="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                         <nil key="highlightedColor"/>
@@ -1597,7 +1470,7 @@
                                                                         <nil key="highlightedColor"/>
                                                                     </label>
                                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="空调已关闭" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="OjS-fI-oz1">
-                                                                        <rect key="frame" x="0.0" y="23.333333333333314" width="94.666666666666671" height="19.333333333333329"/>
+                                                                        <rect key="frame" x="0.0" y="23.333333333333371" width="94.666666666666671" height="19.333333333333329"/>
                                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                                         <color key="textColor" systemColor="systemGrayColor"/>
                                                                         <nil key="highlightedColor"/>
@@ -1632,7 +1505,7 @@
                                                 </subviews>
                                             </stackView>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="aeE-oc-WCu">
-                                                <rect key="frame" x="0.0" y="311" width="362" height="100"/>
+                                                <rect key="frame" x="0.0" y="191" width="362" height="100"/>
                                                 <subviews>
                                                     <visualEffectView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="iYd-LB-Q5n">
                                                         <rect key="frame" x="0.0" y="0.0" width="362" height="100"/>
@@ -1715,7 +1588,7 @@
                                                 </userDefinedRuntimeAttributes>
                                             </view>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bY5-y1-1ce">
-                                                <rect key="frame" x="0.0" y="431" width="362" height="126"/>
+                                                <rect key="frame" x="0.0" y="311" width="362" height="126"/>
                                                 <subviews>
                                                     <visualEffectView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="hkn-wr-Ua9">
                                                         <rect key="frame" x="0.0" y="0.0" width="362" height="126"/>
@@ -1804,7 +1677,7 @@
                                                 </userDefinedRuntimeAttributes>
                                             </view>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Ddp-8D-BVx">
-                                                <rect key="frame" x="0.0" y="577" width="362" height="100"/>
+                                                <rect key="frame" x="0.0" y="457" width="362" height="100"/>
                                                 <subviews>
                                                     <visualEffectView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="PYv-lC-hjV">
                                                         <rect key="frame" x="0.0" y="0.0" width="362" height="100"/>
@@ -1887,7 +1760,7 @@
                                                 </userDefinedRuntimeAttributes>
                                             </view>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="qwp-9J-Q5D">
-                                                <rect key="frame" x="0.0" y="697" width="362" height="100"/>
+                                                <rect key="frame" x="0.0" y="577" width="362" height="100"/>
                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                 <constraints>
                                                     <constraint firstAttribute="height" constant="100" id="a5q-BA-bAB"/>
@@ -1941,9 +1814,11 @@
                         <outlet property="callLabel" destination="iAX-At-bJP" id="Wa1-Jy-vcc"/>
                         <outlet property="carAddress" destination="ICB-Pm-Pza" id="a9F-8d-fE3"/>
                         <outlet property="carTemperature" destination="hQd-S2-cA3" id="gF3-Z8-Ca3"/>
+                        <outlet property="chargeView" destination="7b6-su-SXJ" id="Qs3-gC-jIz"/>
                         <outlet property="leftBottomDoorStatus" destination="GyP-au-xoQ" id="GyH-pK-BXe"/>
                         <outlet property="leftBottomTPStatus" destination="a03-2y-v88" id="Bag-Rv-ABs"/>
                         <outlet property="leftBottomWindowStatus" destination="dpS-H2-hon" id="ihQ-XJ-irQ"/>
+                        <outlet property="leftChargeTime" destination="bna-A2-sFs" id="2hw-Kq-O4N"/>
                         <outlet property="leftTopDoorStatus" destination="MXx-Nb-WWZ" id="4Rk-AS-3Fg"/>
                         <outlet property="leftTopTPStatus" destination="zTw-MB-CHh" id="6K6-wy-7pa"/>
                         <outlet property="leftTopWindowStatus" destination="ebD-uF-kWu" id="VjJ-Am-V9F"/>
@@ -1962,6 +1837,7 @@
                         <outlet property="scrollView" destination="z88-Bq-mgi" id="0wC-ER-3nF"/>
                         <outlet property="soc" destination="2BU-4Y-U7j" id="ePJ-GE-Qc3"/>
                         <outlet property="tailDoorStatus" destination="z3D-YO-zOa" id="qWA-JB-ZUq"/>
+                        <outlet property="topView" destination="9TW-rD-p7W" id="Yoj-Wc-8qF"/>
                         <outlet property="totalMileage" destination="trx-ni-iPq" id="4g1-wW-h62"/>
                         <outlet property="unit" destination="W2O-FK-vSo" id="bLg-QN-5ad"/>
                         <outlet property="windowBtn" destination="Gdd-Vg-MXl" id="nhb-QV-ltt"/>
@@ -2011,6 +1887,9 @@
         </systemColor>
         <systemColor name="systemRedColor">
             <color red="1" green="0.23137254900000001" blue="0.18823529410000001" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemYellowColor">
+            <color red="1" green="0.80000000000000004" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="tertiaryLabelColor">
             <color red="0.23529411759999999" green="0.23529411759999999" blue="0.26274509800000001" alpha="0.29803921570000003" colorSpace="custom" customColorSpace="sRGB"/>

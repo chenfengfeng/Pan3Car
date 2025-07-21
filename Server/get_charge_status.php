@@ -12,6 +12,11 @@ if (empty($params)) {
 
 // 获取用户提交的 vin
 $vin = $params['vin'];
+// 获取服务器参数
+$server = $params['server'] ?? '';
+
+// 根据server参数选择API基础地址
+$baseApiUrl = ($server === 'spare') ? 'https://yiweiauto.cn' : 'https://jacsupperapp.jac.com.cn';
 
 // 验证必要参数
 if (empty($vin)) {

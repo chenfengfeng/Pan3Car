@@ -1,0 +1,368 @@
+//
+//  SharedNetworkManager.swift
+//  Pan3Car
+//
+//  Created by AI Assistant on 2024
+//
+
+import Foundation
+
+/// 共享网络管理器，支持多Target复用（主应用、小组件、Watch等）
+class SharedNetworkManager {
+    static let shared = SharedNetworkManager()
+    
+    private let baseURL = "https://car.dreamforge.top"
+    
+    // 请求频率控制
+    private var lastInfoRequestTime: Date = Date(timeIntervalSince1970: 0)
+    private let minRequestInterval: TimeInterval = 3.0 // 最小请求间隔3秒
+    private let requestQueue = DispatchQueue(label: "shared.network.queue", qos: .userInitiated)
+    
+    private init() {}
+    
+    // MARK: - 获取用户认证信息
+    private var timaToken: String? {
+        return UserDefaults(suiteName: "group.com.feng.pan3")?.string(forKey: "timaToken")
+    }
+    
+    private var defaultVin: String? {
+        return UserDefaults(suiteName: "group.com.feng.pan3")?.string(forKey: "defaultVin")
+    }
+    
+    // 获取当前服务器类型
+    private func getServerType() -> String {
+        return UserDefaults(suiteName: "group.com.feng.pan3")?.string(forKey: "ServerType") ?? "main"
+    }
+    
+    // 根据服务器类型获取参数
+    private func getServerParameter() -> String? {
+        let serverType = getServerType()
+        return serverType == "spare" ? "spare" : nil
+    }
+    
+    // MARK: - 车辆控制方法（使用energy端点）
+    
+    /// 寻车功能
+    func findCar(completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let vin = defaultVin,
+              let timaToken = timaToken else {
+            let error = NSError(domain: "FindCarError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/energy"
+        
+        var parameters: [String: Any] = [
+            "vin": vin,
+            "operationType": "FIND_VEHICLE",
+            "timaToken": timaToken
+        ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
+        
+        performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
+    }
+    
+    /// 车锁控制
+    func energyLock(operation: Int, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let vin = defaultVin,
+              let timaToken = timaToken else {
+            let error = NSError(domain: "CarLockError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/energy"
+        
+        var parameters: [String: Any] = [
+            "vin": vin,
+            "operation": operation, // 1关锁，2开锁
+            "operationType": "LOCK",
+            "timaToken": timaToken
+        ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
+        
+        print("[Shared Debug] 执行远程锁操作：\(operation)")
+        performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
+    }
+    
+    /// 车窗控制
+    func energyWindow(operation: Int, openLevel: Int, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let vin = defaultVin,
+              let timaToken = timaToken else {
+            let error = NSError(domain: "WindowError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/energy"
+        
+        var parameters: [String: Any] = [
+            "vin": vin,
+            "operation": operation, // 执行动作类型，1关闭，2开启
+            "operationType": "WINDOW",
+            "openLevel": openLevel, // 开窗等级：0=关闭，2=完全打开
+            "timaToken": timaToken
+        ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
+        
+        performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
+    }
+    
+    /// 空调控制
+    func energyAirConditioner(operation: Int, temperature: Int, duringTime: Int, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let vin = defaultVin,
+              let timaToken = timaToken else {
+            let error = NSError(domain: "AirConditionerError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/energy"
+        
+        var parameters: [String: Any] = [
+            "vin": vin,
+            "operation": operation, // 2表示开启，1表示关闭
+            "operationType": "INTELLIGENT_AIRCONDITIONER",
+            "temperature": temperature,
+            "duringTime": duringTime,
+            "timaToken": timaToken
+        ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
+        
+        performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
+    }
+    
+    // MARK: - 获取车辆信息
+    
+    /// 获取车辆信息（带频率控制）
+    func getCarInfo(completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let vin = defaultVin,
+              let timaToken = timaToken else {
+            let error = NSError(domain: "CarInfoError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        requestQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            let now = Date()
+            let timeSinceLastRequest = now.timeIntervalSince(self.lastInfoRequestTime)
+            
+            if timeSinceLastRequest < self.minRequestInterval {
+                let waitTime = self.minRequestInterval - timeSinceLastRequest
+                print("[Shared Debug] 请求过于频繁，等待 \(waitTime) 秒")
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + waitTime) {
+                    self.performActualInfoRequest(vin: vin, timaToken: timaToken, completion: completion)
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.performActualInfoRequest(vin: vin, timaToken: timaToken, completion: completion)
+                }
+            }
+        }
+    }
+    
+    private func performActualInfoRequest(vin: String, timaToken: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        lastInfoRequestTime = Date()
+        print("[Shared Debug] 执行info请求，时间: \(lastInfoRequestTime)")
+        
+        let url = "\(baseURL)/info"
+        
+        let parameters: [String: Any] = [
+            "vin": vin,
+            "timaToken": timaToken
+        ]
+        
+        performCarInfoRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
+    }
+    
+    // MARK: - 通用网络请求方法
+    
+    /// 通用请求方法（用于energy端点）
+    private func performRequest(url: String, parameters: [String: Any], timaToken: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let requestURL = URL(string: url) else {
+            let error = NSError(domain: "NetworkError", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])
+            completion(.failure(error))
+            return
+        }
+        
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(timaToken, forHTTPHeaderField: "timaToken")
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
+        } catch {
+            completion(.failure(error))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                let error = NSError(domain: "NetworkError", code: -1, userInfo: [NSLocalizedDescriptionKey: "未收到数据"])
+                completion(.failure(error))
+                return
+            }
+            
+            DispatchQueue.main.async {
+                do {
+                    if let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        if let returnSuccess = jsonObject["returnSuccess"] as? Int, returnSuccess == 1 {
+                            completion(.success(jsonObject))
+                        } else {
+                            let errorMessage = jsonObject["message"] as? String ?? "操作失败"
+                            let error = NSError(domain: "APIError", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                            completion(.failure(error))
+                        }
+                    } else {
+                        let error = NSError(domain: "NetworkError", code: -1, userInfo: [NSLocalizedDescriptionKey: "响应格式错误"])
+                        completion(.failure(error))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            }
+        }.resume()
+    }
+    
+    /// 车辆信息请求方法（用于info端点）
+    private func performCarInfoRequest(url: String, parameters: [String: Any], timaToken: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let requestURL = URL(string: url) else {
+            let error = NSError(domain: "NetworkError", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])
+            completion(.failure(error))
+            return
+        }
+        
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(timaToken, forHTTPHeaderField: "timaToken")
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
+        } catch {
+            completion(.failure(error))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                let error = NSError(domain: "NetworkError", code: -1, userInfo: [NSLocalizedDescriptionKey: "未收到数据"])
+                completion(.failure(error))
+                return
+            }
+            
+            do {
+                if let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if let code = jsonObject["code"] as? Int, code == 200 {
+                        if let data = jsonObject["data"] as? [String: Any] {
+                            completion(.success(data))
+                        } else {
+                            let error = NSError(domain: "APIError", code: -1, userInfo: [NSLocalizedDescriptionKey: "车辆数据格式错误"])
+                            completion(.failure(error))
+                        }
+                    } else {
+                        if let code = jsonObject["returnSuccess"] as? Int, code == 1 {
+                            completion(.success(jsonObject))
+                        } else {
+                            let errorMessage = jsonObject["message"] as? String ?? "获取车辆信息失败"
+                            let error = NSError(domain: "APIError", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                            completion(.failure(error))
+                        }
+                    }
+                } else {
+                    let error = NSError(domain: "NetworkError", code: -1, userInfo: [NSLocalizedDescriptionKey: "响应格式错误"])
+                    completion(.failure(error))
+                }
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+    
+    // MARK: - 高德地图逆地理编码
+    
+    /// 获取格式化地址（使用高德地图逆地理编码API）
+    func getFormattedAddress(latitude: String, longitude: String, completion: @escaping (Result<String, Error>) -> Void) {
+        let apiKey = "ad43794c805061ae25622bc72c8f4763"
+        let urlString = "https://restapi.amap.com/v3/geocode/regeo?key=\(apiKey)&location=\(longitude),\(latitude)&radius=1000&extensions=base"
+        
+        guard let requestURL = URL(string: urlString) else {
+            let error = NSError(domain: "NetworkError", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])
+            completion(.failure(error))
+            return
+        }
+        
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                let error = NSError(domain: "NetworkError", code: -1, userInfo: [NSLocalizedDescriptionKey: "未收到数据"])
+                completion(.failure(error))
+                return
+            }
+            
+            DispatchQueue.main.async {
+                do {
+                    if let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        if let status = jsonObject["status"] as? String, status == "1" {
+                            if let regeocode = jsonObject["regeocode"] as? [String: Any],
+                               let formattedAddress = regeocode["formatted_address"] as? String {
+                                completion(.success(formattedAddress))
+                            } else {
+                                let error = NSError(domain: "APIError", code: -1, userInfo: [NSLocalizedDescriptionKey: "地址数据格式错误"])
+                                completion(.failure(error))
+                            }
+                        } else {
+                            let errorMessage = jsonObject["info"] as? String ?? "获取地址失败"
+                            let error = NSError(domain: "APIError", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMessage])
+                            completion(.failure(error))
+                        }
+                    } else {
+                        let error = NSError(domain: "NetworkError", code: -1, userInfo: [NSLocalizedDescriptionKey: "响应格式错误"])
+                        completion(.failure(error))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            }
+        }.resume()
+    }
+}

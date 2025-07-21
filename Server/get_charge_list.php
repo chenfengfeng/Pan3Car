@@ -20,6 +20,11 @@ try {
     
     $vin = $params['vin'];
     $page = isset($params['page']) ? (int)$params['page'] : 1;
+    // 获取服务器参数
+    $server = $params['server'] ?? '';
+    
+    // 根据server参数选择API基础地址
+    $baseApiUrl = ($server === 'spare') ? 'https://yiweiauto.cn' : 'https://jacsupperapp.jac.com.cn';
     $pageSize = 20; // 每页20条数据
     $offset = ($page - 1) * $pageSize;
     

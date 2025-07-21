@@ -23,7 +23,10 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
     @IBOutlet weak var totalMileage: UILabel!
     
     @IBOutlet weak var scrollView: UIScrollView!
+    @IBOutlet weak var chargeView: UIStackView!
+    @IBOutlet weak var leftChargeTime: UILabel!
     
+    @IBOutlet weak var topView: UIView!
     @IBOutlet weak var lockBtn: QMUIButton!
     @IBOutlet weak var lockLabel: UILabel!// 开锁/关锁
     @IBOutlet weak var acBtn: QMUIButton!
@@ -91,8 +94,9 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         if !isFirstDataLoad {
             fetchCarInfo()
         }
+        let shouldEnableExperimental = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
+        topView.isHidden = !shouldEnableExperimental
     }
-    
 
     
     // MARK: - 设置导航栏
@@ -113,10 +117,10 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         
         switch greetingType {
         case "nickname":
-            let name = UserManager.shared.loginModel?.userName ?? ""
+            let name = UserManager.shared.userInfo?.userName ?? ""
             navigationItem.title = "尊贵的\(name)车主"
         case "carNumber":
-            let carNumber = UserManager.shared.userModels?.first?.plateLicenseNo ?? ""
+            let carNumber = UserManager.shared.userInfo?.plateLicenseNo ?? ""
             navigationItem.title = "尊贵的\(carNumber)车主"
         case "custom":
             let customGreeting = UserDefaults.standard.string(forKey: "CustomGreeting") ?? ""
@@ -124,7 +128,7 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         case "none":
             navigationItem.title = "胖3汽车"
         default:
-            let name = UserManager.shared.loginModel?.userName ?? ""
+            let name = UserManager.shared.userInfo?.userName ?? ""
             navigationItem.title = "尊贵的\(name)车主"
         }
     }
@@ -222,7 +226,7 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
                 return oldModel.mainLockStatus != newModel.mainLockStatus
             },
             controlAction: { completion in
-                NetworkManager.shared.controlCarLock(operation: operation, completion: completion)
+                NetworkManager.shared.energyLock(operation: operation, completion: completion)
             }
         )
     }
@@ -259,7 +263,7 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
                 return oldModel.acStatus != newModel.acStatus
             },
             controlAction: { completion in
-                NetworkManager.shared.controlAirConditioner(operation: 2, temperature: temperature, duringTime: time, completion: completion)
+                NetworkManager.shared.energyAirConditioner(operation: 2, temperature: temperature, duringTime: time, completion: completion)
             }
         )
     }
@@ -274,7 +278,7 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
                 return oldModel.acStatus != newModel.acStatus
             },
             controlAction: { completion in
-                NetworkManager.shared.controlAirConditioner(operation: 1, temperature: 26, duringTime: 30, completion: completion)
+                NetworkManager.shared.energyAirConditioner(operation: 1, temperature: 26, duringTime: 30, completion: completion)
             }
         )
     }
@@ -287,8 +291,7 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         
         // 判断当前车窗状态
         let allWindowsClosed = model.lfWindowOpen == 0 && model.rfWindowOpen == 0 &&
-        model.lrWindowOpen == 0 && model.rrWindowOpen == 0 &&
-        model.topWindowOpen == 0
+                               model.lrWindowOpen == 0 && model.rrWindowOpen == 0
         
         let operation = allWindowsClosed ? 2 : 1  // 2开启，1关闭
         let openLevel = allWindowsClosed ? 2 : 0  // 2完全打开，0关闭
@@ -300,20 +303,19 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
             failureText: "\(actionText)失败",
             expectedStatusChange: { oldModel, newModel in
                 return oldModel.lfWindowOpen != newModel.lfWindowOpen &&
-                oldModel.rfWindowOpen != newModel.rfWindowOpen &&
-                oldModel.lrWindowOpen != newModel.lrWindowOpen &&
-                oldModel.rrWindowOpen != newModel.rrWindowOpen &&
-                oldModel.topWindowOpen != newModel.topWindowOpen
+                       oldModel.rfWindowOpen != newModel.rfWindowOpen &&
+                       oldModel.lrWindowOpen != newModel.lrWindowOpen &&
+                       oldModel.rrWindowOpen != newModel.rrWindowOpen
             },
             controlAction: { completion in
-                NetworkManager.shared.controlWindow(operation: operation, openLevel: openLevel, completion: completion)
+                NetworkManager.shared.energyWindow(operation: operation, openLevel: openLevel, completion: completion)
             }
         )
     }
     
     @IBAction func actionCall(_ sender: QMUIButton) {
         QMUITips.showLoading("鸣笛寻车指令发送中...", in: view)
-        NetworkManager.shared.findCar { result in
+        NetworkManager.shared.energyFind { result in
             QMUITips.hideAllTips()
             switch result {
             case .success(_):
@@ -384,12 +386,6 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
             return
         }
         
-        let vins = userManager.allVins
-        guard !vins.isEmpty else {
-            QMUITips.show(withText: "未找到车辆信息", in: view, hideAfterDelay: 2.0)
-            return
-        }
-        
         // 获取车辆信息
         fetchCarInfo(showSuccessMessage: false)
     }
@@ -413,16 +409,17 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         NetworkManager.shared.login(userCode: credentials.phone, password: encryptedPassword) { [weak self] result in
             guard let self else { return }
             DispatchQueue.main.async {
+                QMUITips.hideAllTips()
                 switch result {
-                case .success(let loginModel):
-                    // 登录成功，更新登录信息
-                    UserManager.shared.loginModel = loginModel
+                case .success(let authResponse):
+                    // 登录成功，更新认证响应信息
+                    UserManager.shared.authResponse = authResponse
                     
-                    // 重新获取用户信息
-                    self.fetchUserInfoAfterRelogin()
+                    // 登录成功，直接设置车辆数据（新接口已包含所有信息）
+                    self.fetchCarInfo(showSuccessMessage: false)
+                    QMUITips.show(withText: "自动登录成功", in: self.view, hideAfterDelay: 1.0)
                     
                 case .failure(let error):
-                    QMUITips.hideAllTips()
                     QMUITips.show(withText: "自动登录失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                         self.navigateToLogin()
@@ -432,88 +429,30 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         }
     }
     
-    // MARK: - 重新登录后获取用户信息
-    func fetchUserInfoAfterRelogin() {
-        let userManager = UserManager.shared
-        guard let phone = userManager.userPhone,
-              let userId = userManager.userId,
-              let tspUserId = userManager.tspUserId,
-              let aaaUserId = userManager.aaaUserId,
-              let timaToken = userManager.timaToken,
-              let identityParam = userManager.identityParam else {
-            QMUITips.hideAllTips()
-            QMUITips.show(withText: "登录信息异常", in: view, hideAfterDelay: 2.0)
-            return
-        }
-        
-        NetworkManager.shared.getUserInfo(
-            phone: phone,
-            userId: userId,
-            tspUserId: tspUserId,
-            aaaUserID: aaaUserId,
-            timaToken: timaToken,
-            identityParam: identityParam
-        ) { [weak self] result in
-            guard let self else { return }
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let userModels):
-                    // 保存用户信息
-                    UserManager.shared.userModels = userModels
-                    
-                    // 重新获取车辆信息
-                    self.fetchCarInfo(showSuccessMessage: true)
-                    
-                case .failure(let error):
-                    QMUITips.hideAllTips()
-                    QMUITips.show(withText: "获取用户信息失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
-                }
-            }
-        }
-    }
-    
     // MARK: - 获取车辆信息
     func fetchCarInfo(showSuccessMessage: Bool = false) {
-        let userManager = UserManager.shared
-        guard let timaToken = userManager.timaToken else {
-            QMUITips.hideAllTips()
-            QMUITips.show(withText: "登录信息异常", in: view, hideAfterDelay: 2.0)
-            return
-        }
-        
-        let vins = userManager.allVins
-        guard !vins.isEmpty else {
-            QMUITips.hideAllTips()
-            QMUITips.show(withText: "未找到车辆信息", in: view, hideAfterDelay: 2.0)
-            return
-        }
-        
-        NetworkManager.shared.getCarInfo(
-            vins: vins,
-            timaToken: timaToken
-        ) { [weak self] result in
-            guard let self else { return }
-            DispatchQueue.main.async {
-                self.scrollView.mj_header?.endRefreshing()
+        NetworkManager.shared.getInfo { [weak self] result in
+            guard let self else {return}
+            self.scrollView.mj_header?.endRefreshing()
+            if showSuccessMessage {
+                QMUITips.hideAllTips()
+            }
+            switch result {
+            case .success(let json):
+                // 保存车辆信息
+                let model = CarModel(json: json)
+                UserManager.shared.updateCarInfo(with: model)
+                self.setupCarData()
+                
+                // 刷新小组件
+                self.refreshWidget()
+            case .failure(let error):
                 if showSuccessMessage {
-                    QMUITips.hideAllTips()
-                }
-                switch result {
-                case .success(let carModel):
-                    // 保存车辆信息
-                    UserManager.shared.carModel = carModel
-                    self.setupCarData()
-                    
-                    // 刷新小组件
-                    self.refreshWidget()
-                case .failure(let error):
-                    if showSuccessMessage {
-                        QMUITips.show(withText: "获取车辆信息失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
-                    } else {
-                        print("车辆信息获取失败: \(error.localizedDescription)")
-                        // 获取失败，可能是登录过期，尝试自动重新登录
-                        self.attemptAutoRelogin()
-                    }
+                    QMUITips.show(withText: "获取车辆信息失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
+                } else {
+                    print("车辆信息获取失败: \(error.localizedDescription)")
+                    // 获取失败，可能是登录过期，尝试自动重新登录
+                    self.attemptAutoRelogin()
                 }
             }
         }
@@ -521,13 +460,8 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
     
     // MARK: - 跳转到登录页面
     func navigateToLogin() {
-        let loginStoryboard = UIStoryboard(name: "Login", bundle: nil)
-        if let loginViewController = loginStoryboard.instantiateInitialViewController() {
-            loginViewController.modalPresentationStyle = .fullScreen
-            present(loginViewController, animated: true)
-        }
+        QMUITips.show(withText: "发生了奇怪的错误")
     }
-    
     
     // MARK: - 配置信息
     func setupCarData() {
@@ -542,10 +476,18 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
             // 首次加载 - 执行动画
             animateMileage(to: targetMileValue)
             animateSOC(to: targetSocValue)
+            // 首次加载时设置默认显示为里程
+            unit.text = "km"
             isFirstDataLoad = false
         } else {
-            // 后续更新 - 直接设置数值
-            mile.text = "\(targetMileValue)"
+            // 后续更新 - 根据当前显示状态设置对应数值
+            if unit.text == "km" {
+                // 当前显示里程，更新为最新里程数据
+                mile.text = "\(targetMileValue)"
+            } else {
+                // 当前显示电量，更新为最新电量数据
+                mile.text = model.soc
+            }
             soc.progress = targetSocValue
             
             // 根据SOC值设置进度条颜色
@@ -561,6 +503,14 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         
         // 总里程直接设置
         totalMileage.text = "总里程：\(model.totalMileage)km"
+        
+        // 充电状态
+        if model.chgStatus == 2 {
+            chargeView.isHidden = true
+        }else{
+            chargeView.isHidden = false
+            leftChargeTime.text = "预计充满："+formatTime(minutes: model.quickChgLeftTime.float)
+        }
         
         // 设置风扇按钮图标和文字
         let config = UIImage.SymbolConfiguration(scale: .large)
@@ -597,8 +547,7 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         
         // 设置车窗按钮文字（根据所有车窗状态判断）
         let allWindowsClosed = model.lfWindowOpen == 0 && model.rfWindowOpen == 0 &&
-        model.lrWindowOpen == 0 && model.rrWindowOpen == 0 &&
-        model.topWindowOpen == 0
+        model.lrWindowOpen == 0 && model.rrWindowOpen == 0
         windowLabel.text = allWindowsClosed ? "开窗" : "关窗"
         
         // 寻车按钮文字（固定）
@@ -686,6 +635,15 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
                 }
             }
         }
+    }
+    
+    // MARK: - 配置信息
+    func formatTime(minutes: Float) -> String {
+        let totalSeconds = Int(minutes * 60)
+        let hours = totalSeconds / 3600
+        let mins = (totalSeconds % 3600) / 60
+        let secs = totalSeconds % 60
+        return "\(hours)小时\(mins)分钟\(secs)秒"
     }
     
     // MARK: - 里程动画

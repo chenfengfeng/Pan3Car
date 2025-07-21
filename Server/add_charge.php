@@ -16,6 +16,11 @@ $vin = $params['vin'];
 $token = $params['token'];
 // 获取用户提交的 charge_kwh (用户要充的电量)
 $charge_kwh = floatval($params['charge_kwh']);
+// 获取服务器参数
+$server = $params['server'] ?? '';
+
+// 根据server参数选择API基础地址
+$baseApiUrl = ($server === 'spare') ? 'https://yiweiauto.cn' : 'https://jacsupperapp.jac.com.cn';
 
 // 验证必要参数
 if (empty($vin) || empty($token) || empty($charge_kwh)) {
@@ -35,7 +40,7 @@ try {
     }
     
     // 2. 通过API获取车辆信息
-    $carInfoUrl = 'https://yiweiauto.cn/api/jac-energy/jacenergy/vehicleInformation/energy-query-vehicle-new-condition';
+    $carInfoUrl = $baseApiUrl . '/api/jac-energy/jacenergy/vehicleInformation/energy-query-vehicle-new-condition';
     $carInfoData = [
         'vins' => [$vin]
     ];
