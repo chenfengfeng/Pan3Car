@@ -101,7 +101,6 @@ enum CarInfoType: String, AppEnum {
 struct GetFindCarStatusIntent: AppIntent {
     static var title: LocalizedStringResource = "🪄寻车状态"
     static var description = IntentDescription("检查寻车状态")
-    
     func perform() async throws -> some IntentResult & ProvidesDialog {
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, IntentDialog>, Error>) in
             SharedNetworkManager.shared.findCar { result in

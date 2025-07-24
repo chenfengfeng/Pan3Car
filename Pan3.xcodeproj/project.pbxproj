@@ -31,6 +31,8 @@
 		B2C8675B2E0F9D1B009A8FD6 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B2C867552E0F9D1B009A8FD6 /* LaunchScreen.storyboard */; };
 		B2C8675C2E0F9D1B009A8FD6 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B2C867572E0F9D1B009A8FD6 /* Main.storyboard */; };
 		B2C8675D2E0F9D1B009A8FD6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C867512E0F9D1B009A8FD6 /* AppDelegate.swift */; };
+		B2CC66BA2E31398900EA7817 /* SharedLoadingStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2CC66B92E31398900EA7817 /* SharedLoadingStateManager.swift */; };
+		B2CC66BB2E31398900EA7817 /* SharedLoadingStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2CC66B92E31398900EA7817 /* SharedLoadingStateManager.swift */; };
 		B2D172472E19266900922A0C /* ChargeListController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D172462E19266900922A0C /* ChargeListController.swift */; };
 		B2D172492E19267C00922A0C /* ChargeListCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D172482E19267C00922A0C /* ChargeListCell.swift */; };
 		B2D1724B2E1A6E0700922A0C /* HelpViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D1724A2E1A6E0700922A0C /* HelpViewController.swift */; };
@@ -118,6 +120,7 @@
 		B2C867532E0F9D1B009A8FD6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B2C867542E0F9D1B009A8FD6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		B2C867562E0F9D1B009A8FD6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		B2CC66B92E31398900EA7817 /* SharedLoadingStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedLoadingStateManager.swift; sourceTree = "<group>"; };
 		B2D172462E19266900922A0C /* ChargeListController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChargeListController.swift; sourceTree = "<group>"; };
 		B2D172482E19267C00922A0C /* ChargeListCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChargeListCell.swift; sourceTree = "<group>"; };
 		B2D1724A2E1A6E0700922A0C /* HelpViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpViewController.swift; sourceTree = "<group>"; };
@@ -186,9 +189,10 @@
 		B217BCA42E1C184E00EF6B59 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
+				B2F2E80D2E2AAFE300500C9D /* SharedAppIntents.swift */,
 				B217BCA52E1C186D00EF6B59 /* CarWidgetAttributes.swift */,
 				B2F2E80E2E2AAFE300500C9D /* SharedNetworkManager.swift */,
-				B2F2E80D2E2AAFE300500C9D /* SharedAppIntents.swift */,
+				B2CC66B92E31398900EA7817 /* SharedLoadingStateManager.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -484,6 +488,7 @@
 				B2C8675D2E0F9D1B009A8FD6 /* AppDelegate.swift in Sources */,
 				B2D172492E19267C00922A0C /* ChargeListCell.swift in Sources */,
 				B287C6BB2E10EA7700FDC1FD /* UserManager.swift in Sources */,
+				B2CC66BA2E31398900EA7817 /* SharedLoadingStateManager.swift in Sources */,
 				B2722A5A2E21552C0031A419 /* CarDataRefreshable.swift in Sources */,
 				B287C6C12E11239600FDC1FD /* ShortcutsViewController.swift in Sources */,
 				B217BCA62E1C187F00EF6B59 /* CarWidgetAttributes.swift in Sources */,
@@ -503,6 +508,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B2CC66BB2E31398900EA7817 /* SharedLoadingStateManager.swift in Sources */,
 				B217BCA72E1C187F00EF6B59 /* CarWidgetAttributes.swift in Sources */,
 				B217BCA32E1C0DAC00EF6B59 /* LiveActivityManager.swift in Sources */,
 				B2F2E80F2E2AAFE300500C9D /* SharedAppIntents.swift in Sources */,
@@ -570,7 +576,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -612,7 +618,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

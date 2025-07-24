@@ -18,6 +18,10 @@ class SharedNetworkManager {
     private let minRequestInterval: TimeInterval = 3.0 // 最小请求间隔3秒
     private let requestQueue = DispatchQueue(label: "shared.network.queue", qos: .userInitiated)
     
+    // 请求去重机制
+    private var isInfoRequestInProgress = false
+    private var pendingInfoCompletions: [(Result<[String: Any], Error>) -> Void] = []
+    
     private init() {}
     
     // MARK: - 获取用户认证信息
@@ -63,6 +67,11 @@ class SharedNetworkManager {
         if let serverParam = getServerParameter() {
             parameters["server"] = serverParam
         }
+        // 小组件设置状态
+        LoadingStateManager.shared.setLoading(true, for: .findCar)
+        DispatchQueue.main.asyncAfter(deadline: .now()+10, execute: {
+            LoadingStateManager.shared.setLoading(false, for: .findCar)
+        })
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }
@@ -91,6 +100,13 @@ class SharedNetworkManager {
         }
         
         print("[Shared Debug] 执行远程锁操作：\(operation)")
+        
+        // 小组件设置状态
+        LoadingStateManager.shared.setLoading(true, for: .lock)
+        DispatchQueue.main.asyncAfter(deadline: .now()+10, execute: {
+            LoadingStateManager.shared.setLoading(false, for: .lock)
+        })
+        
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }
     
@@ -117,6 +133,11 @@ class SharedNetworkManager {
         if let serverParam = getServerParameter() {
             parameters["server"] = serverParam
         }
+        // 小组件设置状态
+        LoadingStateManager.shared.setLoading(true, for: .window)
+        DispatchQueue.main.asyncAfter(deadline: .now()+10, execute: {
+            LoadingStateManager.shared.setLoading(false, for: .window)
+        })
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }
@@ -145,13 +166,18 @@ class SharedNetworkManager {
         if let serverParam = getServerParameter() {
             parameters["server"] = serverParam
         }
+        // 小组件设置状态
+        LoadingStateManager.shared.setLoading(true, for: .airConditioner)
+        DispatchQueue.main.asyncAfter(deadline: .now()+10, execute: {
+            LoadingStateManager.shared.setLoading(false, for: .airConditioner)
+        })
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }
     
     // MARK: - 获取车辆信息
     
-    /// 获取车辆信息（带频率控制）
+    /// 获取车辆信息（带频率控制和请求去重）
     func getCarInfo(completion: @escaping (Result<[String: Any], Error>) -> Void) {
         guard let vin = defaultVin,
               let timaToken = timaToken else {
@@ -163,27 +189,51 @@ class SharedNetworkManager {
         requestQueue.async { [weak self] in
             guard let self = self else { return }
             
+            // 如果已有请求在进行中，将回调加入等待队列
+            if self.isInfoRequestInProgress {
+                print("[Shared Debug] [\(Date())] 检测到重复请求，加入等待队列")
+                self.pendingInfoCompletions.append(completion)
+                return
+            }
+            
             let now = Date()
             let timeSinceLastRequest = now.timeIntervalSince(self.lastInfoRequestTime)
             
             if timeSinceLastRequest < self.minRequestInterval {
                 let waitTime = self.minRequestInterval - timeSinceLastRequest
-                print("[Shared Debug] 请求过于频繁，等待 \(waitTime) 秒")
+                print("[Shared Debug] [\(Date())] 请求过于频繁，等待 \(waitTime) 秒")
+                
+                // 将当前请求也加入等待队列
+                self.pendingInfoCompletions.append(completion)
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + waitTime) {
-                    self.performActualInfoRequest(vin: vin, timaToken: timaToken, completion: completion)
+                    // 延迟执行时再次检查是否已有请求在进行中
+                    self.requestQueue.async {
+                        if !self.isInfoRequestInProgress {
+                            DispatchQueue.main.async {
+                                self.performActualInfoRequest(vin: vin, timaToken: timaToken)
+                            }
+                        } else {
+                            print("[Shared Debug] [\(Date())] 延迟执行时发现已有请求在进行中，跳过")
+                        }
+                    }
                 }
             } else {
+                // 将当前请求加入等待队列
+                self.pendingInfoCompletions.append(completion)
+                
                 DispatchQueue.main.async {
-                    self.performActualInfoRequest(vin: vin, timaToken: timaToken, completion: completion)
+                    self.performActualInfoRequest(vin: vin, timaToken: timaToken)
                 }
             }
         }
     }
     
-    private func performActualInfoRequest(vin: String, timaToken: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+    private func performActualInfoRequest(vin: String, timaToken: String) {
+        // 标记请求开始
+        isInfoRequestInProgress = true
         lastInfoRequestTime = Date()
-        print("[Shared Debug] 执行info请求，时间: \(lastInfoRequestTime)")
+        print("[Shared Debug] 执行info请求，时间: \(lastInfoRequestTime)，等待队列数量: \(pendingInfoCompletions.count)")
         
         let url = "\(baseURL)/info"
         
@@ -192,7 +242,20 @@ class SharedNetworkManager {
             "timaToken": timaToken
         ]
         
-        performCarInfoRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
+        performCarInfoRequest(url: url, parameters: parameters, timaToken: timaToken) { [weak self] result in
+            guard let self = self else { return }
+            
+            // 通知所有等待的回调
+            let completions = self.pendingInfoCompletions
+            self.pendingInfoCompletions.removeAll()
+            self.isInfoRequestInProgress = false
+            
+            print("[Shared Debug] info请求完成，通知 \(completions.count) 个等待的回调")
+            
+            for completion in completions {
+                completion(result)
+            }
+        }
     }
     
     // MARK: - 通用网络请求方法

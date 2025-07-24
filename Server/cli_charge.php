@@ -9,7 +9,7 @@ ini_set('log_errors', 1);
 date_default_timezone_set('Asia/Shanghai');
 
 // 包含数据库连接代码,外部属性：$pdo
-include __DIR__ . '/../db_connect.php';
+include __DIR__ . '/db_connect.php';
 
 // 包含APNs JWT生成器
 require_once __DIR__ . '/apns_jwt_generator.php';
@@ -49,7 +49,7 @@ function logMessage($message, $level = 'INFO') {
 
 // 调用停止充电API - 参考stop_charge.php实现
 function stopCharging(string $vin, string $token): array {
-    $url = 'https://yiweiauto.cn/api/jac-energy/jacenergy/vehicleControl/energy-remote-vehicle-control';
+    $url = 'https://jacsupperapp.jac.com.cn/api/jac-energy/jacenergy/vehicleControl/energy-remote-vehicle-control';
     
     $data = [
         'operation' => 1,
@@ -121,7 +121,7 @@ function stopCharging(string $vin, string $token): array {
 
 // 调用第三方API获取车辆信息 - 使用现代PHP最佳实践
 function getVehicleInfo(string $vin, string $token): array {
-    $url = 'https://yiweiauto.cn/api/jac-energy/jacenergy/vehicleInformation/energy-query-vehicle-new-condition';
+    $url = 'https://jacsupperapp.jac.com.cn/api/jac-energy/jacenergy/vehicleInformation/energy-query-vehicle-new-condition';
     
     $data = [
         'vins' => [$vin]
@@ -291,12 +291,12 @@ function sendAPNsPushNotification(array $task, string $status, string $message, 
     // APNs推送URL (生产环境)
     $apnsUrl = 'https://api.push.apple.com/3/device/' . $pushToken;
     // APNs推送URL (测试环境)
-    $apnsUrl = 'https://api.sandbox.push.apple.com/3/device/' . $pushToken;
+    // $apnsUrl = 'https://api.sandbox.push.apple.com/3/device/' . $pushToken;
     
     // 设置HTTP头
     $headers = [
         'Authorization: Bearer ' . $jwtToken,
-        'apns-topic: com.dream.car.pan3.push-type.liveactivity',
+        'apns-topic: com.dream.pan3car.push-type.liveactivity',
         'apns-push-type: liveactivity',
         'apns-priority: 10'
     ];

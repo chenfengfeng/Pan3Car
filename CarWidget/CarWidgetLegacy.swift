@@ -11,6 +11,9 @@ import WidgetKit
 
 // iOS 16兼容的Provider
 struct LegacyProvider: TimelineProvider {
+    // 添加静态变量来跟踪最后一次请求时间，避免Widget层面的重复请求
+    private static var lastTimelineRequestTime: Date = Date.distantPast
+    private static let minTimelineInterval: TimeInterval = 5.0 // 5秒内不重复请求
     func placeholder(in context: Context) -> LegacySimpleEntry {
         LegacySimpleEntry(date: Date(), carInfo: CarInfo.placeholder)
     }
@@ -22,6 +25,18 @@ struct LegacyProvider: TimelineProvider {
     
     func getTimeline(in context: Context, completion: @escaping (Timeline<LegacySimpleEntry>) -> ()) {
         let currentDate = Date()
+        
+        let timeSinceLastRequest = currentDate.timeIntervalSince(Self.lastTimelineRequestTime)
+        if timeSinceLastRequest < Self.minTimelineInterval {
+            // 使用缓存数据
+            let carInfo = WidgetDataManager.shared.getCachedCarInfo()
+            let entry = LegacySimpleEntry(date: currentDate, carInfo: carInfo ?? nil, errorMessage: carInfo == nil ? "无法获取车辆数据" : nil)
+            let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
+            let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+            completion(timeline)
+            return
+        }
+        Self.lastTimelineRequestTime = currentDate
         
         // 检查认证信息是否存在
         let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3")

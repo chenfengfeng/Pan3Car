@@ -11,6 +11,10 @@ import AppIntents
 
 @available(iOSApplicationExtension 17.0, *)
 struct Provider: AppIntentTimelineProvider {
+    // 添加静态变量来跟踪最后一次请求时间，避免Widget层面的重复请求
+    private static var lastTimelineRequestTime: Date = Date.distantPast
+    private static let minTimelineInterval: TimeInterval = 5.0 // 5秒内不重复请求
+    
     func placeholder(in context: Context) -> SimpleEntry {
         SimpleEntry(date: Date(), configuration: ConfigurationAppIntent(), carInfo: CarInfo.placeholder)
     }
@@ -69,18 +73,18 @@ struct Provider: AppIntentTimelineProvider {
             let defaultVin = userDefaults?.string(forKey: "defaultVin")
             let timaToken = userDefaults?.string(forKey: "timaToken")
             
-            print("[Widget Debug] timaToken存在: \(timaToken != nil), defaultVin存在: \(defaultVin != nil)")
+            print("[Widget Debug] [\(Date())] timaToken存在: \(timaToken != nil), defaultVin存在: \(defaultVin != nil)")
             
             SharedNetworkManager.shared.getCarInfo { result in
                 switch result {
                 case .success(let carData):
                     let carInfo = CarInfo.parseCarInfo(from: carData)
                     
-                    print("[Widget Debug] 解析结果 - SOC: \(carInfo.soc), 剩余里程: \(carInfo.remainingMileage)")
+                    print("[Widget Debug] [\(Date())] 解析结果 - SOC: \(carInfo.soc), 剩余里程: \(carInfo.remainingMileage)")
                     
                     continuation.resume(returning: carInfo)
                 case .failure(let error):
-                    print("[Widget Debug] 网络请求失败: \(error.localizedDescription)")
+                    print("[Widget Debug] [\(Date())] 网络请求失败: \(error.localizedDescription)")
                     continuation.resume(throwing: error)
                 }
             }
@@ -208,6 +212,7 @@ struct CarWidgetEntryView: View {
                             title: carInfo.isLocked ? "已锁车" : "已解锁",
                             isActive: carInfo.isLocked,
                             intent: GetSelectLockStatusIntent(action: carInfo.isLocked ? .unlock : .lock),
+                            isLoading: LoadingStateManager.shared.isLoading(for: .lock),
                             isEnabled: shouldEnableDebug
                         )
                         .frame(maxWidth: .infinity)
@@ -218,6 +223,7 @@ struct CarWidgetEntryView: View {
                             title: carInfo.airConditionerOn ? "空调开" : "空调关",
                             isActive: carInfo.airConditionerOn,
                             intent: GetSelectACStatusIntent(action: carInfo.airConditionerOn ? .turnOff : .turnOn),
+                            isLoading: LoadingStateManager.shared.isLoading(for: .airConditioner),
                             isEnabled: shouldEnableDebug
                         )
                         .frame(maxWidth: .infinity)
@@ -228,6 +234,7 @@ struct CarWidgetEntryView: View {
                             title: carInfo.windowsOpen ? "窗已开" : "窗已关",
                             isActive: carInfo.windowsOpen,
                             intent: GetSelectWindowStatusIntent(action: carInfo.windowsOpen ? .close : .open),
+                            isLoading: LoadingStateManager.shared.isLoading(for: .window),
                             isEnabled: shouldEnableDebug
                         )
                         .frame(maxWidth: .infinity)
@@ -238,6 +245,7 @@ struct CarWidgetEntryView: View {
                             title: "寻车",
                             isActive: false,
                             intent: GetFindCarStatusIntent(),
+                            isLoading: LoadingStateManager.shared.isLoading(for: .findCar),
                             isEnabled: shouldEnableDebug
                         )
                         .frame(maxWidth: .infinity)
@@ -292,30 +300,53 @@ struct ControlButton: View {
     let title: String
     let isActive: Bool
     let intent: any AppIntent
+    var isLoading: Bool
     let isEnabled: Bool
     
     var body: some View {
         if isEnabled {
             Button(intent: intent) {
-                VStack(spacing: 4) {
-                    Image(systemName: icon)
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
-                    
-                    Text(title)
-                        .font(.system(size: 10))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
+                VStack(spacing: 0) {
+                    ZStack {
+                        Circle()
+                            .fill(isLoading ? Color.orange : Color.clear)
+                            .frame(width: 36, height: 36)
+                        
+                        Image(systemName: icon)
+                            .font(.system(size: 20))
+                            .foregroundColor(.white)
+                    }
+                    if isLoading {
+                        HStack(spacing: 2) {
+                            Image(systemName: "arrow.2.circlepath")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.white)
+                            Text("请求中")
+                                .font(.system(size: 10))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                        }
+                    }else{
+                        Text(title)
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.8))
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .buttonStyle(PlainButtonStyle())
         } else {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 16))
-                    .foregroundColor(.white)
-                
+            VStack(spacing: 0) {
+                ZStack {
+                    Circle()
+                        .fill(Color.clear)
+                        .frame(width: 36, height: 36)
+                    
+                    Image(systemName: icon)
+                        .font(.system(size: 20))
+                        .foregroundColor(.white)
+                }
                 Text(title)
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.8))
