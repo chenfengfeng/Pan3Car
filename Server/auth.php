@@ -158,7 +158,7 @@ try {
                     'vehicleCode' => $vehicleData['vehicleCode'],
                     'dataHash' => $vehicleData['dataHash'],
                     'def' => 1,
-                    'plateLicenseNo' => '电A88888'
+                    'plateLicenseNo' => '未设置车牌'
                 ]];
                 logMessage('通过授权号API获取到车辆信息: ' . json_encode($userVehicles), 'INFO');
             } else {
@@ -205,7 +205,7 @@ try {
                 'userName' => $loginData['userName'] ?? '未设置用户名',
                 'headUrl' => $loginData['headUrl'] ?? 'https://upload.dreamforge.top/i/2025/07/16/fnitqt.jpeg',
                 'realPhone' => $loginData['realPhone'],
-                'plateLicenseNo' => $defaultVehicle['plateLicenseNo'] ?? '电A88888',
+                'plateLicenseNo' => $defaultVehicle['plateLicenseNo'] ?? '未设置车牌',
                 'no' => $loginData['no'] ?? ''
             ]
         ]

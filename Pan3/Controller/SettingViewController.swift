@@ -27,7 +27,7 @@ class SettingViewController: UIViewController {
                 ("车架号", "vin", "car.fill"),
                 ("手机号", "phone", "phone.fill"),
                 ("切换首页欢迎词", "greeting", "message.fill"),
-                ("切换服务器", "server", "server.rack"),
+//                ("切换服务器", "server", "server.rack"),
                 ("用户反馈", "feedback", "envelope.fill"),
                 ("常见问题", "help", "questionmark.circle.fill")
             ],
@@ -52,6 +52,7 @@ class SettingViewController: UIViewController {
         super.viewDidLoad()
         setupTableView()
         setupData()
+        setupCarNumberTapGesture()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -90,8 +91,53 @@ class SettingViewController: UIViewController {
         }
         
         if let user = UserManager.shared.userInfo {
-            carNumber.text = user.plateLicenseNo
+            // 检查是否有自定义的车牌号显示
+            let phoneKey = user.realPhone
+            let customCarNumber = UserDefaults.standard.string(forKey: "custom_car_number_\(phoneKey)")
+            carNumber.text = customCarNumber ?? user.plateLicenseNo
         }
+    }
+    
+    func setupCarNumberTapGesture() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(carNumberTapped))
+        carNumber.addGestureRecognizer(tapGesture)
+        carNumber.isUserInteractionEnabled = true
+    }
+    
+    @objc func carNumberTapped() {
+        guard let user = UserManager.shared.userInfo else { return }
+        
+        let alert = UIAlertController(title: "自定义车牌号显示", message: "此功能仅为本地显示，不会影响实际数据", preferredStyle: .alert)
+        
+        alert.addTextField { textField in
+            textField.placeholder = "请输入自定义显示内容"
+            let phoneKey = user.realPhone
+            textField.text = UserDefaults.standard.string(forKey: "custom_car_number_\(phoneKey)") ?? user.plateLicenseNo
+        }
+        
+        let confirmAction = UIAlertAction(title: "确定", style: .default) { [weak self] _ in
+            guard let textField = alert.textFields?.first,
+                  let customText = textField.text,
+                  !customText.isEmpty else { return }
+            
+            let phoneKey = user.realPhone
+            UserDefaults.standard.set(customText, forKey: "custom_car_number_\(phoneKey)")
+            self?.carNumber.text = customText
+        }
+        
+        let resetAction = UIAlertAction(title: "恢复原始", style: .destructive) { [weak self] _ in
+            let phoneKey = user.realPhone
+            UserDefaults.standard.removeObject(forKey: "custom_car_number_\(phoneKey)")
+            self?.carNumber.text = user.plateLicenseNo
+        }
+        
+        let cancelAction = UIAlertAction(title: "取消", style: .cancel)
+        
+        alert.addAction(confirmAction)
+        alert.addAction(resetAction)
+        alert.addAction(cancelAction)
+        
+        present(alert, animated: true)
     }
     
     @objc func versionLabelTapped() {

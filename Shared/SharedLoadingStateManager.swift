@@ -42,9 +42,7 @@ class LoadingStateManager {
         }
         
         // 刷新Widget显示
-        #if canImport(WidgetKit)
         WidgetCenter.shared.reloadTimelines(ofKind: "CarWidget")
-        #endif
     }
     
     /// 获取按钮加载状态

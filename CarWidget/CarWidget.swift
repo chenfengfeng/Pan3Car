@@ -60,7 +60,7 @@ struct Provider: AppIntentTimelineProvider {
         }
         
         // 设置下次更新时间为15分钟后
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: currentDate)!
         
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
@@ -211,7 +211,7 @@ struct CarWidgetEntryView: View {
                             icon: carInfo.isLocked ? "lock.fill" : "lock.open.fill",
                             title: carInfo.isLocked ? "已锁车" : "已解锁",
                             isActive: carInfo.isLocked,
-                            intent: GetSelectLockStatusIntent(action: carInfo.isLocked ? .unlock : .lock),
+                            intent: GetWidgetSelectLockStatusIntent(action: carInfo.isLocked ? .unlock : .lock),
                             isLoading: LoadingStateManager.shared.isLoading(for: .lock),
                             isEnabled: shouldEnableDebug
                         )
@@ -222,7 +222,7 @@ struct CarWidgetEntryView: View {
                             icon: carInfo.airConditionerOn ? "fan" : "fan.slash",
                             title: carInfo.airConditionerOn ? "空调开" : "空调关",
                             isActive: carInfo.airConditionerOn,
-                            intent: GetSelectACStatusIntent(action: carInfo.airConditionerOn ? .turnOff : .turnOn),
+                            intent: GetWidgetSelectACStatusIntent(action: carInfo.airConditionerOn ? .turnOff : .turnOn),
                             isLoading: LoadingStateManager.shared.isLoading(for: .airConditioner),
                             isEnabled: shouldEnableDebug
                         )
@@ -233,7 +233,7 @@ struct CarWidgetEntryView: View {
                             icon: carInfo.windowsOpen ? "dock.arrow.up.rectangle" : "dock.arrow.down.rectangle",
                             title: carInfo.windowsOpen ? "窗已开" : "窗已关",
                             isActive: carInfo.windowsOpen,
-                            intent: GetSelectWindowStatusIntent(action: carInfo.windowsOpen ? .close : .open),
+                            intent: GetWidgetSelectWindowStatusIntent(action: carInfo.windowsOpen ? .close : .open),
                             isLoading: LoadingStateManager.shared.isLoading(for: .window),
                             isEnabled: shouldEnableDebug
                         )
@@ -244,7 +244,7 @@ struct CarWidgetEntryView: View {
                             icon: "location.circle",
                             title: "寻车",
                             isActive: false,
-                            intent: GetFindCarStatusIntent(),
+                            intent: GetWidgetFindCarStatusIntent(),
                             isLoading: LoadingStateManager.shared.isLoading(for: .findCar),
                             isEnabled: shouldEnableDebug
                         )
@@ -357,9 +357,7 @@ struct ControlButton: View {
     }
 }
 
-// MARK: - 使用共享网络管理器
-// WidgetNetworkManager已被SharedNetworkManager替代，支持多Target复用
-
+// MARK: - 配置
 @available(iOSApplicationExtension 17.0, *)
 struct CarWidget: Widget {
     let kind: String = "CarWidget"

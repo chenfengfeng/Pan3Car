@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="bum-Sn-Vg1">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="bum-Sn-Vg1">
     <device id="retina6_3" orientation="portrait" appearance="dark"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23721"/>
         <capability name="Image references" minToolsVersion="12.0"/>
         <capability name="Map view configurations" minToolsVersion="14.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
@@ -18,7 +18,7 @@
                     <tabBarItem key="tabBarItem" title="车辆" image="car.fill" catalog="system" id="hcY-ce-JA0"/>
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" largeTitles="YES" id="bPl-kL-cXb">
-                        <rect key="frame" x="0.0" y="62" width="402" height="96"/>
+                        <rect key="frame" x="0.0" y="124" width="402" height="96"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <nil name="viewControllers"/>
@@ -61,29 +61,29 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="0" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="gsc-Id-R2z">
-                                <rect key="frame" x="20.000000000000004" y="158" width="33.333333333333343" height="60"/>
+                                <rect key="frame" x="20.000000000000004" y="220" width="33.333333333333343" height="60"/>
                                 <fontDescription key="fontDescription" type="boldSystem" pointSize="50"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
                             <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="dnj-Bh-gy3">
-                                <rect key="frame" x="20.000000000000004" y="218" width="63.333333333333343" height="4"/>
+                                <rect key="frame" x="20.000000000000004" y="280" width="63.333333333333343" height="4"/>
                                 <color key="progressTintColor" systemColor="systemRedColor"/>
                             </progressView>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="km" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="DcV-YN-VTe">
-                                <rect key="frame" x="61.333333333333343" y="186.66666666666666" width="22" height="19.333333333333343"/>
+                                <rect key="frame" x="61.333333333333343" y="248.66666666666666" width="22" height="19.333333333333343"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="当前没有在充电" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Nf8-ey-9Aa">
-                                <rect key="frame" x="270.66666666666669" y="202.66666666666666" width="111.33333333333331" height="19.333333333333343"/>
+                                <rect key="frame" x="270.66666666666669" y="264.66666666666669" width="111.33333333333331" height="19.333333333333314"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
                             <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="0" translatesAutoresizingMaskIntoConstraints="NO" id="tFt-aY-8Fa">
-                                <rect key="frame" x="20" y="232" width="362" height="55"/>
+                                <rect key="frame" x="20" y="294" width="362" height="55"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="54" id="4EK-TE-3u1"/>
                                 </constraints>
@@ -98,7 +98,7 @@
                                 </connections>
                             </segmentedControl>
                             <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="IkW-YT-QeY">
-                                <rect key="frame" x="20" y="296" width="362" height="495"/>
+                                <rect key="frame" x="20" y="358" width="362" height="399"/>
                                 <subviews>
                                     <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="VaN-k6-F4m">
                                         <rect key="frame" x="0.0" y="0.0" width="362" height="294"/>
@@ -369,7 +369,7 @@
                                 </constraints>
                             </scrollView>
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="Ghk-2o-2ZP">
-                                <rect key="frame" x="20" y="692" width="362" height="79"/>
+                                <rect key="frame" x="20" y="658" width="362" height="79"/>
                                 <subviews>
                                     <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="dY3-VG-jjP">
                                         <rect key="frame" x="0.0" y="0.0" width="362" height="54"/>
@@ -488,7 +488,7 @@
                     <tabBarItem key="tabBarItem" title="充电" image="bolt.fill" catalog="system" id="eE5-uu-uPT"/>
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" largeTitles="YES" id="jZP-PZ-Eem">
-                        <rect key="frame" x="0.0" y="62" width="402" height="96"/>
+                        <rect key="frame" x="0.0" y="124" width="402" height="96"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <nil name="viewControllers"/>
@@ -500,7 +500,7 @@
             </objects>
             <point key="canvasLocation" x="1065" y="732"/>
         </scene>
-        <!--快捷指令-->
+        <!--效率-->
         <scene sceneID="xOD-u7-u4R">
             <objects>
                 <viewController id="H33-KM-JfB" customClass="ShortcutsViewController" customModule="Pan3" customModuleProvider="target" sceneMemberID="viewController">
@@ -509,13 +509,14 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="0" translatesAutoresizingMaskIntoConstraints="NO" id="PWm-yo-9NN">
-                                <rect key="frame" x="20" y="158" width="362" height="55"/>
+                                <rect key="frame" x="20" y="220" width="362" height="55"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="54" id="Bk4-m3-7V4"/>
                                 </constraints>
                                 <segments>
-                                    <segment title="Siri指令"/>
-                                    <segment title="NFC指令"/>
+                                    <segment title="行程"/>
+                                    <segment title="Siri"/>
+                                    <segment title="NFC"/>
                                 </segments>
                                 <color key="selectedSegmentTintColor" systemColor="systemGreenColor"/>
                                 <connections>
@@ -523,10 +524,14 @@
                                 </connections>
                             </segmentedControl>
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" distribution="fillEqually" translatesAutoresizingMaskIntoConstraints="NO" id="guL-1L-HXo">
-                                <rect key="frame" x="20" y="232" width="362" height="559"/>
+                                <rect key="frame" x="20" y="294" width="362" height="463"/>
                                 <subviews>
-                                    <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="aui-97-VAe">
-                                        <rect key="frame" x="0.0" y="0.0" width="362" height="559"/>
+                                    <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="zfh-vv-3db">
+                                        <rect key="frame" x="0.0" y="0.0" width="362" height="463"/>
+                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                    </tableView>
+                                    <scrollView hidden="YES" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="aui-97-VAe">
+                                        <rect key="frame" x="0.0" y="0.0" width="362" height="0.0"/>
                                         <subviews>
                                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="2dq-4L-UZQ">
                                                 <rect key="frame" x="0.0" y="0.0" width="362" height="460"/>
@@ -824,13 +829,13 @@
                                                         </constraints>
                                                     </view>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="步骤3" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7I8-Mj-5PP">
-                                                        <rect key="frame" x="0.0" y="235.66666666666669" width="362" height="24"/>
+                                                        <rect key="frame" x="0.0" y="235.66666666666663" width="362" height="24"/>
                                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                                         <nil key="textColor"/>
                                                         <nil key="highlightedColor"/>
                                                     </label>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="写入成功后，打开快捷指令APP" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="nXP-tu-YEp">
-                                                        <rect key="frame" x="0.0" y="267.66666666666669" width="362" height="19.333333333333314"/>
+                                                        <rect key="frame" x="0.0" y="267.66666666666663" width="362" height="19.333333333333314"/>
                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                         <nil key="textColor"/>
                                                         <nil key="highlightedColor"/>
@@ -953,7 +958,7 @@
                                                         <nil key="highlightedColor"/>
                                                     </label>
                                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="你就可以实现用NFC来实现操作，你还可以扩展用于车窗，车门，空调状态等操作，具体需要你自己去探索，祝你玩的愉快😀" textAlignment="natural" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="oPj-yy-kux">
-                                                        <rect key="frame" x="0.0" y="754.33333333333337" width="362" height="57.333333333333371"/>
+                                                        <rect key="frame" x="0.0" y="754.33333333333326" width="362" height="57.333333333333371"/>
                                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                                         <nil key="textColor"/>
                                                         <nil key="highlightedColor"/>
@@ -994,25 +999,26 @@
                             <constraint firstItem="PWm-yo-9NN" firstAttribute="leading" secondItem="GRg-22-vtG" secondAttribute="leading" constant="20" id="tus-Np-ng7"/>
                         </constraints>
                     </view>
-                    <navigationItem key="navigationItem" title="快捷指令" id="mpf-r7-eaK"/>
+                    <navigationItem key="navigationItem" title="效率" id="mpf-r7-eaK"/>
                     <connections>
                         <outlet property="shortcutsView" destination="6St-lL-fMj" id="hCV-AJ-OGT"/>
                         <outlet property="siriView" destination="aui-97-VAe" id="FMF-IZ-3go"/>
                         <outlet property="stackView" destination="2dq-4L-UZQ" id="JCD-gR-Icw"/>
+                        <outlet property="tableView" destination="zfh-vv-3db" id="3gu-Hs-u6G"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="qf9-6a-Bdl" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="1991.044776119403" y="1481.4645308924485"/>
         </scene>
-        <!--快捷指令-->
+        <!--效率-->
         <scene sceneID="NdM-ax-5bp">
             <objects>
                 <navigationController automaticallyAdjustsScrollViewInsets="NO" id="D24-HR-1ku" sceneMemberID="viewController">
-                    <tabBarItem key="tabBarItem" title="快捷指令" image="iphone.radiowaves.left.and.right" catalog="system" id="qV1-Ii-elz"/>
+                    <tabBarItem key="tabBarItem" title="效率" image="iphone.radiowaves.left.and.right" catalog="system" id="qV1-Ii-elz"/>
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" largeTitles="YES" id="F09-Al-tBv">
-                        <rect key="frame" x="0.0" y="62" width="402" height="96"/>
+                        <rect key="frame" x="0.0" y="124" width="402" height="96"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <nil name="viewControllers"/>
@@ -1033,7 +1039,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="bWT-Nf-J9W">
-                                <rect key="frame" x="20" y="158" width="100" height="100"/>
+                                <rect key="frame" x="20" y="220" width="100" height="100"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="100" id="a8Q-qB-zn3"/>
                                     <constraint firstAttribute="height" constant="100" id="bVI-rP-SGu"/>
@@ -1051,7 +1057,7 @@
                                 </userDefinedRuntimeAttributes>
                             </imageView>
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="yc0-8C-HHw">
-                                <rect key="frame" x="140" y="178.66666666666666" width="49.666666666666657" height="58.666666666666657"/>
+                                <rect key="frame" x="140" y="240.66666666666666" width="49.666666666666657" height="58.666666666666657"/>
                                 <subviews>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="昵称" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="QcE-Jp-IOz">
                                         <rect key="frame" x="0.0" y="0.0" width="49.666666666666664" height="19.333333333333332"/>
@@ -1068,7 +1074,7 @@
                                 </subviews>
                             </stackView>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="insetGrouped" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="18" estimatedSectionHeaderHeight="-1" sectionFooterHeight="18" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="abf-eG-hEX">
-                                <rect key="frame" x="0.0" y="278" width="402" height="513"/>
+                                <rect key="frame" x="0.0" y="340" width="402" height="417"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <connections>
                                     <outlet property="dataSource" destination="QJq-Z7-dag" id="P5b-zA-3eW"/>
@@ -1108,7 +1114,7 @@
                     <tabBarItem key="tabBarItem" title="设置" image="gear" catalog="system" id="vji-Zq-nzH"/>
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" largeTitles="YES" id="Lta-64-bWb">
-                        <rect key="frame" x="0.0" y="62" width="402" height="96"/>
+                        <rect key="frame" x="0.0" y="124" width="402" height="96"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <nil name="viewControllers"/>
@@ -1129,13 +1135,13 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="my_car" translatesAutoresizingMaskIntoConstraints="NO" id="6zV-Qh-hHF">
-                                <rect key="frame" x="0.0" y="188" width="402" height="226"/>
+                                <rect key="frame" x="0.0" y="250" width="402" height="226"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="6zV-Qh-hHF" secondAttribute="height" multiplier="16:9" id="90M-V1-HXB"/>
                                 </constraints>
                             </imageView>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="dFm-Hr-WzS">
-                                <rect key="frame" x="0.0" y="158" width="402" height="100"/>
+                                <rect key="frame" x="0.0" y="220" width="402" height="100"/>
                                 <subviews>
                                     <label opaque="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="0" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3IP-aF-aDp">
                                         <rect key="frame" x="20.000000000000004" y="20" width="33.333333333333343" height="60"/>
@@ -1151,13 +1157,13 @@
                                         <color key="progressTintColor" systemColor="systemRedColor"/>
                                     </progressView>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="km" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="W2O-FK-vSo">
-                                        <rect key="frame" x="61.333333333333343" y="48.666666666666657" width="22" height="19.333333333333329"/>
+                                        <rect key="frame" x="61.333333333333343" y="48.666666666666686" width="22" height="19.333333333333329"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                         <nil key="textColor"/>
                                         <nil key="highlightedColor"/>
                                     </label>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="总里程：0km" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="trx-ni-iPq">
-                                        <rect key="frame" x="286.33333333333331" y="64.666666666666657" width="95.666666666666686" height="19.333333333333329"/>
+                                        <rect key="frame" x="286.33333333333331" y="64.666666666666686" width="95.666666666666686" height="19.333333333333329"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                         <nil key="textColor"/>
                                         <nil key="highlightedColor"/>
@@ -1177,7 +1183,7 @@
                                 </constraints>
                             </view>
                             <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" showsHorizontalScrollIndicator="NO" showsVerticalScrollIndicator="NO" translatesAutoresizingMaskIntoConstraints="NO" id="z88-Bq-mgi">
-                                <rect key="frame" x="0.0" y="258" width="402" height="616"/>
+                                <rect key="frame" x="0.0" y="320" width="402" height="554"/>
                                 <subviews>
                                     <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="vMK-nw-6Kj">
                                         <rect key="frame" x="20" y="0.0" width="362" height="677"/>

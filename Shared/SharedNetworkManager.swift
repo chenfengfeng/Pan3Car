@@ -46,36 +46,6 @@ class SharedNetworkManager {
     
     // MARK: - 车辆控制方法（使用energy端点）
     
-    /// 寻车功能
-    func findCar(completion: @escaping (Result<[String: Any], Error>) -> Void) {
-        guard let vin = defaultVin,
-              let timaToken = timaToken else {
-            let error = NSError(domain: "FindCarError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
-            completion(.failure(error))
-            return
-        }
-        
-        let url = "\(baseURL)/energy"
-        
-        var parameters: [String: Any] = [
-            "vin": vin,
-            "operationType": "FIND_VEHICLE",
-            "timaToken": timaToken
-        ]
-        
-        // 添加服务器参数
-        if let serverParam = getServerParameter() {
-            parameters["server"] = serverParam
-        }
-        // 小组件设置状态
-        LoadingStateManager.shared.setLoading(true, for: .findCar)
-        DispatchQueue.main.asyncAfter(deadline: .now()+10, execute: {
-            LoadingStateManager.shared.setLoading(false, for: .findCar)
-        })
-        
-        performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
-    }
-    
     /// 车锁控制
     func energyLock(operation: Int, completion: @escaping (Result<[String: Any], Error>) -> Void) {
         guard let vin = defaultVin,
@@ -100,12 +70,6 @@ class SharedNetworkManager {
         }
         
         print("[Shared Debug] 执行远程锁操作：\(operation)")
-        
-        // 小组件设置状态
-        LoadingStateManager.shared.setLoading(true, for: .lock)
-        DispatchQueue.main.asyncAfter(deadline: .now()+10, execute: {
-            LoadingStateManager.shared.setLoading(false, for: .lock)
-        })
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }
@@ -133,11 +97,6 @@ class SharedNetworkManager {
         if let serverParam = getServerParameter() {
             parameters["server"] = serverParam
         }
-        // 小组件设置状态
-        LoadingStateManager.shared.setLoading(true, for: .window)
-        DispatchQueue.main.asyncAfter(deadline: .now()+10, execute: {
-            LoadingStateManager.shared.setLoading(false, for: .window)
-        })
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }
@@ -166,11 +125,31 @@ class SharedNetworkManager {
         if let serverParam = getServerParameter() {
             parameters["server"] = serverParam
         }
-        // 小组件设置状态
-        LoadingStateManager.shared.setLoading(true, for: .airConditioner)
-        DispatchQueue.main.asyncAfter(deadline: .now()+10, execute: {
-            LoadingStateManager.shared.setLoading(false, for: .airConditioner)
-        })
+        
+        performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
+    }
+    
+    /// 寻车功能
+    func findCar(completion: @escaping (Result<[String: Any], Error>) -> Void) {
+        guard let vin = defaultVin,
+              let timaToken = timaToken else {
+            let error = NSError(domain: "FindCarError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/energy"
+        
+        var parameters: [String: Any] = [
+            "vin": vin,
+            "operationType": "FIND_VEHICLE",
+            "timaToken": timaToken
+        ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }
@@ -294,6 +273,7 @@ class SharedNetworkManager {
             
             DispatchQueue.main.async {
                 do {
+                    print("收到接口请求回调")
                     if let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
                         if let returnSuccess = jsonObject["returnSuccess"] as? Int, returnSuccess == 1 {
                             completion(.success(jsonObject))

@@ -19,6 +19,11 @@ struct ChargeStatusResponse {
     let task: ChargeTaskModel?
 }
 
+struct TripRecordsResponse {
+    let trips: [TripRecordData]
+    let pagination: PaginationInfo
+}
+
 struct PaginationInfo {
     let currentPage: Int
     let totalPages: Int
@@ -831,6 +836,90 @@ class NetworkManager {
                     } else {
                         let errorMsg = json["message"].stringValue.isEmpty ? json["msg"].stringValue : json["message"].stringValue
                         let error = NSError(domain: "ChargeError", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMsg.isEmpty ? "获取充电列表失败" : errorMsg])
+                        completion(.failure(error))
+                    }
+                } catch {
+                    completion(.failure(error))
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    // MARK: - 行程记录接口
+    
+    // 获取行程记录列表
+    func getTripRecords(page: Int = 1, completion: @escaping (Result<TripRecordsResponse, Error>) -> Void) {
+        // 内部获取必要参数
+        guard let vin = UserManager.shared.defaultVin else {
+            let error = NSError(domain: "TripRecordsError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/get_trip_records"
+        
+        var parameters: [String: Any] = [
+            "vin": vin,
+            "page": page
+        ]
+        
+        // 添加服务器参数
+        if let serverParam = getServerParameter() {
+            parameters["server"] = serverParam
+        }
+        
+        let headers: HTTPHeaders = [
+            "Content-Type": "application/json"
+        ]
+        
+        AF.request(url,
+                   method: .post,
+                   parameters: parameters,
+                   encoding: JSONEncoding.default,
+                   headers: headers)
+        .responseData { response in
+            switch response.result {
+            case .success(let data):
+                do {
+                    let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
+                    let json = JSON(jsonObject)
+                    // 根据实际API返回格式调整判断逻辑
+                    if json["code"].intValue == 200 {
+                        let dataDict = json["data"]
+                        let tripsArray = dataDict["trips"].arrayValue
+                        let paginationDict = dataDict["pagination"]
+                        
+                        let trips = tripsArray.map { tripJson -> TripRecordData in
+                            return TripRecordData(
+                                departureAddress: tripJson["departureAddress"].stringValue,
+                                destinationAddress: tripJson["destinationAddress"].stringValue,
+                                departureTime: tripJson["departureTime"].stringValue,
+                                duration: tripJson["duration"].stringValue,
+                                drivingMileage: tripJson["drivingMileage"].doubleValue,
+                                consumedMileage: tripJson["consumedMileage"].doubleValue,
+                                achievementRate: tripJson["achievementRate"].doubleValue,
+                                powerConsumption: tripJson["powerConsumption"].doubleValue,
+                                averageSpeed: tripJson["averageSpeed"].doubleValue,
+                                energyEfficiency: tripJson["energyEfficiency"].doubleValue
+                            )
+                        }
+                        
+                        let pagination = PaginationInfo(
+                            currentPage: paginationDict["current_page"].intValue,
+                            totalPages: paginationDict["total_pages"].intValue,
+                            totalCount: paginationDict["total_count"].intValue,
+                            pageSize: paginationDict["page_size"].intValue,
+                            hasNext: paginationDict["has_next"].boolValue,
+                            hasPrev: paginationDict["has_prev"].boolValue
+                        )
+                        
+                        let response = TripRecordsResponse(trips: trips, pagination: pagination)
+                        completion(.success(response))
+                    } else {
+                        let errorMsg = json["message"].stringValue.isEmpty ? json["msg"].stringValue : json["message"].stringValue
+                        let error = NSError(domain: "TripRecordsError", code: -1, userInfo: [NSLocalizedDescriptionKey: errorMsg.isEmpty ? "获取行程记录失败" : errorMsg])
                         completion(.failure(error))
                     }
                 } catch {

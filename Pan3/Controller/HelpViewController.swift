@@ -22,6 +22,10 @@ class HelpViewController: UIViewController {
             answer: "车内温度依赖系统传感器，当车辆静止一段时间会断开传感器导致无法获取到温度数据\n如何远程获取到温度数据：\n打开空调，运行1分钟左右就可以获取到车内温度。"
         ),
         (
+            question: "为什么小组件不定时会掉线需要重新登陆？",
+            answer: "可能是您的账号在其他小程序或APP中被自动登录，导致当前设备被下线，小组件无法正常访问数据。\n\n解决方案：\n1. 使用官方APP创建授权号，实现独立登录\n2. 在官方APP中修改密码，防止其他平台自动登录您的账号"
+        ),
+        (
             question: "这个应用需要付费使用吗？",
             answer: "本应用是完全免费的开源项目，永久免费使用，不收取任何费用。我们致力于为广大车主提供便捷、实用的车辆管理服务。\n\n作为开源项目，我们的目标是：\n\n1. 为用户提供完全免费的车辆管理工具\n2. 保持应用的纯净性，无任何收费功能\n3. 通过开源社区的力量持续改进应用\n4. 让更多开发者参与到项目建设中来\n\n您可以放心使用所有功能，我们承诺永远不会对核心功能收费。"
         ),
@@ -36,6 +40,10 @@ class HelpViewController: UIViewController {
         (
             question: "为什么没有行程记录功能？",
             answer: "我们经过深思熟虑后决定不提供行程记录功能，主要基于以下考虑：\n\n隐私保护：\n1. 行程记录需要持续收集用户位置信息\n2. 涉及用户出行轨迹等高度敏感数据\n3. 需要服务器后台持续监听和存储\n4. 可能被恶意利用造成隐私泄露\n\n技术考量：\n1. 需要大量服务器资源和维护成本\n2. 数据存储和备份的复杂性\n3. 不同地区法律法规的合规要求\n\n我们坚持隐私优先的原则，宁可牺牲部分功能也要确保用户隐私安全。"
+        ),
+        (
+            question: "为什么把行程记录功能加上？",
+            answer: "经过重新考虑和技术架构调整，我们现在提供了行程记录功能，但采用了更加隐私友好的实现方式：\n\n功能特点：\n1. 以车辆解锁和关锁为起始点记录行程\n2. 不会持续追踪用户位置信息\n3. 只在有明确驾驶行为时才开始记录\n4. 避免了全天候位置监控的隐私风险\n\n技术实现：\n1. 所有接口通过服务器进行统一封装\n2. 满足各平台审核要求和合规标准\n3. 数据处理逻辑完全透明化\n\n开源透明：\n1. 所有相关代码完全开源\n2. 后台API接口文档公开\n3. 数据库表结构完全透明\n4. 欢迎社区监督和改进建议\n\n我们始终坚持在功能实用性和隐私保护之间找到最佳平衡点，如果您对实现方式有任何建议或担忧，欢迎随时反馈。"
         ),
         (
             question: "充电任务功能会收集哪些数据？",
@@ -102,16 +110,36 @@ extension HelpViewController: UITableViewDataSource {
         
         // 创建自定义内容
         let questionLabel = UILabel()
-        questionLabel.text = faqItem.question
-        questionLabel.font = UIFont.boldSystemFont(ofSize: 16)
-        questionLabel.numberOfLines = 0
-        questionLabel.textColor = UIColor.label
-        
         let answerLabel = UILabel()
-        answerLabel.text = faqItem.answer
-        answerLabel.font = UIFont.systemFont(ofSize: 14)
+        
+        // 检查是否是"为什么没有行程记录功能？"这个cell（索引为5）
+        if indexPath.section == 6 {
+            // 为问题添加删除线
+            let questionAttributedString = NSMutableAttributedString(string: faqItem.question)
+            questionAttributedString.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: NSRange(location: 0, length: faqItem.question.count))
+            questionAttributedString.addAttribute(.font, value: UIFont.boldSystemFont(ofSize: 16), range: NSRange(location: 0, length: faqItem.question.count))
+            questionAttributedString.addAttribute(.foregroundColor, value: UIColor.label, range: NSRange(location: 0, length: faqItem.question.count))
+            questionLabel.attributedText = questionAttributedString
+            
+            // 为答案添加删除线
+            let answerAttributedString = NSMutableAttributedString(string: faqItem.answer)
+            answerAttributedString.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: NSRange(location: 0, length: faqItem.answer.count))
+            answerAttributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: 14), range: NSRange(location: 0, length: faqItem.answer.count))
+            answerAttributedString.addAttribute(.foregroundColor, value: UIColor.secondaryLabel, range: NSRange(location: 0, length: faqItem.answer.count))
+            answerLabel.attributedText = answerAttributedString
+        } else {
+            // 普通显示
+            questionLabel.text = faqItem.question
+            questionLabel.font = UIFont.boldSystemFont(ofSize: 16)
+            questionLabel.textColor = UIColor.label
+            
+            answerLabel.text = faqItem.answer
+            answerLabel.font = UIFont.systemFont(ofSize: 14)
+            answerLabel.textColor = UIColor.secondaryLabel
+        }
+        
+        questionLabel.numberOfLines = 0
         answerLabel.numberOfLines = 0
-        answerLabel.textColor = UIColor.secondaryLabel
         
         let stackView = UIStackView(arrangedSubviews: [questionLabel, answerLabel])
         stackView.axis = .vertical

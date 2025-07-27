@@ -120,6 +120,57 @@ try {
         exit;
     }
 
+    // 接口返回数据示例
+//     {
+//   "operationId": 3069156,
+//   "returnErrCode": null,
+//   "returnSuccess": true,
+//   "returnErrMsg": null,
+//   "data": {
+//     "doorStsRearRight": 0,
+//     "keyStatus": 2,
+//     "defrostStatus": 0,
+//     "soc": "64",
+//     "quickChgLeftTime": 327670,
+//     "rfTirePresure": 0,
+//     "latitude": "30.89352189668428",
+//     "chgPlugStatus": 1,
+//     "topWindowOpen": 0,
+//     "longtitude": "103.62002502212343",
+//     "acOnMile": 211,
+//     "quickcoolACStatus": null,
+//     "doorStsFrontRight": 0,
+//     "totalMileage": "9006.0",
+//     "lowlightStatus": 0,
+//     "lfWindowOpen": 0,
+//     "doorStsRearLeft": 0,
+//     "lrTirePresure": 0,
+//     "quickheatACStatus": 0,
+//     "lrWindowOpen": 0,
+//     "lfTirePresure": 0,
+//     "rfWindowOpen": 0,
+//     "doorsLockStatus": null,
+//     "highlightStatus": 0,
+//     "mainLockStatus": 0,
+//     "trunkLockStatus": 0,
+//     "doorStsFrontLeft": 0,
+//     "temperatureInCar": 214,
+//     "chgStatus": 2,
+//     "slowChgLeftTime": 327670,
+//     "batteryHeatStatus": 3,
+//     "acStatus": 2,
+//     "acOffMile": 211,
+//     "rrWindowOpen": 0,
+//     "rrTirePresure": 0
+//   },
+//   "message": null,
+//   "jobId": null,
+//   "jobs": null,
+//   "requestId": null,
+//   "status": null,
+//   "body": null
+// }
+
     // 返回车辆信息
     $responseData = [
         'code' => 200,

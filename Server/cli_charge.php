@@ -258,11 +258,11 @@ function sendAPNsPushNotification(array $task, string $status, string $message, 
     $initialKwh = floatval($task['initial_kwh']);
     $targetKwh = floatval($task['target_kwh']);
     $targetChargeAmount = $targetKwh - $initialKwh;
-    $percentage = 0;
+    $percentage = 0.00;
     
     if ($targetChargeAmount > 0 && $chargedKwh !== null) {
         $progress = $chargedKwh / $targetChargeAmount;
-        $percentage = (int)min(max($progress * 100, 0), 100);
+        $percentage = round(min(max($progress * 100, 0), 100), 2);
     }
 
     // 事件
@@ -436,57 +436,127 @@ try {
         $chgStatus = intval($vehicleData['chgStatus'] ?? 2);
         $quickChgLeftTime = intval($vehicleData['quickChgLeftTime'] ?? 0);
         
-        logMessage("车辆数据 - SOC: {$soc}%, 剩余里程: {$acOnMile}km, 充电状态: {$chgStatus}");
+        logMessage("车辆数据 - SOC: " . number_format($soc, 2) . "%, 剩余里程: {$acOnMile}km, 充电状态: {$chgStatus}");
         
         // 计算当前电量
         $currentKwh = calculateCurrentKwh($soc, $acOnMile, $carModels);
         
-        if ($currentStatus === 'ready') {
-            // 规则3: ready状态下检查是否开始充电
-            if ($chgStatus !== 2) {
-                updateTaskStatus($pdo, $taskId, 'pending', '充电已开始，正在监控充电进度...', null, false, $task);
-                logMessage("任务 {$taskId} 开始充电，状态更新为pending");
-            }else{
-                // 测试状态
-                updateTaskStatus($pdo, $taskId, 'ready', '充电口：现在赶紧拿充电枪插我吧', null, false, $task);
+        // 添加函数：转换经纬度到地址
+        function getLocationFromLatLng($longitude, $latitude) {
+            $apiKey = 'ad43794c805061ae25622bc72c8f4763';
+            $url = "https://restapi.amap.com/v3/geocode/regeo?key={$apiKey}&location={$longitude},{$latitude}&radius=1000&extensions=base";
+        
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        
+            $response = curl_exec($ch);
+            curl_close($ch);
+        
+            $result = json_decode($response, true);
+            if ($result['status'] === '1' && isset($result['regeocode']['formatted_address'])) {
+                return $result['regeocode']['formatted_address'];
             }
-        } elseif ($currentStatus === 'pending') {
-            if ($chgStatus !== 2) {
-                // 正在充电中
-                $initialKwh = floatval($task['initial_kwh']);
-                $targetKwh = floatval($task['target_kwh']);
-                $chargedKwh = max(0, $currentKwh - $initialKwh);
-                
-                // 规则4: 检查是否达到目标电量
-                if ($currentKwh >= $targetKwh) {
-                    // 调用停止充电API，忽略返回结果
-                    $stopResult = stopCharging($vin, $token);
-                    logMessage("任务 {$taskId} 已调用停止充电API");
-                    
-                    // 无论停止充电API是否成功，都标记任务为完成
-                    updateTaskStatus($pdo, $taskId, 'done', '充电完成：已达到目标电量', $chargedKwh, true, $task);
-                    logMessage("任务 {$taskId} 充电完成：已达到目标电量");
-                    $completedTasks++;
-                } 
-                // 规则6: 检查是否已充满（SOC=100%）
-                elseif ($soc >= 100) {
-                    updateTaskStatus($pdo, $taskId, 'done', '充电完成：电池已充满，再多就溢出来了', $chargedKwh, true, $task);
-                    logMessage("任务 {$taskId} 充电完成：电池已充满");
-                    $completedTasks++;
-                } 
-                else {
-                    // 更新充电进度
-                    updateTaskStatus($pdo, $taskId, 'pending', "充电中：当前电量 {$currentKwh}kWh ({$soc}%), 已充电 {$chargedKwh}kWh", $chargedKwh, false, $task);
-                    logMessage("任务 {$taskId} 充电进度更新");
+            return '未知位置';
+        }
+        
+        // 添加函数：处理充电事件时的行程记录
+        function handleChargingTrip($vin, $vehicleData, $pdo) {
+            $now = date('Y-m-d H:i:s');
+            $lat = $vehicleData['latitude'] ?? '';
+            $lng = $vehicleData['longtitude'] ?? '';
+            $location = getLocationFromLatLng($lng, $lat);
+            $latlng = "{$lng},{$lat}";
+            $totalMileage = (float)($vehicleData['totalMileage'] ?? 0);
+            $acOnMile = (float)($vehicleData['acOnMile'] ?? 0);
+            $soc = (int)($vehicleData['soc'] ?? 0);
+        
+            // 获取最后一条未完成的行程
+            $stmt = $pdo->prepare("SELECT * FROM trip_record WHERE vin = :vin AND end_time IS NULL ORDER BY start_time DESC LIMIT 1");
+            $stmt->execute([':vin' => $vin]);
+            $lastTrip = $stmt->fetch();
+        
+            if ($lastTrip) {
+                $mileageDiff = $totalMileage - $lastTrip['start_mileage'];
+                if ($mileageDiff > 0) {
+                    // 结束行程
+                    $updateStmt = $pdo->prepare("UPDATE trip_record SET end_time = :end_time, end_location = :end_location, end_latlng = :end_latlng, end_mileage = :end_mileage, end_range = :end_range, end_soc = :end_soc WHERE id = :id");
+                    $updateStmt->execute([
+                        ':end_time' => $now,
+                        ':end_location' => $location,
+                        ':end_latlng' => $latlng,
+                        ':end_mileage' => $totalMileage,
+                        ':end_range' => $acOnMile,
+                        ':end_soc' => $soc,
+                        ':id' => $lastTrip['id']
+                    ]);
+                    logMessage("充电开始：结束行程 ID {$lastTrip['id']} 以充电时间作为结束点");
+                } else {
+                    // 无里程变化，不记录，删除
+                    $deleteStmt = $pdo->prepare("DELETE FROM trip_record WHERE id = :id");
+                    $deleteStmt->execute([':id' => $lastTrip['id']]);
+                    logMessage("充电开始：删除无里程变化的行程 ID {$lastTrip['id']}");
                 }
-            } else {
-                // 规则5: 充电过程中停止充电
-                $initialKwh = floatval($task['initial_kwh']);
-                $chargedKwh = max(0, $currentKwh - $initialKwh);
-                updateTaskStatus($pdo, $taskId, 'done', '充电结束：用户主动停止充电', $chargedKwh, true, $task);
-                logMessage("任务 {$taskId} 用户主动停止充电");
-                $completedTasks++;
             }
+        }
+        
+        // 在主循环中，当ready状态检测到充电开始时调用
+        // 在 if ($currentStatus === 'ready') { ... }
+        if ($chgStatus !== 2) {
+            handleChargingTrip($vin, $vehicleData, $pdo);
+            updateTaskStatus($pdo, $taskId, 'pending', '充电已开始，正在监控充电进度...', null, false, $task);
+            logMessage("任务 {$taskId} 开始充电，状态更新为pending");
+        } else {
+            // 测试状态
+            updateTaskStatus($pdo, $taskId, 'ready', '充电口：现在赶紧拿充电枪插我吧', null, false, $task);
+        }
+        
+        if ($chgStatus !== 2) {
+            // 正在充电中
+            $initialKwh = floatval($task['initial_kwh']);
+            $targetKwh = floatval($task['target_kwh']);
+            $batteryIncrease = max(0, $currentKwh - $initialKwh);
+            $chargedKwh = $batteryIncrease * 1.07; // 增加7%损耗
+            
+            // 计算充电进度百分比
+            $targetChargeAmount = $targetKwh - $initialKwh;
+            $progressPercentage = 0.00;
+            
+            if ($targetChargeAmount > 0) {
+                $progress = $chargedKwh / $targetChargeAmount;
+                $progressPercentage = round(min(max($progress * 100, 0), 100), 2);
+            }
+            
+            // 规则4: 检查任务进度是否达到100%
+            if ($progressPercentage >= 100) {
+                // 调用停止充电API，忽略返回结果
+                $stopResult = stopCharging($vin, $token);
+                logMessage("任务 {$taskId} 已调用停止充电API");
+                
+                // 无论停止充电API是否成功，都标记任务为完成
+                updateTaskStatus($pdo, $taskId, 'done', '充电完成：任务进度已达到100%', $chargedKwh, true, $task);
+                logMessage("任务 {$taskId} 充电完成：任务进度已达到100%");
+                $completedTasks++;
+            } 
+            // 规则6: 检查是否已充满（SOC=100%）
+            elseif ($soc >= 100) {
+                updateTaskStatus($pdo, $taskId, 'done', '充电完成：电池已充满 (100.00%)，再多就溢出来了', $chargedKwh, true, $task);
+                logMessage("任务 {$taskId} 充电完成：电池已充满 (100.00%)");
+                $completedTasks++;
+            } 
+            else {
+                updateTaskStatus($pdo, $taskId, 'pending', "充电中：当前电量 {$currentKwh}kWh (" . number_format($soc, 2) . "%), 已充电 {$chargedKwh}kWh, 进度 " . number_format($progressPercentage, 2) . "%", $chargedKwh, false, $task);
+                logMessage("任务 {$taskId} 充电进度更新，进度: " . number_format($progressPercentage, 2) . "%");
+            }
+        } else {
+            // 规则5: 充电过程中停止充电
+            $initialKwh = floatval($task['initial_kwh']);
+            $chargedKwh = max(0, $currentKwh - $initialKwh);
+            updateTaskStatus($pdo, $taskId, 'done', '充电结束：用户主动停止充电', $chargedKwh, true, $task);
+            logMessage("任务 {$taskId} 用户主动停止充电");
+            $completedTasks++;
         }
     }
     

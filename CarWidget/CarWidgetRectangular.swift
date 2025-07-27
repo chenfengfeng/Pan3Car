@@ -95,12 +95,12 @@ struct CarWidgetRectangularEntryView: View {
             // 错误状态显示
             VStack(alignment: .leading, spacing: 2) {
                 Text("胖3车辆数据")
-                    .font(.caption2)
+                    .font(.callout)
                     .fontWeight(.medium)
                     .foregroundColor(.primary)
                 
                 Text(errorMessage)
-                    .font(.caption2)
+                    .font(.footnote)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
             }
@@ -111,67 +111,64 @@ struct CarWidgetRectangularEntryView: View {
             VStack(alignment: .leading, spacing: 3) {
                 // 第一行：胖3剩余里程 505km
                 HStack(alignment: .bottom, spacing: 4) {
-                    Text("胖3剩余里程")
-                        .font(.caption)
-                        .fontWeight(.medium)
+                    Text("剩余里程")
+                        .font(.callout)
                     
                     Text("\(carInfo.remainingMileage)")
-                        .font(.caption)
-                        .fontWeight(.bold)
+                        .font(.callout)
                     
                     Text("km")
-                        .font(.caption)
+                        .font(.callout)
                 }
                 
                 // 第二行：电量图标 + 剩余电量100% 或 充电中 xx:xx
-                 HStack(alignment: .bottom, spacing: 4) {
-                     // 电量图标显示在最前面
-                     if carInfo.isCharge {
-                         Image(systemName: "ev.charger")
-                             .font(.caption)
-                         
-                         Text("充电中")
-                             .font(.caption)
-                             .fontWeight(.medium)
-                         
-                         Text("\(formatMinutes(carInfo.chgLeftTime))")
-                             .font(.caption)
-                             .fontWeight(.medium)
-                     } else {
-                         Image(systemName: "bolt.car")
-                             .font(.caption)
-                         
-                         Text("剩余电量")
-                             .font(.caption)
-                             .fontWeight(.medium)
-                         
-                         Text("\(carInfo.soc)")
-                             .font(.caption)
-                             .fontWeight(.bold)
-                         
-                         Text("%")
-                             .font(.caption2)
-                     }
-                 }
+                HStack(alignment: .bottom, spacing: 4) {
+                    // 电量图标显示在最前面
+                    if carInfo.isCharge {
+                        Image(systemName: "ev.charger")
+                            .font(.callout)
+                        
+                        Text("充电中")
+                            .font(.callout)
+                        
+                        Text("\(formatMinutes(carInfo.chgLeftTime+122))")
+                            .font(.callout)
+                    } else {
+                        Image(systemName: "car.side.fill")
+                            .font(.body)
+                            .offset(y: -2)
+                        
+                        Text("剩余电量")
+                            .font(.callout)
+                        
+                        Text("\(carInfo.soc)")
+                            .font(.callout)
+                        
+                        Text("%")
+                            .font(.callout)
+                    }
+                }
                 
                 // 第三行：进度条显示电量
-                ZStack(alignment: .leading) {
-                    // 灰色背景进度条
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(height: 6)
-                        .cornerRadius(4)
-                    
-                    // 实际进度条
-                    Rectangle()
-                        .fill(Color.white)
-                        .frame(width: UIScreen.main.bounds.width * 0.4 * (Double(carInfo.soc) / 100.0), height: 6)
-                        .cornerRadius(4)
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        // 背景条
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.3))
+                            .frame(height: 8)
+                            .cornerRadius(8)
+                        
+                        // 前景进度条
+                        Rectangle()
+                            .fill(Color.white)
+                            .frame(
+                                width: geometry.size.width * (Double(carInfo.soc) / 100.0),
+                                height: 8
+                            )
+                            .cornerRadius(8)
+                    }
                 }
-                .frame(maxWidth: UIScreen.main.bounds.width * 0.4)
             }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 4)
         }
     }
     
@@ -185,7 +182,7 @@ struct CarWidgetRectangularEntryView: View {
         
         if hours > 0 {
             if remainingMinutes > 0 {
-                return "\(hours)小时\(remainingMinutes)分钟"
+                return "\(hours):\(String(format: "%02d", remainingMinutes))"
             } else {
                 return "\(hours)小时"
             }
@@ -213,9 +210,9 @@ struct CarWidgetRectangular: Widget {
 }
 
 @available(iOSApplicationExtension 17.0, *)
- #Preview(as: .accessoryRectangular) {
-     CarWidgetRectangular()
- } timeline: {
-     RectangularSimpleEntry(date: .now, carInfo: CarInfo.placeholder)
-     RectangularSimpleEntry(date: .now, carInfo: nil, errorMessage: "请先在主应用中登录")
- }
+#Preview(as: .accessoryRectangular) {
+    CarWidgetRectangular()
+} timeline: {
+    RectangularSimpleEntry(date: .now, carInfo: CarInfo.placeholder)
+    RectangularSimpleEntry(date: .now, carInfo: nil, errorMessage: "请先在主应用中登录")
+}

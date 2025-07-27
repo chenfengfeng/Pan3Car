@@ -124,6 +124,7 @@ class WidgetDataManager {
     
     // 获取缓存的CarInfo（仅作为备用）
     func getCachedCarInfo() -> CarInfo? {
+        print("获取缓存的CarInfo（仅作为备用）")
         guard let data = userDefaults?.data(forKey: carInfoKey),
               let carInfo = try? JSONDecoder().decode(CarInfo.self, from: data) else {
             return nil
@@ -160,7 +161,6 @@ class WidgetDataManager {
 // MARK: - Widget AppIntents
 struct GetWidgetCarInfoIntent: AppIntent {
     static var title: LocalizedStringResource = "获取车辆信息"
-    static var description = IntentDescription("获取最新的车辆状态信息")
     static var isDiscoverable: Bool = false
     
     func perform() async throws -> some IntentResult {
@@ -182,104 +182,151 @@ struct GetWidgetCarInfoIntent: AppIntent {
     }
 }
 
+/// 选择车锁状态Intent
+struct GetWidgetSelectLockStatusIntent: AppIntent {
+    static var title: LocalizedStringResource = "小组件获取锁车状态"
+    static var openAppWhenRun: Bool = false
+    static var isDiscoverable: Bool = false
+    
+    @Parameter(title: "选择操作")
+    var action: LockStatusAction
+    
+    init() {}
+    
+    init(action: LockStatusAction) {
+        self.init()
+        self.action = action
+    }
+    
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let operation = action == .lock ? 1 : 2
+        // 小组件设置状态
+        LoadingStateManager.shared.setLoading(true, for: .lock)
+        
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, IntentDialog>, Error>) in
+            SharedNetworkManager.shared.energyLock(operation: operation) { result in
+                switch result {
+                case .success(_):
+                    let actionText = action == .lock ? "锁车" : "解锁"
+                    continuation.resume(returning: .result(dialog: "\(actionText)指令已发送"))
+                case .failure(let error):
+                    continuation.resume(returning: .result(dialog: "操作失败：\(error.localizedDescription)"))
+                }
+                // 小组件设置状态
+                DispatchQueue.main.asyncAfter(deadline: .now()+5, execute: {
+                    LoadingStateManager.shared.setLoading(false, for: .lock)
+                })
+            }
+        }
+    }
+}
+
+/// 选择空调状态Intent
+struct GetWidgetSelectACStatusIntent: AppIntent {
+    static var title: LocalizedStringResource = "小组件获取空调状态"
+    static var openAppWhenRun: Bool = false
+    static var isDiscoverable: Bool = false
+    
+    @Parameter(title: "选择操作")
+    var action: ACStatusAction
+    
+    init() {}
+    
+    init(action: ACStatusAction) {
+        self.init()
+        self.action = action
+    }
+    
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let operation = action == .turnOn ? 2 : 1
+        let temperature = 26 // 默认温度
+        let duringTime = 30 // 默认持续时间10分钟
+        // 小组件设置状态
+        LoadingStateManager.shared.setLoading(true, for: .airConditioner)
+        
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, IntentDialog>, Error>) in
+            SharedNetworkManager.shared.energyAirConditioner(operation: operation, temperature: temperature, duringTime: duringTime) { result in
+                switch result {
+                case .success(_):
+                    let actionText = action == .turnOn ? "开启空调" : "关闭空调"
+                    continuation.resume(returning: .result(dialog: "\(actionText)指令已发送"))
+                case .failure(let error):
+                    continuation.resume(returning: .result(dialog: "操作失败：\(error.localizedDescription)"))
+                }
+                // 小组件设置状态
+                DispatchQueue.main.asyncAfter(deadline: .now()+5, execute: {
+                    LoadingStateManager.shared.setLoading(false, for: .airConditioner)
+                })
+            }
+        }
+    }
+}
+
+/// 选择车窗状态Intent
+struct GetWidgetSelectWindowStatusIntent: AppIntent {
+    static var title: LocalizedStringResource = "小组件获取车窗状态"
+    static var openAppWhenRun: Bool = false
+    static var isDiscoverable: Bool = false
+    
+    @Parameter(title: "选择操作")
+    var action: WindowStatusAction
+    
+    init() {}
+    
+    init(action: WindowStatusAction) {
+        self.init()
+        self.action = action
+    }
+    
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let operation = action == .open ? 2 : 1
+        let openLevel = action == .open ? 2 : 0 // 2=完全打开，0=关闭
+        // 小组件设置状态
+        LoadingStateManager.shared.setLoading(true, for: .window)
+        
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, IntentDialog>, Error>) in
+            SharedNetworkManager.shared.energyWindow(operation: operation, openLevel: openLevel) { result in
+                switch result {
+                case .success(_):
+                    let actionText = action == .open ? "开启车窗" : "关闭车窗"
+                    continuation.resume(returning: .result(dialog: "\(actionText)指令已发送"))
+                case .failure(let error):
+                    continuation.resume(returning: .result(dialog: "操作失败：\(error.localizedDescription)"))
+                }
+                // 小组件设置状态
+                DispatchQueue.main.asyncAfter(deadline: .now()+5, execute: {
+                    LoadingStateManager.shared.setLoading(false, for: .window)
+                })
+            }
+        }
+    }
+}
+/// 小组件寻车Intent
+struct GetWidgetFindCarStatusIntent: AppIntent {
+    static var title: LocalizedStringResource = "小组件寻车状态"
+    static var openAppWhenRun: Bool = false
+    static var isDiscoverable: Bool = false
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        // 小组件设置状态
+        LoadingStateManager.shared.setLoading(true, for: .findCar)
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, IntentDialog>, Error>) in
+            SharedNetworkManager.shared.findCar { result in
+                switch result {
+                case .success(_):
+                    continuation.resume(returning: .result(dialog: "请注意观察车辆鸣笛和闪灯状态"))
+                case .failure(let error):
+                    continuation.resume(returning: .result(dialog: "检查失败：\(error.localizedDescription)"))
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now()+5, execute: {
+                    LoadingStateManager.shared.setLoading(false, for: .findCar)
+                })
+            }
+        }
+    }
+}
+
 @available(iOSApplicationExtension 17.0, *)
 struct ConfigurationAppIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource { "车辆小组件配置" }
     static var description: IntentDescription { "配置车辆信息小组件" }
 }
-
-// MARK: - Control Widget SetValueIntents
-
-//struct CarLockToggleIntent: SetValueIntent {
-//    static var title: LocalizedStringResource = "车锁控制"
-//    static var description = IntentDescription("控制车辆锁定状态")
-//
-//    @Parameter(title: "锁定状态")
-//    var value: Bool
-//
-//    init() {}
-//
-//    init(value: Bool) {
-//        self.value = value
-//    }
-//
-//    func perform() async throws -> some IntentResult {
-//        let operation = value ? 1 : 2 // true=锁车(1), false=解锁(2)
-//
-//        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, Never>, Error>) in
-//            WidgetNetworkManager.shared.controlCarLock(operation: operation) { result in
-//                switch result {
-//                case .success(_):
-//                    // 操作成功后，直接更新本地数据
-//                    WidgetDataManager.shared.updateLockStatus(self.value)
-//                    continuation.resume(returning: .result())
-//                case .failure(let error):
-//                    continuation.resume(throwing: error)
-//                }
-//            }
-//        }
-//    }
-//}
-//
-//struct AirConditionerToggleIntent: SetValueIntent {
-//    static var title: LocalizedStringResource = "空调控制"
-//    static var description = IntentDescription("控制车辆空调开关")
-//
-//    @Parameter(title: "空调状态")
-//    var value: Bool
-//
-//    init() {}
-//
-//    init(value: Bool) {
-//        self.value = value
-//    }
-//
-//    func perform() async throws -> some IntentResult {
-//        let operation = value ? 2 : 1 // true=开启(2), false=关闭(1)
-//
-//        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, Never>, Error>) in
-//            WidgetNetworkManager.shared.controlAirConditioner(operation: operation, temperature: 26, duringTime: 30) { result in
-//                switch result {
-//                case .success(_):
-//                    // 操作成功后，直接更新本地数据
-//                    WidgetDataManager.shared.updateAirConditionerStatus(self.value)
-//                    continuation.resume(returning: .result())
-//                case .failure(let error):
-//                    continuation.resume(throwing: error)
-//                }
-//            }
-//        }
-//    }
-//}
-//
-//struct WindowToggleIntent: SetValueIntent {
-//    static var title: LocalizedStringResource = "车窗控制"
-//    static var description = IntentDescription("控制车窗开关状态")
-//
-//    @Parameter(title: "车窗状态")
-//    var value: Bool
-//
-//    init() {}
-//
-//    init(value: Bool) {
-//        self.value = value
-//    }
-//
-//    func perform() async throws -> some IntentResult {
-//        let operation = value ? 2 : 1 // true=开启(2), false=关闭(1)
-//        let openLevel = value ? 2 : 0
-//
-//        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, Never>, Error>) in
-//            WidgetNetworkManager.shared.controlWindow(operation: operation, openLevel: openLevel) { result in
-//                switch result {
-//                case .success(_):
-//                    // 操作成功后，直接更新本地数据
-//                    WidgetDataManager.shared.updateWindowStatus(self.value)
-//                    continuation.resume(returning: .result())
-//                case .failure(let error):
-//                    continuation.resume(throwing: error)
-//                }
-//            }
-//        }
-//    }
-//}
