@@ -13,7 +13,7 @@ import Foundation
 // 注意：确保在项目设置中将Shared文件夹添加到CarWidget Target
 
 // 车辆信息数据结构
-struct CarInfo: Codable {
+struct CarInfo: Codable, Hashable {
     let remainingMileage: Int
     let soc: Int
     let isLocked: Bool
@@ -24,14 +24,36 @@ struct CarInfo: Codable {
     let chgLeftTime: Int
     
     static let placeholder = CarInfo(
-        remainingMileage: 505,
-        soc: 100,
+        remainingMileage: 330,
+        soc: 60,
         isLocked: true,
         windowsOpen: false,
         isCharge: false,
         airConditionerOn: false,
         lastUpdated: Date(),
         chgLeftTime: 0
+    )
+    
+    static let placeholder1 = CarInfo(
+        remainingMileage: 435,
+        soc: 80,
+        isLocked: true,
+        windowsOpen: false,
+        isCharge: false,
+        airConditionerOn: false,
+        lastUpdated: Date(),
+        chgLeftTime: 0
+    )
+    
+    static let placeholder2 = CarInfo(
+        remainingMileage: 505,
+        soc: 100,
+        isLocked: false,
+        windowsOpen: false,
+        isCharge: true,
+        airConditionerOn: false,
+        lastUpdated: Date(),
+        chgLeftTime: 127
     )
     
     // 创建更新后的CarInfo实例

@@ -109,9 +109,9 @@ function handleTripRecord($vin, $operation, $vehicleData, $pdo) {
 
     if ($operation == 2) { // 开锁
         if ($lastTrip) {
-            // 检查里程消耗
+            // 检查里程消耗(1公里以下抛弃)
             $mileageDiff = $totalMileage - $lastTrip['start_mileage'];
-            if ($mileageDiff > 0) {
+            if ($mileageDiff >= 1) {
                 // 结束上次行程
                 $updateStmt = $pdo->prepare("UPDATE trip_record SET end_time = :end_time, end_location = :end_location, end_latlng = :end_latlng, end_mileage = :end_mileage, end_range = :end_range, end_soc = :end_soc WHERE id = :id");
                 $updateStmt->execute([
@@ -143,7 +143,7 @@ function handleTripRecord($vin, $operation, $vehicleData, $pdo) {
     } elseif ($operation == 1) { // 关锁
         if ($lastTrip) {
             $mileageDiff = $totalMileage - $lastTrip['start_mileage'];
-            if ($mileageDiff > 0) {
+            if ($mileageDiff >= 1) {
                 // 结束行程
                 $updateStmt = $pdo->prepare("UPDATE trip_record SET end_time = :end_time, end_location = :end_location, end_latlng = :end_latlng, end_mileage = :end_mileage, end_range = :end_range, end_soc = :end_soc WHERE id = :id");
                 $updateStmt->execute([

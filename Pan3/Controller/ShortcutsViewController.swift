@@ -270,6 +270,32 @@ extension ShortcutsViewController: UITableViewDelegate {
             return
         }
         
+        // 显示分享选项的sheet弹窗
+        let alertController = UIAlertController(title: "行程记录", message: nil, preferredStyle: .actionSheet)
+        alertController.view.tintColor = .white
+        
+        // 分享选项
+        let shareAction = UIAlertAction(title: "分享行程", style: .default) { [weak self] _ in
+            self?.shareTrip(cell: cell)
+        }
+        
+        // 取消选项
+        let cancelAction = UIAlertAction(title: "取消", style: .cancel)
+        
+        alertController.addAction(shareAction)
+        alertController.addAction(cancelAction)
+        
+        // 对于iPad，需要设置popover的源
+        if let popover = alertController.popoverPresentationController {
+            popover.sourceView = cell
+            popover.sourceRect = cell.bounds
+        }
+        
+        present(alertController, animated: true)
+    }
+    
+    // MARK: - 分享行程方法
+    private func shareTrip(cell: UITableViewCell) {
         // 创建带有渐变背景和APP信息的分享图片
         let image = cell.qmui_snapshotImage(afterScreenUpdates: true)
         let shareImage = createShareImage(from: image)
@@ -331,29 +357,6 @@ extension ShortcutsViewController: UITableViewDelegate {
             
             // 重置裁剪区域
             cgContext.resetClip()
-            
-            // 绘制APP logo
-//            let logoRect = CGRect(x: (canvasWidth - logoHeight) / 2, 
-//                                y: cellRect.maxY + 20, 
-//                                width: logoHeight, 
-//                                height: logoHeight)
-            
-            // 创建圆形背景
-//            let logoBackground = UIBezierPath(ovalIn: logoRect)
-//            UIColor.white.withAlphaComponent(0.9).setFill()
-//            logoBackground.fill()
-//            
-//            // 绘制APP图标
-//            if let appIcon = UIImage(named: "login") {
-//                let iconSize: CGFloat = logoHeight * 0.8
-//                let iconRect = CGRect(x: logoRect.midX - iconSize/2, 
-//                                    y: logoRect.midY - iconSize/2, 
-//                                    width: iconSize, 
-//                                    height: iconSize)
-//                
-//                // 以原始颜色绘制图片，不使用template模式
-//                appIcon.draw(in: iconRect)
-//            }
             
             // 绘制APP名称
             let appName = "胖3助手"

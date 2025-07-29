@@ -59,7 +59,7 @@ struct Provider: AppIntentTimelineProvider {
             }
         }
         
-        // 设置下次更新时间为15分钟后
+        // 设置下次更新时间为5分钟后
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: currentDate)!
         
         return Timeline(entries: [entry], policy: .after(nextUpdate))
@@ -143,13 +143,13 @@ struct CarWidgetEntryView: View {
                                             .font(.title)
                                             .fontWeight(.bold)
                                             .foregroundColor(.white)
+                                            .contentTransition(.numericText(value: Double(carInfo.remainingMileage)))
                                         
                                         Text("km")
                                             .font(.caption)
                                             .foregroundColor(.white)
                                             .offset(y: -3)
                                     }
-                                    
                                     // SOC进度条
                                     ZStack(alignment: .leading) {
                                         // 灰色背景进度条
@@ -382,5 +382,7 @@ struct CarWidget: Widget {
     CarWidget()
 } timeline: {
     SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), carInfo: CarInfo.placeholder)
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), carInfo: CarInfo.placeholder1)
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), carInfo: CarInfo.placeholder2)
     SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), carInfo: nil, errorMessage: "请先在主应用中登录")
 }

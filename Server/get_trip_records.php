@@ -98,8 +98,8 @@ try {
         exit;
     }
     
-    // 查询总记录数
-    $countSql = "SELECT COUNT(*) as total FROM trip_record WHERE vin = ?";
+    // 查询总记录数（只统计已完成的行程）
+    $countSql = "SELECT COUNT(*) as total FROM trip_record WHERE vin = ? AND end_time IS NOT NULL";
     $countStmt = $pdo->prepare($countSql);
     $countStmt->execute([$vin]);
     $totalCount = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
@@ -107,7 +107,7 @@ try {
     // 计算总页数
     $totalPages = ceil($totalCount / $pageSize);
     
-    // 查询行程记录数据，按开始时间倒序排列
+    // 查询行程记录数据，按开始时间倒序排列，只返回已完成的行程（end_time不为空）
     $sql = "SELECT 
                 id,
                 vin,
@@ -126,7 +126,7 @@ try {
                 created_at,
                 updated_at
             FROM trip_record
-            WHERE vin = ? 
+            WHERE vin = ? AND end_time IS NOT NULL
             ORDER BY start_time DESC 
             LIMIT ? OFFSET ?";
     
