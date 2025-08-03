@@ -28,9 +28,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             window?.rootViewController = mainViewController
         } else {
             // 未登录，显示登录界面
-            let loginStoryboard = UIStoryboard(name: "Login", bundle: nil)
-            let loginViewController = loginStoryboard.instantiateInitialViewController()
-            window?.rootViewController = loginViewController
+            let loginViewController = LoginViewController()
+            let navigationController = UINavigationController(rootViewController: loginViewController)
+            window?.rootViewController = navigationController
         }
         
         window?.makeKeyAndVisible()

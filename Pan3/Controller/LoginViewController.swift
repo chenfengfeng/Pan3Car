@@ -8,13 +8,121 @@
 import UIKit
 import QMUIKit
 import SafariServices
+import SnapKit
 
-class LoginViewController: UIViewController {
-    @IBOutlet weak var phoneField: QMUITextField!
-    @IBOutlet weak var passwdField: QMUITextField!
-    @IBOutlet weak var loginBtn: QMUIButton!
-    @IBOutlet weak var bottomView: UIStackView!
-    @IBOutlet weak var protocolLabel: UILabel!
+class LoginViewController: UIViewController, QMUITextFieldDelegate {
+    // UI元素
+    private lazy var loginImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(named: "login")
+        imageView.contentMode = .scaleAspectFit
+        imageView.clipsToBounds = true
+        return imageView
+    }()
+    
+    private lazy var phoneContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.systemBackground
+        view.layer.cornerRadius = 10
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.systemGray2.cgColor
+        return view
+    }()
+    
+    private lazy var phoneIconImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(systemName: "iphone")
+        imageView.tintColor = UIColor.label
+        imageView.contentMode = .scaleAspectFit
+        return imageView
+    }()
+    
+    private lazy var phoneField: QMUITextField = {
+        let textField = QMUITextField()
+        textField.placeholder = "请输入手机号"
+        textField.keyboardType = .phonePad
+        textField.borderStyle = .none
+        textField.backgroundColor = UIColor.clear
+        textField.font = UIFont.systemFont(ofSize: 16)
+        textField.clearButtonMode = .whileEditing
+        textField.delegate = self
+        textField.returnKeyType = .next
+        return textField
+    }()
+    
+    private lazy var passwordContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.systemBackground
+        view.layer.cornerRadius = 10
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.systemGray2.cgColor
+        return view
+    }()
+    
+    private lazy var passwordIconImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = UIImage(systemName: "lock.fill")
+        imageView.tintColor = UIColor.label
+        imageView.contentMode = .scaleAspectFit
+        return imageView
+    }()
+    
+    private lazy var passwdField: QMUITextField = {
+        let textField = QMUITextField()
+        textField.placeholder = "请输入密码"
+        textField.isSecureTextEntry = true
+        textField.borderStyle = .none
+        textField.backgroundColor = UIColor.clear
+        textField.font = UIFont.systemFont(ofSize: 16)
+        textField.clearButtonMode = .whileEditing
+        textField.delegate = self
+        textField.returnKeyType = .done
+        return textField
+    }()
+    
+    private lazy var loginBtn: QMUIButton = {
+        let button = QMUIButton()
+        button.setTitle("登录胖3", for: .normal)
+        button.setTitleColor(.black, for: .normal)
+        button.backgroundColor = UIColor.white
+        button.layer.cornerRadius = 12
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 16)
+        button.addTarget(self, action: #selector(clickLogin), for: .touchUpInside)
+        return button
+    }()
+    
+    private lazy var bottomView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .vertical
+        stackView.spacing = 10
+        stackView.alignment = .center
+        return stackView
+    }()
+    
+    private lazy var protocolStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 8
+        stackView.alignment = .center
+        return stackView
+    }()
+    
+    private lazy var protocolLabel: UILabel = {
+        let label = UILabel()
+        label.numberOfLines = 0
+        label.textAlignment = .left
+        return label
+    }()
+    
+    private lazy var firstLoginLabel: UILabel = {
+        let label = UILabel()
+        label.text = "用户首次登录将自动创建账号"
+        label.textColor = UIColor.label
+        label.font = UIFont.systemFont(ofSize: 12)
+        label.textAlignment = .center
+        return label
+    }()
+    
     lazy var checkBox: QMUICheckbox = {
         let box = QMUICheckbox()
         box.tintColor = .label
@@ -29,14 +137,118 @@ class LoginViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        setupConstraints()
         setupProtocolLabel()
         loadSavedCredentials()
     }
     
     func setupUI() {
-        bottomView.insertArrangedSubview(checkBox, at: 0)
+        // 设置背景色 - 根据storyboard使用系统背景色
+        view.backgroundColor = UIColor.systemBackground
+        
+        // 添加主要容器视图
+        view.addSubview(phoneContainerView)
+        view.addSubview(passwordContainerView)
+        view.addSubview(loginImageView)
+        view.addSubview(loginBtn)
+        view.addSubview(bottomView)
+        view.addSubview(firstLoginLabel)
+        
+        // 设置手机号容器内的子视图
+        phoneContainerView.addSubview(phoneIconImageView)
+        phoneContainerView.addSubview(phoneField)
+        
+        // 设置密码容器内的子视图
+        passwordContainerView.addSubview(passwordIconImageView)
+        passwordContainerView.addSubview(passwdField)
+        
+        // 设置底部视图
+        protocolStackView.addArrangedSubview(checkBox)
+        protocolStackView.addArrangedSubview(protocolLabel)
+        bottomView.addArrangedSubview(protocolStackView)
+        
         checkBox.qmui_tapBlock = { _ in
             self.checkBox.isSelected = !self.checkBox.isSelected
+        }
+    }
+    
+    func setupConstraints() {
+        // Login 图片约束 - 位于顶部中央
+        loginImageView.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(68)
+            make.width.height.equalTo(200)
+        }
+        
+        // 手机号容器视图约束
+        phoneContainerView.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.top.equalTo(loginImageView.snp.bottom).offset(-35)
+            make.left.right.equalToSuperview().inset(40)
+            make.height.equalTo(54)
+        }
+        
+        // 手机号图标约束
+        phoneIconImageView.snp.makeConstraints { make in
+            make.leading.equalToSuperview().offset(10)
+            make.centerY.equalToSuperview()
+            make.width.height.equalTo(30)
+        }
+        
+        // 手机号输入框约束
+        phoneField.snp.makeConstraints { make in
+            make.leading.equalTo(phoneIconImageView.snp.trailing).offset(8)
+            make.trailing.equalToSuperview().offset(-8)
+            make.top.bottom.equalToSuperview()
+        }
+        
+        // 密码容器视图约束
+        passwordContainerView.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.top.equalTo(phoneContainerView.snp.bottom).offset(30)
+            make.left.right.equalToSuperview().inset(40)
+            make.height.equalTo(54)
+        }
+        
+        // 密码图标约束
+        passwordIconImageView.snp.makeConstraints { make in
+            make.leading.equalToSuperview().offset(10)
+            make.centerY.equalToSuperview()
+            make.width.height.equalTo(30)
+        }
+        
+        // 密码输入框约束
+        passwdField.snp.makeConstraints { make in
+            make.leading.equalTo(passwordIconImageView.snp.trailing).offset(8)
+            make.trailing.equalToSuperview().offset(-8)
+            make.top.bottom.equalToSuperview()
+        }
+        
+        // 登录按钮约束
+        loginBtn.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.top.equalTo(passwordContainerView.snp.bottom).offset(30)
+            make.left.right.equalToSuperview().inset(40)
+            make.height.equalTo(54)
+        }
+        
+        // 底部协议视图约束
+        bottomView.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.bottom.equalTo(firstLoginLabel.snp.top).offset(-12)
+            make.left.right.equalToSuperview().inset(40)
+        }
+        
+        // 首次登录提示标签约束
+        firstLoginLabel.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-20)
+            make.left.right.equalToSuperview().inset(40)
+        }
+        
+        // 复选框约束
+        checkBox.snp.makeConstraints { make in
+            make.width.height.equalTo(20)
         }
     }
     
@@ -60,9 +272,9 @@ class LoginViewController: UIViewController {
         let fullText = "已阅读并同意《隐私政策》和《用户协议》"
         let attributedString = NSMutableAttributedString(string: fullText)
         
-        // 设置整体样式：白色，12号字体
+        // 设置整体样式：系统标签颜色，12号字体
         attributedString.addAttributes([
-            .foregroundColor: UIColor.white,
+            .foregroundColor: UIColor.label,
             .font: UIFont.systemFont(ofSize: 12)
         ], range: NSRange(location: 0, length: fullText.count))
         
@@ -150,7 +362,7 @@ class LoginViewController: UIViewController {
         userDefaults.set(passwdField.text, forKey: "saved_password")
     }
     
-    @IBAction func clickLogin(_ sender: Any) {
+    @objc func clickLogin(_ sender: Any) {
         // 验证手机号
         guard let phone = phoneField.text, phone.count == 11 else {
             QMUITips.show(withText: "请输入11位手机号", in: view, hideAfterDelay: 2.0)
@@ -213,5 +425,16 @@ class LoginViewController: UIViewController {
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         view.endEditing(true)
+    }
+    
+    // MARK: - UITextFieldDelegate
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        if textField == phoneField {
+            passwdField.becomeFirstResponder()
+        } else if textField == passwdField {
+            textField.resignFirstResponder()
+            clickLogin(loginBtn)
+        }
+        return true
     }
 }
