@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import WatchConnectivity
 
 class UserManager {
     static let shared = UserManager()
@@ -71,7 +72,14 @@ class UserManager {
                 if let sharedDefaults = UserDefaults(suiteName: "group.com.feng.pan3") {
                     sharedDefaults.set(authResponse.data.token, forKey: "timaToken")
                     sharedDefaults.set(authResponse.data.vin, forKey: "defaultVin")
+                    sharedDefaults.synchronize()
                 }
+                
+                // 发送认证数据到Watch
+                WatchConnectivityManager.shared.sendAuthDataToWatch(
+                    token: authResponse.data.token,
+                    vin: authResponse.data.vin
+                )
             }
         } else {
             UserDefaults.standard.removeObject(forKey: authResponseKey)
@@ -81,7 +89,11 @@ class UserManager {
                 sharedDefaults.removeObject(forKey: "timaToken")
                 sharedDefaults.removeObject(forKey: "defaultVin")
                 sharedDefaults.removeObject(forKey: "carInfo")
+                sharedDefaults.synchronize()
             }
+            
+            // 清除Watch端的认证数据
+            WatchConnectivityManager.shared.clearWatchAuthData()
         }
     }
     
@@ -119,6 +131,7 @@ class UserManager {
             sharedDefaults.removeObject(forKey: "timaToken")
             sharedDefaults.removeObject(forKey: "defaultVin")
             sharedDefaults.removeObject(forKey: "carInfo")
+            sharedDefaults.synchronize()
         }
     }
     

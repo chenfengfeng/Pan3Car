@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if os(watchOS)
+import WatchConnectivity
+#endif
 
 /// 共享网络管理器，支持多Target复用（主应用、小组件、Watch等）
 class SharedNetworkManager {
@@ -26,11 +29,23 @@ class SharedNetworkManager {
     
     // MARK: - 获取用户认证信息
     private var timaToken: String? {
+        #if os(watchOS)
+        // 在Watch应用中，从WatchConnectivityManager获取token
+        return WatchConnectivityManager.shared.getCurrentToken()
+        #else
+        // 在iPhone应用中，从App Groups获取
         return UserDefaults(suiteName: "group.com.feng.pan3")?.string(forKey: "timaToken")
+        #endif
     }
     
     private var defaultVin: String? {
+        #if os(watchOS)
+        // 在Watch应用中，从WatchConnectivityManager获取vin
+        return WatchConnectivityManager.shared.getCurrentVin()
+        #else
+        // 在iPhone应用中，从App Groups获取
         return UserDefaults(suiteName: "group.com.feng.pan3")?.string(forKey: "defaultVin")
+        #endif
     }
     
     // 获取当前服务器类型

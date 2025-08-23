@@ -7,74 +7,264 @@
 
 import UIKit
 import MapKit
+import SnapKit
 import QMUIKit
 import MJRefresh
-import CoreImage
 import WidgetKit
 import CoreLocation
 import SwifterSwift
 
-class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDelegate, CarDataRefreshable {
-    @IBOutlet weak var backgroundImageView: UIImageView!
+class HomeViewController: UIViewController, CarDataRefreshable {
+    // 背景图片
+    private lazy var backgroundImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFill
+        imageView.image = UIImage(named: "my_car")
+        return imageView
+    }()
+    private lazy var backgroundBlurView: UIVisualEffectView = {
+        let view = UIVisualEffectView()
+        return view
+    }()
     
-    @IBOutlet weak var mile: UILabel!
-    @IBOutlet weak var unit: UILabel!
-    @IBOutlet weak var soc: UIProgressView!
-    @IBOutlet weak var totalMileage: UILabel!
+    // 顶部里程数据容器视图
+    private lazy var mileageHeaderView: MileageView = {
+        let view = MileageView()
+        return view
+    }()
     
-    @IBOutlet weak var scrollView: UIScrollView!
-    @IBOutlet weak var chargeView: UIStackView!
-    @IBOutlet weak var leftChargeTime: UILabel!
+    private lazy var scrollView: UIScrollView = {
+        let scrollView = UIScrollView()
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.delegate = self
+        scrollView.contentInset = UIEdgeInsets(top: 200, left: 0, bottom: 0, right: 0)
+        return scrollView
+    }()
     
-    @IBOutlet weak var topView: UIView!
-    @IBOutlet weak var lockBtn: QMUIButton!
-    @IBOutlet weak var lockLabel: UILabel!// 开锁/关锁
-    @IBOutlet weak var acBtn: QMUIButton!
-    @IBOutlet weak var acLabel: UILabel!// 开空调/关空调
-    @IBOutlet weak var windowBtn: QMUIButton!
-    @IBOutlet weak var windowLabel: UILabel!// 开窗/关窗
-    @IBOutlet weak var callBtn: QMUIButton!
-    @IBOutlet weak var callLabel: UILabel!// 寻车
+    // 主StackView - scrollView的唯一子视图
+    private lazy var mainStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.spacing = 20
+        stackView.axis = .vertical
+        stackView.isLayoutMarginsRelativeArrangement = true
+        stackView.layoutMargins = UIEdgeInsets(top: 0, left: 20, bottom: 16, right: 20)
+        return stackView
+    }()
     
-    // 门锁状态
-    @IBOutlet weak var leftTopDoorStatus: UILabel!//示例：左前门：关闭
-    @IBOutlet weak var rightTopDoorStatus: UILabel!//示例：右前门：关闭
-    @IBOutlet weak var leftBottomDoorStatus: UILabel!//示例：左后门：关闭
-    @IBOutlet weak var rightBottomDoorStatus: UILabel!//示例：右后门：关闭
-    @IBOutlet weak var tailDoorStatus: UILabel!//后尾箱
+    private lazy var chargeView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.alignment = .center
+        stackView.layer.cornerRadius = 12
+        stackView.distribution = .fillProportionally
+        stackView.backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        stackView.isHidden = true
+        return stackView
+    }()
+    
+    private lazy var chargeTimeTitle: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 14)
+        label.textColor = .white
+        label.text = "⚡️正在充电"
+        return label
+    }()
+    
+    private lazy var leftChargeTime: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 14)
+        label.textAlignment = .right
+        label.textColor = .white
+        return label
+    }()
+    
+    // 控制按钮StackView
+    private lazy var controlButtonsStackView: ControllButtonView = {
+        let stackView = ControllButtonView()
+        stackView.axis = .horizontal
+        stackView.distribution = .fillEqually
+        stackView.layer.cornerRadius = 12
+        stackView.backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        return stackView
+    }()
+    
+    // 地图和温度信息的水平容器StackView
+    private lazy var mapTemperatureHorizontalStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.spacing = 20
+        return stackView
+    }()
+    
+    // 地图信息卡片mapInfoView
+    private lazy var mapInfoView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        view.layer.cornerRadius = 12
+        return view
+    }()
+    
+    private lazy var mapView: MKMapView = {
+        let mapView = MKMapView()
+        mapView.layer.cornerRadius = 8
+        mapView.clipsToBounds = true
+        mapView.delegate = self
+        mapView.showsScale = false
+        mapView.showsCompass = false
+        mapView.showsUserLocation = false
+        if #available(iOS 17.0, *) {
+            mapView.showsUserTrackingButton = false
+        }
+        let mapTapGesture = UITapGestureRecognizer(target: self, action: #selector(mapTapped))
+        mapView.addGestureRecognizer(mapTapGesture)
+        return mapView
+    }()
+    
+    private lazy var carAddress: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 12)
+        label.textColor = .white
+        label.numberOfLines = 0
+        label.text = "车辆位置\n位置"
+        return label
+    }()
+    
+    private lazy var mapBottomView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        DispatchQueue.main.async {
+            view.az_setGradientBackground(with: [.clear, .black], start: CGPoint.zero, end: CGPoint(x: 0, y: 0.5))
+        }
+        return view
+    }()
+    
+    // 温度信息卡片StackView
+    private lazy var temperatureInfoView: UIView = {
+        let view = UIView()
+        view.layerCornerRadius = 12
+        view.backgroundColor = UIColor.white.withAlphaComponent(0.1)
+        return view
+    }()
+    
+    private lazy var carTemperatureStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.spacing = 8
+        stackView.axis = .vertical
+        stackView.layoutMargins = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        return stackView
+    }()
+    
+    private lazy var carTemperature: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 32, weight: .bold)
+        label.textColor = .white
+        label.text = "--˚"
+        return label
+    }()
+    
+    private lazy var carTemperatureLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = .white
+        label.text = "车内温度"
+        return label
+    }()
+    
+    private lazy var acTemperatureStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.spacing = 8
+        stackView.axis = .vertical
+        stackView.layoutMargins = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        return stackView
+    }()
+    
+    private lazy var presetTemperature: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = .white
+        label.text = "预设温度 26˚"
+        return label
+    }()
+    
+    private lazy var acStatus: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = .lightGray
+        label.text = "空调已关闭"
+        return label
+    }()
     
     // 车窗状态
-    @IBOutlet weak var leftTopWindowStatus: UILabel!//示例：左前窗：关闭
-    @IBOutlet weak var rightTopWindowStatus: UILabel!//示例：右前窗：关闭
-    @IBOutlet weak var leftBottomWindowStatus: UILabel!//示例：左后窗：关闭
-    @IBOutlet weak var rightBottomWindowStatus: UILabel!//示例：右后窗：关闭
+    private lazy var windowStatusTitle: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = .white
+        label.text = "车窗状态"
+        return label
+    }()
+    private lazy var windowStatusView: VehicleStatusView = {
+        let view = VehicleStatusView()
+        view.layoutMargins = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        view.isLayoutMarginsRelativeArrangement = true
+        view.alignment = .center
+        view.axis = .vertical
+        view.spacing = 8
+        view.setupWindowUI()
+        return view
+    }()
     
-    // 胎压数值
-    @IBOutlet weak var leftTopTPStatus: UILabel!//示例：左前胎压：240
-    @IBOutlet weak var rightTopTPStatus: UILabel!//示例：右前胎压：240
-    @IBOutlet weak var leftBottomTPStatus: UILabel!//示例：左后胎压：240
-    @IBOutlet weak var rightBottomTPStatus: UILabel!//示例：右后胎压：240
+    // 车门状态
+    private lazy var doorStatusTitle: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = .white
+        label.text = "车门状态"
+        return label
+    }()
+    private lazy var doorStatusView: VehicleStatusView = {
+        let view = VehicleStatusView()
+        view.layoutMargins = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        view.isLayoutMarginsRelativeArrangement = true
+        view.alignment = .center
+        view.axis = .vertical
+        view.spacing = 8
+        view.setupDoorUI()
+        return view
+    }()
     
-    
-    @IBOutlet weak var mapView: MKMapView!
-    @IBOutlet weak var carAddress: UILabel!//车地址，格式：地区+具体地址
-    @IBOutlet weak var mapBottomView: UIView!
-    
-    @IBOutlet weak var carTemperature: UILabel!//车内温度，格式：24˚
-    @IBOutlet weak var presetTemperature: UILabel!// 预设温度
-    @IBOutlet weak var acStatus: UILabel!//空调状态
-    
+    // 胎压状态
+    private lazy var tpStatusTitle: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.textColor = .white
+        label.text = "胎压状态"
+        return label
+    }()
+    private lazy var tpStatusView: VehicleStatusView = {
+        let view = VehicleStatusView()
+        view.layoutMargins = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        view.isLayoutMarginsRelativeArrangement = true
+        view.alignment = .center
+        view.axis = .vertical
+        view.spacing = 8
+        view.setupTPUI()
+        return view
+    }()
     
     // 标记是否是首次加载数据
     var isFirstDataLoad = true
-    
-    // 缓存原始背景图像
-    private var originalBackgroundImage: UIImage?
-    private var lastBlurRadius: CGFloat = -1
+    // 添加标志位防止重复调用
+    private var isAutoReloginInProgress = false
     
     // 小组件刷新频率控制
     private var lastWidgetRefreshTime: Date = Date(timeIntervalSince1970: 0)
     
+    // 防止无限重试的计数器
+    private var autoReloginAttempts = 0
+    private let maxAutoReloginAttempts = 3
+    private var lastAutoReloginTime: Date = Date(timeIntervalSince1970: 0)
+    
+    /// 视图加载后进行 UI 初始化、获取车辆信息并设置通知
     override func viewDidLoad() {
         super.viewDidLoad()
         // 设置导航栏
@@ -88,18 +278,79 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         
         // 进入页面的时候通知
         registerAppDidBecomeActiveNotification()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now()+0.1, execute: {[weak self] in
+            guard let self else {return}
+            let gradientColors = [
+                UIColor.white.withAlphaComponent(0.6),
+                UIColor.white.withAlphaComponent(0.1),
+                UIColor.white.withAlphaComponent(0.3),
+                UIColor.white.withAlphaComponent(0.0)
+            ]
+            
+            chargeView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
+            controlButtonsStackView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
+            mapInfoView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
+            temperatureInfoView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
+            doorStatusView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
+            windowStatusView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
+            tpStatusView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
+        })
     }
     
+    /// 页面即将显示时刷新车辆信息
     override func viewWillAppear(_ animated: Bool) {
         if !isFirstDataLoad {
             fetchCarInfo()
         }
-        let shouldEnableExperimental = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
-        topView.isHidden = !shouldEnableExperimental
     }
-
     
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - 刷新小组件
+    /// 刷新小组件时间线，遵循最小 30 秒刷新间隔
+    private func refreshWidget() {
+        // 检查刷新频率限制（30秒最小间隔）
+        let now = Date()
+        let minimumInterval: TimeInterval = 30
+        
+        if now.timeIntervalSince(lastWidgetRefreshTime) < minimumInterval {
+            print("小组件刷新频率限制，跳过本次刷新")
+            return
+        }
+        
+        // 更新最后刷新时间
+        lastWidgetRefreshTime = now
+        
+        // 刷新所有小组件
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+    
+    // MARK: - 获取最新充电任务激活实时活动
+    /// 获取当前充电任务状态并启动实时活动
+    private func getTaskStatus() {
+        NetworkManager.shared.getChargeStatus { result in
+            switch result {
+            case .success(let response):
+                if response.hasRunningTask {
+                    // 当前有正在充电的任务
+                    if let task = response.task {
+                        LiveActivityManager.shared.startChargeActivity(with: task)
+                    }
+                }
+            default:
+                break
+            }
+        }
+    }
+}
+
+// MARK: - UI相关
+extension HomeViewController {
     // MARK: - 设置导航栏
+    /// 配置导航栏标题并注册欢迎词更新通知
     func setupNavigationBar() {
         updateNavigationTitle()
         
@@ -112,6 +363,7 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         )
     }
     
+    /// 根据用户设定动态更新导航栏欢迎词
     @objc func updateNavigationTitle() {
         let greetingType = UserDefaults.standard.string(forKey: "GreetingType") ?? "nickname"
         
@@ -133,200 +385,212 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         }
     }
     
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-    
-    // MARK: - CarDataRefreshable Protocol Implementation
-    func refreshCarData() {
-        fetchCarInfo()
-    }
-    
-    @objc func handleAppDidBecomeActive() {
-        print("APP重新进入前台了 - HomeViewController")
-        if !isFirstDataLoad {
-            refreshCarData()
-        }
-    }
-    
-    // MARK: - 设置UI
+    /// 初始化并布局所有 UI 组件
     func setupUI() {
-        // scrollview 偏移
-        scrollView.contentInset = UIEdgeInsets(top: 160, left: 0, bottom: 0, right: 0)
+        // 设置UI层级结构
+        setupViewHierarchy()
         
-        // 设置scrollView代理
-        scrollView.delegate = self
+        // 设置Auto Layout约束
+        setupConstraints()
         
-        // 缓存原始背景图像
-        originalBackgroundImage = backgroundImageView.image
+        // 配置UI属性和事件
+        configureUIProperties()
+    }
+    
+    // MARK: - 设置视图层级
+    /// 构建视图层级，将各个子视图添加到父视图
+    private func setupViewHierarchy() {
+        // 添加背景图片
+        view.addSubview(backgroundImageView)
+        // 添加模糊背景
+        backgroundImageView.addSubview(backgroundBlurView)
         
-        // 设置地图代理
-        mapView.delegate = self
+        // 添加滚动视图
+        view.addSubview(scrollView)
         
-        // 设置里程点击
-        mile.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(changeMile)))
+        // 添加顶部信息区域（在scrollView外面）
+        view.addSubview(mileageHeaderView)
+        mileageHeaderView.setupUI()
         
-        // 设置风扇按钮图标
-        let config = UIImage.SymbolConfiguration(scale: .large)
-        if #available(iOS 17.0, *) {
-            let fanImage = UIImage(systemName: "fan.fill", withConfiguration: config)
-            acBtn.setImage(fanImage, for: .normal)
-            
-            let winImage = UIImage(systemName: "arrowtriangle.up.arrowtriangle.down.window.right", withConfiguration: config)
-            windowBtn.setImage(winImage, for: .normal)
-            
-            let callImage = UIImage(systemName: "car.front.waves.up", withConfiguration: config)
-            callBtn.setImage(callImage, for: .normal)
-            mapView.showsUserTrackingButton = false
+        // 添加主StackView作为scrollView的唯一子视图
+        scrollView.addSubview(mainStackView)
+        
+        // 充电时间
+        mainStackView.addArrangedSubview(chargeView)
+        chargeView.addArrangedSubview(addSpacingView())
+        chargeView.addArrangedSubview(chargeTimeTitle)
+        chargeView.addArrangedSubview(leftChargeTime)
+        chargeView.addArrangedSubview(addSpacingView())
+        
+        // 控制按钮区域 - 使用StackView
+        mainStackView.addArrangedSubview(controlButtonsStackView)
+        controlButtonsStackView.setupUI()
+        
+        // 地图和温度信息水平布局
+        mainStackView.addArrangedSubview(mapTemperatureHorizontalStackView)
+        
+        // 地图信息卡片 - 使用StackView
+        mapTemperatureHorizontalStackView.addArrangedSubview(mapInfoView)
+        mapInfoView.addSubview(mapView)
+        mapView.addSubview(mapBottomView)
+        mapBottomView.addSubview(carAddress)
+        
+        // 温度信息卡片 - 使用StackView
+        mapTemperatureHorizontalStackView.addArrangedSubview(temperatureInfoView)
+        temperatureInfoView.addSubview(carTemperatureStackView)
+        temperatureInfoView.addSubview(acTemperatureStackView)
+        carTemperatureStackView.addArrangedSubview(carTemperature)
+        carTemperatureStackView.addArrangedSubview(carTemperatureLabel)
+        acTemperatureStackView.addArrangedSubview(presetTemperature)
+        acTemperatureStackView.addArrangedSubview(acStatus)
+        
+        // 车窗状态区域 - 使用UIView
+        mainStackView.addArrangedSubview(windowStatusTitle)
+        mainStackView.addArrangedSubview(windowStatusView)
+        mainStackView.setCustomSpacing(8, after: windowStatusTitle)
+        
+        // 车门状态区域 - 使用UIView
+        mainStackView.addArrangedSubview(doorStatusTitle)
+        mainStackView.addArrangedSubview(doorStatusView)
+        mainStackView.setCustomSpacing(8, after: doorStatusTitle)
+        
+        // 胎压状态区域 - 使用UIView
+        mainStackView.addArrangedSubview(tpStatusTitle)
+        mainStackView.addArrangedSubview(tpStatusView)
+        mainStackView.setCustomSpacing(8, after: tpStatusTitle)
+    }
+    
+    private func addSpacingView() -> UIView {
+        let label = UILabel()
+        label.text = "  "
+        return label
+    }
+    
+    // MARK: - 设置约束
+    /// 使用 SnapKit 为各个视图添加 Auto Layout 约束
+    private func setupConstraints() {
+        // 背景图片约束
+        backgroundImageView.snp.makeConstraints { make in
+            make.left.right.equalToSuperview()
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top).inset(30)
+            make.height.equalTo(backgroundImageView.snp.width).multipliedBy(9.0/16.0)
+        }
+        backgroundBlurView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
         }
         
+        // 顶部信息区域约束（在导航顶部）
+        mileageHeaderView.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top).offset(20)
+            make.leading.trailing.equalToSuperview()
+            make.height.equalTo(100)
+        }
+        
+        // 滚动视图约束（从headerView下方开始）
+        scrollView.snp.makeConstraints { make in
+            make.top.equalTo(backgroundImageView.snp.top)
+            make.leading.trailing.bottom.equalToSuperview()
+        }
+        
+        // 主StackView约束 - 填充整个scrollView
+        mainStackView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+            make.width.equalTo(scrollView)
+        }
+        
+        // StackView子视图的约束现在由mainStackView自动管理
+        // 只需要为控制按钮设置高度约束
+        controlButtonsStackView.snp.makeConstraints { make in
+            make.height.equalTo(80)
+        }
+        
+        chargeView.snp.makeConstraints { make in
+            make.height.equalTo(54)
+        }
+        
+        controlButtonsStackView.arrangedSubviews.forEach { containerView in
+            containerView.snp.makeConstraints { make in
+                make.height.equalTo(80)
+            }
+        }
+        
+        setupInfoCardConstraints()
+    }
+    
+    private func setupInfoCardConstraints() {
+        // 地图视图约束（在mapInfoStackView内）
+        mapInfoView.snp.makeConstraints { make in
+            make.height.equalTo(mapView.snp.width)
+        }
+        
+        mapView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
+        // 地图底部渐变视图
+        mapBottomView.snp.makeConstraints { make in
+            make.leading.trailing.bottom.equalTo(mapView)
+            make.height.equalTo(60)
+        }
+        
+        // 车辆地址
+        carAddress.snp.makeConstraints { make in
+            make.leading.equalTo(mapBottomView).offset(8)
+            make.trailing.equalTo(mapBottomView).offset(-8)
+            make.bottom.equalTo(mapBottomView).offset(-8)
+        }
+        
+        // 温度模块
+        temperatureInfoView.snp.makeConstraints { make in
+            make.height.equalTo(temperatureInfoView.snp.width)
+        }
+        
+        // 车内温度
+        carTemperatureStackView.snp.makeConstraints { make in
+            make.top.leading.equalToSuperview().inset(8)
+        }
+        
+        // 预设温度
+        acTemperatureStackView.snp.makeConstraints { make in
+            make.bottom.leading.equalToSuperview().inset(8)
+        }
+        
+        // 空调状态
+        acStatus.snp.makeConstraints { make in
+            make.top.equalTo(presetTemperature.snp.bottom).offset(4)
+            make.leading.trailing.equalTo(carTemperature)
+            make.bottom.equalToSuperview().offset(-8)
+        }
+    }
+    
+    // MARK: - 配置UI属性
+    private func configureUIProperties() {
+        // 设置下拉刷新
         let mj_header = MJRefreshNormalHeader(refreshingBlock: {
             self.fetchCarInfo()
         })
         mj_header.ignoredScrollViewContentInsetTop = 170
         mj_header.lastUpdatedTimeLabel?.isHidden = true
         scrollView.mj_header = mj_header
-        
-        mapView.showsScale = false
-        mapView.showsCompass = false
-        mapView.showsUserLocation = false
-        
-        mapBottomView.az_setGradientBackground(with: [.clear, .black], start: CGPoint.zero, end: CGPoint(x: 0, y: 0.5))
     }
     
-    // MARK: - 按键事件
-    @objc func changeMile() {
-        guard let model = UserManager.shared.carModel else { return }
-        
-        if unit.text == "km" {
-            mile.text = model.soc
-            unit.text = "%"
-        }else{
-            mile.text = model.acOnMile.string
-            unit.text = "km"
-        }
-        
-        UIView.animate(withDuration: 0.3) {
-            self.view.layoutIfNeeded()
-        }
+    // MARK: - 配置信息
+    private func formatTime(minutes: Float) -> String {
+        let totalSeconds = Int(minutes * 60)
+        let hours = totalSeconds / 3600
+        let mins = (totalSeconds % 3600) / 60
+        let secs = totalSeconds % 60
+        return "\(hours)小时\(mins)分钟\(secs)秒"
+    }
+}
+
+// MARK: - 点击事件
+extension HomeViewController {
+    @objc private func mapTapped() {
+        actionMap(QMUIButton())
     }
     
-    @IBAction func actionLock(_ sender: QMUIButton) {
-        guard let model = UserManager.shared.carModel else { return }
-        
-        let isLocked = model.mainLockStatus == 0
-        let operation = isLocked ? 2 : 1  // 2=开锁, 1=关锁
-        let actionText = isLocked ? "开锁" : "关锁"
-        
-        executeCarControl(
-            loadingText: "\(actionText)中...",
-            successText: "\(actionText)指令发送成功",
-            failureText: "\(actionText)失败",
-            expectedStatusChange: { oldModel, newModel in
-                return oldModel.mainLockStatus != newModel.mainLockStatus
-            },
-            controlAction: { completion in
-                NetworkManager.shared.energyLock(operation: operation, completion: completion)
-            }
-        )
-    }
-    
-    @IBAction func actionAC(_ sender: QMUIButton) {
-        guard let model = UserManager.shared.carModel else { return }
-        
-        let isOff = model.acStatus == 2
-        
-        if isOff {
-            // 空调关闭时，弹出选择界面
-            ACSelectView.show(from: self) { [weak self] temperature, time in
-                self?.startAirConditioner(temperature: temperature, time: time)
-            }
-        } else {
-            // 空调开启时，直接关闭
-            closeAirConditioner()
-        }
-    }
-    
-    // MARK: - 开启空调
-    private func startAirConditioner(temperature: Int, time: Int) {
-        // 保存用户选择的温度到UserDefaults
-        UserDefaults.standard.set(temperature, forKey: "PresetTemperature")
-        
-        // 立即更新预设温度显示
-        presetTemperature.text = "预设温度 \(temperature)˚"
-        
-        executeCarControl(
-            loadingText: "打开空调中...",
-            successText: "打开空调指令发送成功",
-            failureText: "打开空调失败",
-            expectedStatusChange: { oldModel, newModel in
-                return oldModel.acStatus != newModel.acStatus
-            },
-            controlAction: { completion in
-                NetworkManager.shared.energyAirConditioner(operation: 2, temperature: temperature, duringTime: time, completion: completion)
-            }
-        )
-    }
-    
-    // MARK: - 关闭空调
-    private func closeAirConditioner() {
-        executeCarControl(
-            loadingText: "关闭空调中...",
-            successText: "关闭空调指令发送成功",
-            failureText: "关闭空调失败",
-            expectedStatusChange: { oldModel, newModel in
-                return oldModel.acStatus != newModel.acStatus
-            },
-            controlAction: { completion in
-                NetworkManager.shared.energyAirConditioner(operation: 1, temperature: 26, duringTime: 30, completion: completion)
-            }
-        )
-    }
-    
-    @IBAction func actionWindow(_ sender: QMUIButton) {
-        guard let model = UserManager.shared.carModel else {
-            QMUITips.show(withText: "车辆信息不可用", in: view, hideAfterDelay: 2.0)
-            return
-        }
-        
-        // 判断当前车窗状态
-        let allWindowsClosed = model.lfWindowOpen == 0 && model.rfWindowOpen == 0 &&
-                               model.lrWindowOpen == 0 && model.rrWindowOpen == 0
-        
-        let operation = allWindowsClosed ? 2 : 1  // 2开启，1关闭
-        let openLevel = allWindowsClosed ? 2 : 0  // 2完全打开，0关闭
-        let actionText = allWindowsClosed ? "开窗" : "关窗"
-        
-        executeCarControl(
-            loadingText: "\(actionText)中...",
-            successText: "\(actionText)指令发送成功",
-            failureText: "\(actionText)失败",
-            expectedStatusChange: { oldModel, newModel in
-                return oldModel.lfWindowOpen != newModel.lfWindowOpen &&
-                       oldModel.rfWindowOpen != newModel.rfWindowOpen &&
-                       oldModel.lrWindowOpen != newModel.lrWindowOpen &&
-                       oldModel.rrWindowOpen != newModel.rrWindowOpen
-            },
-            controlAction: { completion in
-                NetworkManager.shared.energyWindow(operation: operation, openLevel: openLevel, completion: completion)
-            }
-        )
-    }
-    
-    @IBAction func actionCall(_ sender: QMUIButton) {
-        QMUITips.showLoading("鸣笛寻车指令发送中...", in: view)
-        NetworkManager.shared.energyFind { result in
-            QMUITips.hideAllTips()
-            switch result {
-            case .success(_):
-                QMUITips.show(withText: "鸣笛指令发送成功")
-            default:
-                break
-            }
-        }
-    }
-    
-    @IBAction func actionMap(_ sender: QMUIButton) {
+    func actionMap(_ sender: QMUIButton) {
         guard let model = UserManager.shared.carModel else { return }
         
         let alertController = UIAlertController(title: "导航到我的车", message: "请选择要使用的地图应用", preferredStyle: .actionSheet)
@@ -376,13 +640,16 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
             MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
         ])
     }
-    
+}
+
+// MARK: - 网络请求
+extension HomeViewController {
     // MARK: - 获取车辆信息并验证登录状态
     func fetchCarInfoAndValidateLogin() {
         let userManager = UserManager.shared
         guard let _ = userManager.timaToken else {
             // 没有token，跳转到登录页面
-            navigateToLogin()
+            QMUITips.show(withText: "没有获取到登陆token")
             return
         }
         
@@ -392,37 +659,94 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
     
     // MARK: - 尝试自动重新登录
     func attemptAutoRelogin() {
-        guard let credentials = UserManager.shared.savedCredentials else {
-            // 没有保存的账户密码，跳转到登录页面
-            QMUITips.show(withText: "登录已过期，请重新登录", in: view, hideAfterDelay: 2.0)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        // 防止重复调用
+        if isAutoReloginInProgress {
+            print("[HomeViewController] 自动重新登录正在进行中，忽略重复调用")
+            return
+        }
+        
+        // 检查重试次数和时间间隔，防止无限循环
+        let now = Date()
+        let timeSinceLastAttempt = now.timeIntervalSince(lastAutoReloginTime)
+        
+        print("[HomeViewController] attemptAutoRelogin 被调用 - 当前重试次数: \(autoReloginAttempts), 距离上次尝试: \(timeSinceLastAttempt)秒")
+        
+        // 如果距离上次尝试超过30秒，重置计数器
+        if timeSinceLastAttempt > 30 {
+            print("[HomeViewController] 距离上次尝试超过30秒，重置重试计数器")
+            autoReloginAttempts = 0
+        }
+        
+        // 检查是否超过最大重试次数
+        if autoReloginAttempts >= maxAutoReloginAttempts {
+            print("[HomeViewController] 自动重新登录已达到最大尝试次数(\(maxAutoReloginAttempts))，停止重试")
+            QMUITips.show(withText: "登录失败次数过多，请手动重新登录", in: view, hideAfterDelay: 3.0)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
                 self.navigateToLogin()
             }
             return
         }
         
+        guard let credentials = UserManager.shared.savedCredentials else {
+            print("[HomeViewController] 没有保存的账户密码，跳转到登录页面")
+            QMUITips.show(withText: "没有获取到账户或者密码", in: view, hideAfterDelay: 2.0)
+            return
+        }
+        
+        // 设置进行中标志
+        isAutoReloginInProgress = true
+        
+        // 更新重试计数和时间
+        autoReloginAttempts += 1
+        lastAutoReloginTime = now
+        
+        print("[HomeViewController] 开始第\(autoReloginAttempts)次自动重新登录尝试")
+        
         QMUITips.showLoading(in: self.view)
-        QMUITips.show(withText: "正在自动重新登录...", in: view, hideAfterDelay: 1.0)
+        QMUITips.show(withText: "正在自动重新登录...(\(autoReloginAttempts)/\(maxAutoReloginAttempts))", in: view, hideAfterDelay: 1.0)
         
         // 使用保存的账户密码自动登录
         let encryptedPassword = credentials.password.qmui_md5
         NetworkManager.shared.login(userCode: credentials.phone, password: encryptedPassword) { [weak self] result in
             guard let self else { return }
             DispatchQueue.main.async {
+                // 重置进行中标志
+                self.isAutoReloginInProgress = false
                 QMUITips.hideAllTips()
+                
                 switch result {
                 case .success(let authResponse):
+                    print("[HomeViewController] 自动登录成功，重置重试计数器")
+                    // 登录成功，重置重试计数器
+                    self.autoReloginAttempts = 0
+                    
                     // 登录成功，更新认证响应信息
                     UserManager.shared.authResponse = authResponse
                     
-                    // 登录成功，直接设置车辆数据（新接口已包含所有信息）
-                    self.fetchCarInfo(showSuccessMessage: false)
+                    // 登录成功后，延迟一下再获取车辆信息，避免立即重试
+                    print("[HomeViewController] 自动登录成功，1秒后获取车辆信息")
                     QMUITips.show(withText: "自动登录成功", in: self.view, hideAfterDelay: 1.0)
                     
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.fetchCarInfo(showSuccessMessage: false)
+                    }
+                    
                 case .failure(let error):
+                    print("[HomeViewController] 自动登录失败: \(error.localizedDescription)")
+                    print("[HomeViewController] 自动登录失败详情: \(error)")
                     QMUITips.show(withText: "自动登录失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                        self.navigateToLogin()
+                    
+                    // 如果还有重试机会，等待一段时间后再次尝试
+                    if self.autoReloginAttempts < self.maxAutoReloginAttempts {
+                        print("[HomeViewController] 将在5秒后进行下一次重试")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                            self.attemptAutoRelogin()
+                        }
+                    } else {
+                        print("[HomeViewController] 已达到最大重试次数，跳转到登录页面")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                            self.navigateToLogin()
+                        }
                     }
                 }
             }
@@ -431,6 +755,10 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
     
     // MARK: - 获取车辆信息
     func fetchCarInfo(showSuccessMessage: Bool = false) {
+        print("[HomeViewController] 开始获取车辆信息，showSuccessMessage: \(showSuccessMessage)")
+        print("[HomeViewController] 当前token状态: \(UserManager.shared.timaToken != nil ? "有效" : "无效")")
+        print("[HomeViewController] 当前vin状态: \(UserManager.shared.defaultVin != nil ? "有效" : "无效")")
+        
         NetworkManager.shared.getInfo { [weak self] result in
             guard let self else {return}
             self.scrollView.mj_header?.endRefreshing()
@@ -439,6 +767,10 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
             }
             switch result {
             case .success(let json):
+                print("[HomeViewController] 车辆信息获取成功")
+                // 成功获取数据，重置重试计数器
+                self.autoReloginAttempts = 0
+                
                 // 保存车辆信息
                 let model = CarModel(json: json)
                 UserManager.shared.updateCarInfo(with: model)
@@ -447,12 +779,43 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
                 // 刷新小组件
                 self.refreshWidget()
             case .failure(let error):
+                print("[HomeViewController] 车辆信息获取失败: \(error.localizedDescription)")
+                print("[HomeViewController] 错误详情: \(error)")
+                print("[HomeViewController] 错误类型: \(type(of: error))")
+                
+                // 检查是否是NSError，并打印更多信息
+                if let nsError = error as NSError? {
+                    print("[HomeViewController] NSError domain: \(nsError.domain), code: \(nsError.code)")
+                    print("[HomeViewController] NSError userInfo: \(nsError.userInfo)")
+                }
+                
                 if showSuccessMessage {
                     QMUITips.show(withText: "获取车辆信息失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
                 } else {
-                    print("车辆信息获取失败: \(error.localizedDescription)")
-                    // 获取失败，可能是登录过期，尝试自动重新登录
-                    self.attemptAutoRelogin()
+                    // 检查错误类型，避免不必要的重新登录
+                    let errorDescription = error.localizedDescription.lowercased()
+                    let errorDomain = (error as NSError).domain.lowercased()
+                    let errorCode = (error as NSError).code
+                    
+                    print("[HomeViewController] 错误分析 - description: \(errorDescription), domain: \(errorDomain), code: \(errorCode)")
+                    
+                    // 更严格的认证错误检测
+                    let isAuthError = errorDescription.contains("unauthorized") ||
+                    errorDescription.contains("token") ||
+                    errorDescription.contains("401") ||
+                    errorDescription.contains("authentication") ||
+                    errorDescription.contains("用户未登录") ||
+                    errorDomain.contains("carinfo") && errorCode == -1
+                    
+                    if isAuthError && !self.isAutoReloginInProgress {
+                        print("[HomeViewController] 检测到认证相关错误，尝试自动重新登录")
+                        self.attemptAutoRelogin()
+                    } else if self.isAutoReloginInProgress {
+                        print("[HomeViewController] 自动重新登录正在进行中，跳过重新登录")
+                    } else {
+                        print("[HomeViewController] 非认证错误，不进行自动重新登录: \(error.localizedDescription)")
+                        QMUITips.show(withText: "网络请求失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
+                    }
                 }
             }
         }
@@ -460,98 +823,62 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
     
     // MARK: - 跳转到登录页面
     func navigateToLogin() {
-        QMUITips.show(withText: "发生了奇怪的错误")
+        print("[HomeViewController] navigateToLogin 被调用")
+        QMUITips.show(withText: "需要重新登录", in: view, hideAfterDelay: 2.0)
+        
+        // 清除当前的认证信息
+        //        UserManager.shared.logout()
+        
+        // 这里应该跳转到登录页面，目前只是显示提示
+        // 如果有登录页面的segue或者storyboard，可以在这里添加跳转逻辑
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            // TODO: 添加实际的登录页面跳转逻辑
+            print("[HomeViewController] 应该跳转到登录页面")
+        }
     }
     
     // MARK: - 配置信息
     func setupCarData() {
         guard let model = UserManager.shared.carModel else { return }
         
-        let targetMileValue = model.acOnMile
-        let targetSocValue = model.soc.nsString.floatValue / 100
+        // 加载里程
+        mileageHeaderView.setupCarModel(isFirstDataLoad)
         
         if isFirstDataLoad {
+            isFirstDataLoad = false
             // 首次加载 - 激活实时活动
             getTaskStatus()
-            // 首次加载 - 执行动画
-            animateMileage(to: targetMileValue)
-            animateSOC(to: targetSocValue)
-            // 首次加载时设置默认显示为里程
-            unit.text = "km"
-            isFirstDataLoad = false
-        } else {
-            // 后续更新 - 根据当前显示状态设置对应数值
-            if unit.text == "km" {
-                // 当前显示里程，更新为最新里程数据
-                mile.text = "\(targetMileValue)"
-            } else {
-                // 当前显示电量，更新为最新电量数据
-                mile.text = model.soc
-            }
-            soc.progress = targetSocValue
-            
-            // 根据SOC值设置进度条颜色
-            let percentage = targetSocValue * 100
-            if percentage < 10 {
-                soc.progressTintColor = .systemRed
-            } else if percentage < 20 {
-                soc.progressTintColor = .systemOrange
-            } else {
-                soc.progressTintColor = .systemGreen
-            }
         }
-        
-        // 总里程直接设置
-        totalMileage.text = "总里程：\(model.totalMileage)km"
         
         // 充电状态
         if model.chgStatus == 2 {
             chargeView.isHidden = true
+            backgroundImageView.image = UIImage(named: "my_car")
         }else{
             chargeView.isHidden = false
+            backgroundImageView.image = UIImage(named: "my_car_charge")
             leftChargeTime.text = "预计充满："+formatTime(minutes: model.quickChgLeftTime.float)
         }
         
-        // 设置风扇按钮图标和文字
-        let config = UIImage.SymbolConfiguration(scale: .large)
-        if #available(iOS 17.0, *) {
-            let fanImage = UIImage(systemName: "fan.fill", withConfiguration: config)
-            acBtn.setImage(fanImage, for: .normal)
-            
-            if model.acStatus == 1 {
-                // 开启空调 - 添加360度旋转动画
-                startFanRotationAnimation()
-                acLabel.text = "关空调"
-                acStatus.text = "空调已开启"
-            }else{
-                // 关闭空调 - 停止旋转动画
-                stopFanRotationAnimation()
-                acLabel.text = "开空调"
-                acStatus.text = "空调已关闭"
-            }
-        }
-        
-        // 判断是否在充电
-        if model.chgStatus == 2 {
-            backgroundImageView.image = UIImage(named: "my_car")
+        // 温度显示
+        if model.acStatus == 1 {
+            acStatus.text = "空调已开启"
         }else{
-            backgroundImageView.image = UIImage(named: "my_car_charge")
+            acStatus.text = "空调已关闭"
         }
-        originalBackgroundImage = backgroundImageView.image
         
-        // 设置车锁按钮图标和文字
-        let imageName = model.mainLockStatus == 0 ? "lock.fill" : "lock.open.fill"
-        let image = UIImage(systemName: imageName, withConfiguration: config)
-        lockBtn.setImage(image, for: .normal)
-        lockLabel.text = model.mainLockStatus == 0 ? "开锁" : "关锁"
-        
-        // 设置车窗按钮文字（根据所有车窗状态判断）
-        let allWindowsClosed = model.lfWindowOpen == 0 && model.rfWindowOpen == 0 &&
-        model.lrWindowOpen == 0 && model.rrWindowOpen == 0
-        windowLabel.text = allWindowsClosed ? "开窗" : "关窗"
-        
-        // 寻车按钮文字（固定）
-        callLabel.text = "寻车"
+        // 控制按钮
+        controlButtonsStackView.blockPollingChange = { [weak self] originalModel, expectedChange in
+            self?.startPollingForStatusChange(
+                originalModel: originalModel,
+                expectedChange: expectedChange
+            )
+            // 刷新小组件
+            self?.refreshWidget()
+        }
+        controlButtonsStackView.blockTemperatureChange = { [weak self] temperature in
+            self?.presetTemperature.text = "预设温度 \(temperature)˚"
+        }
         
         // 更新车辆状态信息
         updateCarStatusInfo(with: model)
@@ -560,29 +887,24 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         updateMapLocation(with: model)
     }
     
+    // MARK: - CarDataRefreshable Protocol Implementation
+    func refreshCarData() {
+        fetchCarInfo()
+    }
+    
+    @objc func handleAppDidBecomeActive() {
+        print("APP重新进入前台了 - HomeViewController")
+        if !isFirstDataLoad {
+            refreshCarData()
+        }
+    }
+    
     // MARK: - 更新车辆状态信息
     private func updateCarStatusInfo(with model: CarModel) {
-        // 车门状态
-        leftTopDoorStatus.text = "左前门：\(model.doorStsFrontLeft == 0 ? "关闭" : "开启")"
-        rightTopDoorStatus.text = "右前门：\(model.doorStsFrontRight == 0 ? "关闭" : "开启")"
-        leftBottomDoorStatus.text = "左后门：\(model.doorStsRearLeft == 0 ? "关闭" : "开启")"
-        rightBottomDoorStatus.text = "右后门：\(model.doorStsRearRight == 0 ? "关闭" : "开启")"
-        
-        // 车窗状态
-        leftTopWindowStatus.text = "左前窗：\(model.lfWindowOpen == 0 ? "关闭" : "开启")"
-        rightTopWindowStatus.text = "右前窗：\(model.rfWindowOpen == 0 ? "关闭" : "开启")"
-        leftBottomWindowStatus.text = "左后窗：\(model.lrWindowOpen == 0 ? "关闭" : "开启")"
-        rightBottomWindowStatus.text = "右后窗：\(model.rrWindowOpen == 0 ? "关闭" : "开启")"
-        
-        // 后备箱状态
-        tailDoorStatus.text = "后尾箱：\(model.trunkLockStatus == 0 ? "关闭" : "开启")"
-        
-        // 胎压状态（数据为0时显示--）
-        leftTopTPStatus.text = "左前胎压：\(model.lfTirePresure == 0 ? "--" : "\(model.lfTirePresure)")"
-        rightTopTPStatus.text = "右前胎压：\(model.rfTirePresure == 0 ? "--" : "\(model.rfTirePresure)")"
-        leftBottomTPStatus.text = "左后胎压：\(model.lrTirePresure == 0 ? "--" : "\(model.lrTirePresure)")"
-        rightBottomTPStatus.text = "右后胎压：\(model.rrTirePresure == 0 ? "--" : "\(model.rrTirePresure)")"
-        
+        // 车辆信息
+        windowStatusView.updateWindowStatusInfo()
+        doorStatusView.updateDoorStatusInfo()
+        tpStatusView.updateTPStatusInfo()
         // 车内温度（数据为0或大于100度时显示--）
         if model.temperatureInCar == 0 || model.temperatureInCar > 100 {
             carTemperature.text = "--˚"
@@ -629,174 +951,9 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
                     let address = [placemark.subLocality, placemark.name]
                         .compactMap { $0 }
                         .joined(separator: "")
-                    self?.carAddress.text = address.isEmpty ? "位置解析中..." : address
+                    self?.carAddress.text = address.isEmpty ? "车辆位置\n位置解析中..." : "车辆位置\n\(address)"
                 } else {
-                    self?.carAddress.text = "位置解析失败"
-                }
-            }
-        }
-    }
-    
-    // MARK: - 配置信息
-    func formatTime(minutes: Float) -> String {
-        let totalSeconds = Int(minutes * 60)
-        let hours = totalSeconds / 3600
-        let mins = (totalSeconds % 3600) / 60
-        let secs = totalSeconds % 60
-        return "\(hours)小时\(mins)分钟\(secs)秒"
-    }
-    
-    // MARK: - 里程动画
-    private func animateMileage(to targetValue: Int) {
-        let duration: TimeInterval = 1.5
-        let startTime = CACurrentMediaTime()
-        
-        let displayLink = CADisplayLink(target: self, selector: #selector(updateMileageAnimation))
-        displayLink.add(to: .main, forMode: .common)
-        
-        // 存储动画参数
-        objc_setAssociatedObject(self, &AssociatedKeys.mileageStartTime, startTime, .OBJC_ASSOCIATION_RETAIN)
-        objc_setAssociatedObject(self, &AssociatedKeys.mileageDuration, duration, .OBJC_ASSOCIATION_RETAIN)
-        objc_setAssociatedObject(self, &AssociatedKeys.mileageTargetValue, targetValue, .OBJC_ASSOCIATION_RETAIN)
-        objc_setAssociatedObject(self, &AssociatedKeys.mileageDisplayLink, displayLink, .OBJC_ASSOCIATION_RETAIN)
-    }
-    
-    @objc private func updateMileageAnimation() {
-        guard let startTime = objc_getAssociatedObject(self, &AssociatedKeys.mileageStartTime) as? TimeInterval,
-              let duration = objc_getAssociatedObject(self, &AssociatedKeys.mileageDuration) as? TimeInterval,
-              let targetValue = objc_getAssociatedObject(self, &AssociatedKeys.mileageTargetValue) as? Int,
-              let displayLink = objc_getAssociatedObject(self, &AssociatedKeys.mileageDisplayLink) as? CADisplayLink else {
-            return
-        }
-        
-        let currentTime = CACurrentMediaTime()
-        let elapsed = currentTime - startTime
-        let progress = min(elapsed / duration, 1.0)
-        
-        // 使用缓动函数
-        let easedProgress = easeOutQuart(progress)
-        let currentValue = Int(Double(targetValue) * easedProgress)
-        
-        mile.text = "\(currentValue)"
-        
-        if progress >= 1.0 {
-            displayLink.invalidate()
-            objc_setAssociatedObject(self, &AssociatedKeys.mileageDisplayLink, nil, .OBJC_ASSOCIATION_RETAIN)
-        }
-    }
-    
-    // MARK: - SOC动画
-    private func animateSOC(to targetValue: Float) {
-        // 重置进度条
-        soc.progress = 0.0
-        soc.progressTintColor = .systemRed // 初始颜色为红色
-        
-        let duration: TimeInterval = 1.5
-        let startTime = CACurrentMediaTime()
-        
-        let displayLink = CADisplayLink(target: self, selector: #selector(updateSOCAnimation))
-        displayLink.add(to: .main, forMode: .common)
-        
-        // 存储动画参数
-        objc_setAssociatedObject(self, &AssociatedKeys.socStartTime, startTime, .OBJC_ASSOCIATION_RETAIN)
-        objc_setAssociatedObject(self, &AssociatedKeys.socDuration, duration, .OBJC_ASSOCIATION_RETAIN)
-        objc_setAssociatedObject(self, &AssociatedKeys.socTargetValue, targetValue, .OBJC_ASSOCIATION_RETAIN)
-        objc_setAssociatedObject(self, &AssociatedKeys.socDisplayLink, displayLink, .OBJC_ASSOCIATION_RETAIN)
-    }
-    
-    @objc private func updateSOCAnimation() {
-        guard let startTime = objc_getAssociatedObject(self, &AssociatedKeys.socStartTime) as? TimeInterval,
-              let duration = objc_getAssociatedObject(self, &AssociatedKeys.socDuration) as? TimeInterval,
-              let targetValue = objc_getAssociatedObject(self, &AssociatedKeys.socTargetValue) as? Float,
-              let displayLink = objc_getAssociatedObject(self, &AssociatedKeys.socDisplayLink) as? CADisplayLink else {
-            return
-        }
-        
-        let currentTime = CACurrentMediaTime()
-        let elapsed = currentTime - startTime
-        let progress = min(elapsed / duration, 1.0)
-        
-        // 使用缓动函数
-        let easedProgress = easeOutQuart(progress)
-        let currentValue = targetValue * Float(easedProgress)
-        let currentPercentage = currentValue * 100
-        
-        // 更新进度条值
-        soc.progress = currentValue
-        
-        // 根据当前进度动态设置颜色
-        if currentPercentage < 10 {
-            soc.progressTintColor = .systemRed
-        } else if currentPercentage < 20 {
-            soc.progressTintColor = .systemOrange
-        } else {
-            soc.progressTintColor = .systemGreen
-        }
-        
-        if progress >= 1.0 {
-            displayLink.invalidate()
-            objc_setAssociatedObject(self, &AssociatedKeys.socDisplayLink, nil, .OBJC_ASSOCIATION_RETAIN)
-        }
-    }
-    
-    // MARK: - 缓动函数
-    private func easeOutQuart(_ t: Double) -> Double {
-        return 1 - pow(1 - t, 4)
-    }
-    
-    // MARK: - 风扇旋转动画
-    private func startFanRotationAnimation() {
-        // 停止之前的动画
-        stopFanRotationAnimation()
-        
-        // 创建360度旋转动画
-        let rotationAnimation = CABasicAnimation(keyPath: "transform.rotation.z")
-        rotationAnimation.fromValue = 0
-        rotationAnimation.toValue = Double.pi * 2 // 360度
-        rotationAnimation.duration = 1.0 // 1秒完成一次旋转
-        rotationAnimation.repeatCount = Float.infinity // 无限循环
-        rotationAnimation.timingFunction = CAMediaTimingFunction(name: .linear) // 线性动画
-        
-        // 添加动画到风扇按钮的图层
-        acBtn.layer.add(rotationAnimation, forKey: "fanRotation")
-    }
-    
-    private func stopFanRotationAnimation() {
-        // 移除旋转动画
-        acBtn.layer.removeAnimation(forKey: "fanRotation")
-    }
-    
-    // MARK: - 通用车辆控制方法
-    private func executeCarControl(
-        loadingText: String,
-        successText: String,
-        failureText: String,
-        expectedStatusChange: @escaping (CarModel, CarModel) -> Bool,
-        controlAction: @escaping (@escaping (Result<Bool, Error>) -> Void) -> Void
-    ) {
-        guard let originalModel = UserManager.shared.carModel else { return }
-        
-        QMUITips.showLoading(loadingText, in: view)
-        
-        controlAction { [weak self] result in
-            guard let self = self else { return }
-            
-            DispatchQueue.main.async {
-                QMUITips.hideAllTips()
-                
-                switch result {
-                case .success(_):
-                    QMUITips.show(withText: successText)
-                    // 开始轮询状态变化
-                    self.startPollingForStatusChange(
-                        originalModel: originalModel,
-                        expectedChange: expectedStatusChange
-                    )
-                    // 刷新小组件
-                    self.refreshWidget()
-                    
-                case .failure(let error):
-                    QMUITips.show(withText: "\(failureText): \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
+                    self?.carAddress.text = "车辆位置\n位置解析失败"
                 }
             }
         }
@@ -847,45 +1004,10 @@ class HomeViewController: UIViewController, MKMapViewDelegate, UIScrollViewDeleg
         // 开始第一次轮询
         pollStatus()
     }
-    
-    // MARK: - 刷新小组件
-    private func refreshWidget() {
-        // 检查刷新频率限制（30秒最小间隔）
-        let now = Date()
-        let minimumInterval: TimeInterval = 30
-        
-        if now.timeIntervalSince(lastWidgetRefreshTime) < minimumInterval {
-            print("小组件刷新频率限制，跳过本次刷新")
-            return
-        }
-        
-        // 更新最后刷新时间
-        lastWidgetRefreshTime = now
-        
-        // 刷新所有小组件
-        WidgetCenter.shared.reloadAllTimelines()
-    }
-    
-    // MARK: - 获取最新充电任务激活实时活动
-    private func getTaskStatus() {
-        NetworkManager.shared.getChargeStatus { result in
-            switch result {
-            case .success(let response):
-                if response.hasRunningTask {
-                    // 当前有正在充电的任务
-                    if let task = response.task {
-                        LiveActivityManager.shared.startChargeActivity(with: task)
-                    }
-                }
-            default:
-                break
-            }
-        }
-    }
 }
 
-// MARK: - MKMapViewDelegate
-extension HomeViewController {
+// MARK: - MKMapViewDelegate代理
+extension HomeViewController: MKMapViewDelegate {
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
         guard !(annotation is MKUserLocation) else { return nil }
         
@@ -908,8 +1030,8 @@ extension HomeViewController {
     }
 }
 
-// MARK: - UIScrollViewDelegate
-extension HomeViewController {
+// MARK: - UIScrollViewDelegate代理
+extension HomeViewController: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         // 获取滚动偏移量
         let offsetY = scrollView.contentOffset.y + scrollView.contentInset.top
@@ -922,76 +1044,37 @@ extension HomeViewController {
             
             let blurRadius = min(maxBlurRadius, (offsetY / maxScrollDistance) * maxBlurRadius)
             
-            // 应用模糊效果
-            applyBlurEffect(radius: blurRadius)
+            // 应用模糊效果（确保半径非负）
+            let effect = UIBlurEffect.qmui_effect(withBlurRadius: max(blurRadius - 1, 0))
+            backgroundBlurView.effect = effect
         } else {
             // 向下滚动或在顶部时，移除模糊效果
-            removeBlurEffect()
-        }
-    }
-    
-    private func applyBlurEffect(radius: CGFloat) {
-        // 避免重复计算相同的模糊半径
-        if abs(radius - lastBlurRadius) < 0.5 {
-            return
-        }
-        lastBlurRadius = radius
-        
-        guard let originalImage = originalBackgroundImage else { return }
-        
-        // 如果模糊半径为0，直接设置原图
-        if radius <= 0 {
-            backgroundImageView.image = originalImage
-            return
-        }
-        
-        // 在后台队列处理图像模糊
-        DispatchQueue.global(qos: .userInteractive).async {
-            // 创建Core Image上下文
-            let context = CIContext(options: [.useSoftwareRenderer: false])
-            
-            // 将UIImage转换为CIImage
-            guard let ciImage = CIImage(image: originalImage) else { return }
-            
-            // 创建高斯模糊滤镜
-            guard let blurFilter = CIFilter(name: "CIGaussianBlur") else { return }
-            blurFilter.setValue(ciImage, forKey: kCIInputImageKey)
-            blurFilter.setValue(radius, forKey: kCIInputRadiusKey)
-            
-            // 获取模糊后的图像
-            guard let outputImage = blurFilter.outputImage else { return }
-            
-            // 裁剪图像以匹配原始尺寸
-            let croppedImage = outputImage.cropped(to: ciImage.extent)
-            
-            // 将CIImage转换回UIImage
-            guard let cgImage = context.createCGImage(croppedImage, from: croppedImage.extent) else { return }
-            let blurredImage = UIImage(cgImage: cgImage)
-            
-            // 在主线程更新UI
-            DispatchQueue.main.async {
-                self.backgroundImageView.image = blurredImage
-            }
-        }
-    }
-    
-    private func removeBlurEffect() {
-        lastBlurRadius = -1
-        // 恢复原始图像
-        if let originalImage = originalBackgroundImage {
-            backgroundImageView.image = originalImage
+            backgroundBlurView.effect = nil
         }
     }
 }
 
-// MARK: - Associated Keys for Animation
-private struct AssociatedKeys {
-    static var mileageStartTime: UInt8 = 0
-    static var mileageDuration: UInt8 = 0
-    static var mileageTargetValue: UInt8 = 0
-    static var mileageDisplayLink: UInt8 = 0
-    static var socStartTime: UInt8 = 0
-    static var socDuration: UInt8 = 0
-    static var socTargetValue: UInt8 = 0
-    static var socDisplayLink: UInt8 = 0
+// MARK: - UIView Extension for Gradient Border
+extension UIView {
+    func addGradientBorder(colors: [UIColor], width: CGFloat = 1.0, cornerRadius: CGFloat = 0) {
+        // Remove existing gradient border if any
+        layer.sublayers?.removeAll { $0 is CAGradientLayer && $0.name == "gradientBorder" }
+        
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.name = "gradientBorder"
+        gradientLayer.frame = bounds
+        gradientLayer.colors = colors.map { $0.cgColor }
+        gradientLayer.startPoint = CGPoint(x: 0, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 1, y: 1)
+        gradientLayer.cornerRadius = cornerRadius
+        
+        let shapeLayer = CAShapeLayer()
+        shapeLayer.lineWidth = width
+        shapeLayer.path = UIBezierPath(roundedRect: bounds.insetBy(dx: width/2, dy: width/2), cornerRadius: cornerRadius).cgPath
+        shapeLayer.fillColor = UIColor.clear.cgColor
+        shapeLayer.strokeColor = UIColor.black.cgColor
+        gradientLayer.mask = shapeLayer
+        
+        layer.insertSublayer(gradientLayer, at: 0)
+    }
 }

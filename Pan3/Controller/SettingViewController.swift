@@ -6,8 +6,8 @@
 //
 
 import UIKit
-import Kingfisher
 import QMUIKit
+import Kingfisher
 
 class SettingViewController: UIViewController {
     
@@ -27,6 +27,8 @@ class SettingViewController: UIViewController {
                 ("车架号", "vin", "car.fill"),
                 ("手机号", "phone", "phone.fill"),
                 ("切换首页欢迎词", "greeting", "message.fill"),
+                //增加二次确认switch
+                ("二次确认", "confirm", "checkmark.square.fill"),
 //                ("切换服务器", "server", "server.rack"),
                 ("用户反馈", "feedback", "envelope.fill"),
                 ("常见问题", "help", "questionmark.circle.fill")
@@ -207,6 +209,14 @@ extension SettingViewController: UITableViewDataSource {
             cell.detailTextLabel?.text = getCurrentGreetingType()
         case "server":
             cell.detailTextLabel?.text = getCurrentServerType()
+        case "confirm":
+            // 为二次确认添加开关控件
+            let confirmSwitch = UISwitch()
+            confirmSwitch.isOn = getConfirmationEnabled()
+            confirmSwitch.addTarget(self, action: #selector(confirmSwitchChanged(_:)), for: .valueChanged)
+            cell.accessoryView = confirmSwitch
+            cell.accessoryType = .none
+            cell.detailTextLabel?.text = nil
         case "developer":
             cell.detailTextLabel?.text = "开启"
         default:
@@ -234,6 +244,9 @@ extension SettingViewController: UITableViewDelegate {
             showGreetingOptions()
         case "server":
             showServerOptions()
+        case "confirm":
+            // 二次确认由开关控件处理，这里不需要额外操作
+            break
         case "feedback":
             showFeedbackAlert()
         case "help":
@@ -297,6 +310,20 @@ extension SettingViewController: UITableViewDelegate {
 
 // MARK: - Private Methods
 private extension SettingViewController {
+    
+    // MARK: - 二次确认相关方法
+    func getConfirmationEnabled() -> Bool {
+        return UserDefaults.standard.bool(forKey: "confirmation_enabled")
+    }
+    
+    @objc func confirmSwitchChanged(_ sender: UISwitch) {
+        setConfirmationEnabled(sender.isOn)
+    }
+    
+    func setConfirmationEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: "confirmation_enabled")
+        UserDefaults.standard.synchronize()
+    }
     
     func copyVinToClipboard() {
         guard let vin = UserManager.shared.defaultVin else {

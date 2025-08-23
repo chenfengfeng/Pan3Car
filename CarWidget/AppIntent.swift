@@ -323,6 +323,7 @@ struct GetWidgetSelectWindowStatusIntent: AppIntent {
         }
     }
 }
+
 /// 小组件寻车Intent
 struct GetWidgetFindCarStatusIntent: AppIntent {
     static var title: LocalizedStringResource = "小组件寻车状态"

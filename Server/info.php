@@ -17,34 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
-$server = $input['server'] ?? '';
-
-if (!isset($input['vin'])) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Missing required parameter: vin']);
-    exit;
-}
-
-// 根据server参数选择API基础地址
-$baseApiUrl = ($server === 'spare') ? 'https://yiweiauto.cn' : 'https://jacsupperapp.jac.com.cn';
-logMessage('使用服务器: ' . ($server === 'spare' ? '备用服务器' : '主服务器') . ' - ' . $baseApiUrl, 'INFO');
-
-// 从请求头获取timaToken
-$headers = getallheaders();
-$timaToken = $input['timaToken'] ?? '';
-
-if (!$timaToken) {
-    http_response_code(401);
-    logMessage('Missing timaToken in headers');
-    echo json_encode(['error' => 'Missing timaToken in headers']);
-    exit;
-}
-
 // 日志函数 - 支持文件存储
 function logMessage($message, $level = 'INFO') {
     $logDir = __DIR__ . '/logs';
-    $logFile = $logDir . '/charge_' . date('Y-m-d') . '.log';
+    $logFile = $logDir . '/info_' . date('Y-m-d') . '.log';
     
     // 确保日志目录存在
     if (!is_dir($logDir)) {
@@ -57,6 +33,51 @@ function logMessage($message, $level = 'INFO') {
     // 只写入文件，不输出到终端（避免破坏JSON响应）
     file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
 }
+
+// 只记录错误信息，不记录正常请求
+
+// 获取原始请求数据
+$rawInput = file_get_contents('php://input');
+
+// 解析JSON数据
+$input = json_decode($rawInput, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    $jsonError = json_last_error_msg();
+    logMessage('JSON解析失败: ' . $jsonError, 'ERROR');
+    http_response_code(400);
+    echo json_encode(['error' => 'Invalid JSON: ' . $jsonError]);
+    exit;
+}
+$server = $input['server'] ?? '';
+
+if (!isset($input['vin'])) {
+    logMessage('缺少必需参数: vin', 'ERROR');
+    http_response_code(400);
+    echo json_encode(['error' => 'Missing required parameter: vin']);
+    exit;
+}
+
+// 移除正常请求的日志记录
+
+// 根据server参数选择API基础地址
+$baseApiUrl = ($server === 'spare') ? 'https://yiweiauto.cn' : 'https://jacsupperapp.jac.com.cn';
+// 移除正常请求的日志记录
+
+// 从请求头和请求体获取timaToken
+$headers = getallheaders();
+
+$timaToken = $input['timaToken'] ?? '';
+
+if (!$timaToken) {
+    logMessage('缺少timaToken', 'ERROR');
+    http_response_code(401);
+    echo json_encode(['error' => 'Missing timaToken']);
+    exit;
+}
+
+// 移除正常请求的日志记录
+
+
 
 function makeRequest($url, $data, $headers = []) {
     $ch = curl_init();
@@ -76,14 +97,23 @@ function makeRequest($url, $data, $headers = []) {
     curl_close($ch);
     
     if ($error) {
+        logMessage('网络错误: ' . $error, 'ERROR');
         throw new Exception('Network error: ' . $error);
     }
     
     if ($httpCode !== 200) {
+        logMessage('HTTP错误，状态码: ' . $httpCode . '，响应: ' . substr($response, 0, 200), 'ERROR');
         throw new Exception('HTTP error: ' . $httpCode);
     }
     
-    return json_decode($response, true);
+    $decodedResponse = json_decode($response, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        $jsonError = json_last_error_msg();
+        logMessage('响应JSON解析失败: ' . $jsonError . '，响应前200字符: ' . substr($response, 0, 200), 'ERROR');
+        throw new Exception('Response JSON decode error: ' . $jsonError);
+    }
+    
+    return $decodedResponse;
 }
 
 try {
@@ -101,75 +131,27 @@ try {
     $code = $carInfoResponse['code'] ?? 200;
     
     if ($code == 403) {
+        logMessage('认证失败，返回403', 'ERROR');
         http_response_code(403);
         echo json_encode([
             'code' => 403,
             'message' => 'Authentication failure'
         ]);
-        logMessage('Authentication failure');
         exit;
     }
     
-    if (!$carInfoResponse['returnSuccess']) {
+    $returnSuccess = $carInfoResponse['returnSuccess'] ?? false;
+    
+    if (!$returnSuccess) {
+        logMessage('获取车辆信息失败: ' . ($carInfoResponse['returnErrMsg'] ?? 'Unknown error'), 'ERROR');
         http_response_code(500);
         echo json_encode([
             'code' => 500,
-            'message' => 'Failed to get car info'
+            'message' => 'Failed to get car info',
+            'details' => $carInfoResponse['returnErrMsg'] ?? 'Unknown error'
         ]);
-        logMessage('Failed to get car info');
         exit;
     }
-
-    // 接口返回数据示例
-//     {
-//   "operationId": 3069156,
-//   "returnErrCode": null,
-//   "returnSuccess": true,
-//   "returnErrMsg": null,
-//   "data": {
-//     "doorStsRearRight": 0,
-//     "keyStatus": 2,
-//     "defrostStatus": 0,
-//     "soc": "64",
-//     "quickChgLeftTime": 327670,
-//     "rfTirePresure": 0,
-//     "latitude": "30.89352189668428",
-//     "chgPlugStatus": 1,
-//     "topWindowOpen": 0,
-//     "longtitude": "103.62002502212343",
-//     "acOnMile": 211,
-//     "quickcoolACStatus": null,
-//     "doorStsFrontRight": 0,
-//     "totalMileage": "9006.0",
-//     "lowlightStatus": 0,
-//     "lfWindowOpen": 0,
-//     "doorStsRearLeft": 0,
-//     "lrTirePresure": 0,
-//     "quickheatACStatus": 0,
-//     "lrWindowOpen": 0,
-//     "lfTirePresure": 0,
-//     "rfWindowOpen": 0,
-//     "doorsLockStatus": null,
-//     "highlightStatus": 0,
-//     "mainLockStatus": 0,
-//     "trunkLockStatus": 0,
-//     "doorStsFrontLeft": 0,
-//     "temperatureInCar": 214,
-//     "chgStatus": 2,
-//     "slowChgLeftTime": 327670,
-//     "batteryHeatStatus": 3,
-//     "acStatus": 2,
-//     "acOffMile": 211,
-//     "rrWindowOpen": 0,
-//     "rrTirePresure": 0
-//   },
-//   "message": null,
-//   "jobId": null,
-//   "jobs": null,
-//   "requestId": null,
-//   "status": null,
-//   "body": null
-// }
 
     // 返回车辆信息
     $responseData = [
@@ -178,12 +160,18 @@ try {
     ];
     
     echo json_encode($responseData);
+    // 移除成功请求的日志记录
     
 } catch (Exception $e) {
+    logMessage('异常发生: ' . $e->getMessage(), 'ERROR');
+    logMessage('异常堆栈: ' . $e->getTraceAsString(), 'ERROR');
+    
     http_response_code(500);
     echo json_encode([
         'code' => 500,
         'message' => $e->getMessage()
     ]);
+    
+    logMessage('=== 车辆信息请求异常结束 ===', 'ERROR');
 }
 ?>

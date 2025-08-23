@@ -18,26 +18,35 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$input = json_decode(file_get_contents('php://input'), true);
-$userCode = $input['userCode'];
-$password = $input['password'];
+$rawInput = file_get_contents('php://input');
+
+$input = json_decode($rawInput, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    $jsonError = json_last_error_msg();
+    http_response_code(400);
+    logMessage('JSON解析失败: ' . $jsonError, 'ERROR');
+    echo json_encode(['error' => 'Invalid JSON format: ' . $jsonError]);
+    exit;
+}
+
+$userCode = $input['userCode'] ?? null;
+$password = $input['password'] ?? null;
 $server = $input['server'] ?? '';
 
 if (!isset($userCode) || !isset($password)) {
     http_response_code(400);
-    logMessage('Missing required parameters', 'ERROR');
+    logMessage('缺少必需参数', 'ERROR');
     echo json_encode(['error' => 'Missing required parameters']);
     exit;
 }
 
 // 根据server参数选择API基础地址
 $baseApiUrl = ($server === 'spare') ? 'https://yiweiauto.cn' : 'https://jacsupperapp.jac.com.cn';
-logMessage('使用服务器: ' . ($server === 'spare' ? '备用服务器' : '主服务器') . ' - ' . $baseApiUrl, 'INFO');
 
 // 日志函数 - 支持文件存储
 function logMessage($message, $level = 'INFO') {
     $logDir = __DIR__ . '/logs';
-    $logFile = $logDir . '/charge_' . date('Y-m-d') . '.log';
+    $logFile = $logDir . '/auth_' . date('Y-m-d') . '.log';
     
     // 确保日志目录存在
     if (!is_dir($logDir)) {
@@ -52,10 +61,12 @@ function logMessage($message, $level = 'INFO') {
 }
 
 function makeRequest($url, $data, $headers = []) {
+    $requestData = json_encode($data);
+    
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $requestData);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array_merge([
         'Content-Type: application/json'
@@ -69,14 +80,23 @@ function makeRequest($url, $data, $headers = []) {
     curl_close($ch);
     
     if ($error) {
+        logMessage('网络错误: ' . $error, 'ERROR');
         throw new Exception('Network error: ' . $error);
     }
     
     if ($httpCode !== 200) {
-        throw new Exception('HTTP error: ' . $httpCode);
+        logMessage('HTTP错误，状态码: ' . $httpCode . '，响应: ' . substr($response, 0, 200), 'ERROR');
+        throw new Exception('HTTP error: ' . $httpCode . ', Response: ' . $response);
     }
     
-    return json_decode($response, true);
+    $decodedResponse = json_decode($response, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        $jsonError = json_last_error_msg();
+        logMessage('响应JSON解析失败: ' . $jsonError . '，响应前200字符: ' . substr($response, 0, 200), 'ERROR');
+        throw new Exception('Response JSON decode error: ' . $jsonError);
+    }
+    
+    return $decodedResponse;
 }
 
 try {
@@ -91,11 +111,13 @@ try {
     $loginResponse = makeRequest($loginUrl, $loginData);
     
     if ($loginResponse['code'] !== 0) {
-        echo json_encode([
+        $errorMsg = $loginResponse['msg'] ?? '登录失败';
+        $responseData = [
             'code' => $loginResponse['code'],
-            'message' => $loginResponse['msg'] ?? '登录失败'
-        ]);
-        logMessage('登录失败: ' . $loginResponse['msg'], 'ERROR');
+            'message' => $errorMsg
+        ];
+        echo json_encode($responseData);
+        logMessage('登录失败 - 错误码: ' . $loginResponse['code'] . ', 错误信息: ' . $errorMsg, 'ERROR');
         exit;
     }
     
@@ -103,8 +125,6 @@ try {
     $timaToken = $loginData['token'];
     $phone = $loginData['phone'];
     $identityType = $loginData['identityType'] ?? 0;
-    
-    logMessage('登录成功: ' . $phone . ', identityType: ' . $identityType, 'INFO');
 
     // 第二步：获取用户车辆信息（先尝试车辆列表API，失败后再尝试授权号API）
     $identityParam = [
@@ -132,12 +152,11 @@ try {
         
         if ($userInfoResponse['returnSuccess'] && !empty($userInfoResponse['data'])) {
             $userVehicles = $userInfoResponse['data'];
-            logMessage('通过车辆列表API获取到车辆信息: ' . json_encode($userVehicles), 'INFO');
         } else {
-            logMessage('车辆列表API调用失败或无数据: ' . ($userInfoResponse['returnErrMsg'] ?? '无数据'), 'WARNING');
+            logMessage('车辆列表API调用失败，完整响应: ' . json_encode($userInfoResponse, JSON_UNESCAPED_UNICODE), 'ERROR');
         }
     } catch (Exception $e) {
-        logMessage('车辆列表API请求异常: ' . $e->getMessage(), 'WARNING');
+        logMessage('车辆列表API请求异常: ' . $e->getMessage(), 'ERROR');
     }
     
     // 如果车辆列表API没有获取到数据，尝试授权号API
@@ -160,12 +179,11 @@ try {
                     'def' => 1,
                     'plateLicenseNo' => '未设置车牌'
                 ]];
-                logMessage('通过授权号API获取到车辆信息: ' . json_encode($userVehicles), 'INFO');
             } else {
-                logMessage('授权号API调用失败或无数据: ' . ($vehicleCodeResponse['message'] ?? '无数据'), 'WARNING');
+                logMessage('授权号API调用失败，完整响应: ' . json_encode($vehicleCodeResponse, JSON_UNESCAPED_UNICODE), 'ERROR');
             }
         } catch (Exception $e) {
-            logMessage('授权号API请求异常: ' . $e->getMessage(), 'WARNING');
+            logMessage('授权号API请求异常: ' . $e->getMessage(), 'ERROR');
         }
     }
     
@@ -179,7 +197,7 @@ try {
         exit;
     }
 
-    logMessage('获取到用户车辆信息: ' . json_encode($userVehicles), 'INFO');
+
     
     // 获取默认车辆（第一个或def=1的车辆）
     $defaultVehicle = null;
@@ -211,14 +229,19 @@ try {
         ]
     ];
     
-    logMessage('返回数据: ' . json_encode($responseData), 'INFO');
     echo json_encode($responseData);
     
 } catch (Exception $e) {
-    echo json_encode([
+    $errorMessage = $e->getMessage();
+    $errorTrace = $e->getTraceAsString();
+    
+    $responseData = [
         'code' => 500,
-        'message' => $e->getMessage()
-    ]);
-    logMessage('接口出错了:'.$e->getMessage());
+        'message' => $errorMessage
+    ];
+    
+    echo json_encode($responseData);
+    logMessage('接口异常: ' . $errorMessage, 'ERROR');
+    logMessage('异常堆栈: ' . $errorTrace, 'ERROR');
 }
 ?>
