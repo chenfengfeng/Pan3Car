@@ -26,10 +26,10 @@ struct CarInfo: Codable, Hashable {
     static let placeholder = CarInfo(
         remainingMileage: 330,
         soc: 60,
-        isLocked: true,
-        windowsOpen: false,
+        isLocked: false,
+        windowsOpen: true,
         isCharge: false,
-        airConditionerOn: false,
+        airConditionerOn: true,
         lastUpdated: Date(),
         chgLeftTime: 0
     )
@@ -141,6 +141,8 @@ class WidgetDataManager {
     static let shared = WidgetDataManager()
     private let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3")
     private let carInfoKey = "widgetCarInfo"
+    private let localModificationKey = "widgetLocalModification"
+    private let localModificationTimeKey = "widgetLocalModificationTime"
     
     private init() {}
     
@@ -158,9 +160,36 @@ class WidgetDataManager {
     func updateCarInfo(_ carInfo: CarInfo) {
         guard let data = try? JSONEncoder().encode(carInfo) else { return }
         userDefaults?.set(data, forKey: carInfoKey)
+    }
+    
+    // 标记本地状态已被修改
+    func markLocalModification() {
+        userDefaults?.set(true, forKey: localModificationKey)
+        userDefaults?.set(Date().timeIntervalSince1970, forKey: localModificationTimeKey)
+        print("[Widget Debug] 标记本地状态已修改")
+    }
+    
+    // 清除本地修改标记
+    func clearLocalModification() {
+        userDefaults?.removeObject(forKey: localModificationKey)
+        userDefaults?.removeObject(forKey: localModificationTimeKey)
+        print("[Widget Debug] 清除本地修改标记")
+    }
+    
+    // 检查是否有本地修改且在指定时间内
+    func hasRecentLocalModification(withinSeconds seconds: TimeInterval = 10) -> Bool {
+        guard let hasModification = userDefaults?.bool(forKey: localModificationKey),
+              hasModification,
+              let modificationTime = userDefaults?.double(forKey: localModificationTimeKey) else {
+            return false
+        }
         
-        // 移除自动刷新Widget，避免循环调用
-        // WidgetCenter.shared.reloadTimelines(ofKind: "CarWidget")
+        let timeSinceModification = Date().timeIntervalSince1970 - modificationTime
+        let hasRecentModification = timeSinceModification <= seconds
+        
+        print("[Widget Debug] 检查本地修改: 有修改=\(hasModification), 时间差=\(timeSinceModification)秒, 是否最近=\(hasRecentModification)")
+        
+        return hasRecentModification
     }
     
     // 获取车辆信息的方法，使用SharedNetworkManager
@@ -221,25 +250,44 @@ struct GetWidgetSelectLockStatusIntent: AppIntent {
     }
     
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let operation = action == .lock ? 1 : 2
-        // 小组件设置状态
-        LoadingStateManager.shared.setLoading(true, for: .lock)
+        // 获取当前状态并切换到相反状态
+        guard let currentCarInfo = WidgetDataManager.shared.getCachedCarInfo() else {
+            return .result(dialog: "无法获取车辆状态")
+        }
         
-        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, IntentDialog>, Error>) in
+        let newLockStatus = !currentCarInfo.isLocked
+        let operation = newLockStatus ? 1 : 2
+        
+        // 标记本地状态已被修改
+        WidgetDataManager.shared.markLocalModification()
+        
+        // 立即更新本地状态
+        let updatedCarInfo = currentCarInfo.updatingLockStatus(newLockStatus)
+        WidgetDataManager.shared.updateCarInfo(updatedCarInfo)
+        
+        // 刷新小组件
+        WidgetCenter.shared.reloadTimelines(ofKind: "CarWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "CarWatchWidget")
+        
+        // 异步发送网络请求
+        Task {
             SharedNetworkManager.shared.energyLock(operation: operation) { result in
+                // 网络请求完成后可以选择性地再次更新状态或处理错误
                 switch result {
                 case .success(_):
-                    let actionText = action == .lock ? "锁车" : "解锁"
-                    continuation.resume(returning: .result(dialog: "\(actionText)指令已发送"))
-                case .failure(let error):
-                    continuation.resume(returning: .result(dialog: "操作失败：\(error.localizedDescription)"))
+                    // 网络请求成功，状态已经在本地更新了
+                    WidgetDataManager.shared.clearLocalModification()
+                    break
+                case .failure(_):
+                    // 网络请求失败，可以选择回滚状态或显示错误
+                    // 这里暂时不做处理，保持本地状态
+                    break
                 }
-                // 小组件设置状态
-                DispatchQueue.main.asyncAfter(deadline: .now()+5, execute: {
-                    LoadingStateManager.shared.setLoading(false, for: .lock)
-                })
             }
         }
+        
+        let actionText = newLockStatus ? "锁车" : "解锁"
+        return .result(dialog: "\(actionText)操作已执行")
     }
 }
 
@@ -260,27 +308,45 @@ struct GetWidgetSelectACStatusIntent: AppIntent {
     }
     
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let operation = action == .turnOn ? 2 : 1
-        let temperature = 26 // 默认温度
-        let duringTime = 30 // 默认持续时间10分钟
-        // 小组件设置状态
-        LoadingStateManager.shared.setLoading(true, for: .airConditioner)
+        // 获取当前状态并切换到相反状态
+        guard let currentCarInfo = WidgetDataManager.shared.getCachedCarInfo() else {
+            return .result(dialog: "无法获取车辆状态")
+        }
         
-        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, IntentDialog>, Error>) in
+        let newACStatus = !currentCarInfo.airConditionerOn
+        let operation = newACStatus ? 2 : 1
+        let temperature = 26 // 默认温度
+        let duringTime = 30 // 默认持续时间30分钟
+        
+        // 标记本地状态已被修改
+        WidgetDataManager.shared.markLocalModification()
+        
+        // 立即更新本地状态
+        let updatedCarInfo = currentCarInfo.updatingAirConditioner(newACStatus)
+        WidgetDataManager.shared.updateCarInfo(updatedCarInfo)
+        
+        // 刷新小组件
+        WidgetCenter.shared.reloadTimelines(ofKind: "CarWidget")
+        
+        // 异步发送网络请求
+        Task {
             SharedNetworkManager.shared.energyAirConditioner(operation: operation, temperature: temperature, duringTime: duringTime) { result in
+                // 网络请求完成后可以选择性地再次更新状态或处理错误
                 switch result {
                 case .success(_):
-                    let actionText = action == .turnOn ? "开启空调" : "关闭空调"
-                    continuation.resume(returning: .result(dialog: "\(actionText)指令已发送"))
-                case .failure(let error):
-                    continuation.resume(returning: .result(dialog: "操作失败：\(error.localizedDescription)"))
+                    // 网络请求成功，状态已经在本地更新了
+                    WidgetDataManager.shared.clearLocalModification()
+                    break
+                case .failure(_):
+                    // 网络请求失败，可以选择回滚状态或显示错误
+                    // 这里暂时不做处理，保持本地状态
+                    break
                 }
-                // 小组件设置状态
-                DispatchQueue.main.asyncAfter(deadline: .now()+5, execute: {
-                    LoadingStateManager.shared.setLoading(false, for: .airConditioner)
-                })
             }
         }
+        
+        let actionText = newACStatus ? "开启空调" : "关闭空调"
+        return .result(dialog: "\(actionText)操作已执行")
     }
 }
 
@@ -301,26 +367,44 @@ struct GetWidgetSelectWindowStatusIntent: AppIntent {
     }
     
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let operation = action == .open ? 2 : 1
-        let openLevel = action == .open ? 2 : 0 // 2=完全打开，0=关闭
-        // 小组件设置状态
-        LoadingStateManager.shared.setLoading(true, for: .window)
+        // 获取当前状态并切换到相反状态
+        guard let currentCarInfo = WidgetDataManager.shared.getCachedCarInfo() else {
+            return .result(dialog: "无法获取车辆状态")
+        }
         
-        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, IntentDialog>, Error>) in
+        let newWindowStatus = !currentCarInfo.windowsOpen
+        let operation = newWindowStatus ? 2 : 1
+        let openLevel = newWindowStatus ? 2 : 0 // 2=完全打开，0=关闭
+        
+        // 标记本地状态已被修改
+        WidgetDataManager.shared.markLocalModification()
+        
+        // 立即更新本地状态
+        let updatedCarInfo = currentCarInfo.updatingWindows(newWindowStatus)
+        WidgetDataManager.shared.updateCarInfo(updatedCarInfo)
+        
+        // 刷新小组件
+        WidgetCenter.shared.reloadTimelines(ofKind: "CarWidget")
+        
+        // 异步发送网络请求
+        Task {
             SharedNetworkManager.shared.energyWindow(operation: operation, openLevel: openLevel) { result in
+                // 网络请求完成后可以选择性地再次更新状态或处理错误
                 switch result {
                 case .success(_):
-                    let actionText = action == .open ? "开启车窗" : "关闭车窗"
-                    continuation.resume(returning: .result(dialog: "\(actionText)指令已发送"))
-                case .failure(let error):
-                    continuation.resume(returning: .result(dialog: "操作失败：\(error.localizedDescription)"))
+                    // 网络请求成功，状态已经在本地更新了
+                    WidgetDataManager.shared.clearLocalModification()
+                    break
+                case .failure(_):
+                    // 网络请求失败，可以选择回滚状态或显示错误
+                    // 这里暂时不做处理，保持本地状态
+                    break
                 }
-                // 小组件设置状态
-                DispatchQueue.main.asyncAfter(deadline: .now()+5, execute: {
-                    LoadingStateManager.shared.setLoading(false, for: .window)
-                })
             }
         }
+        
+        let actionText = newWindowStatus ? "打开车窗" : "关闭车窗"
+        return .result(dialog: "\(actionText)操作已执行")
     }
 }
 
@@ -330,8 +414,6 @@ struct GetWidgetFindCarStatusIntent: AppIntent {
     static var openAppWhenRun: Bool = false
     static var isDiscoverable: Bool = false
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        // 小组件设置状态
-        LoadingStateManager.shared.setLoading(true, for: .findCar)
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, IntentDialog>, Error>) in
             SharedNetworkManager.shared.findCar { result in
                 switch result {
@@ -340,9 +422,6 @@ struct GetWidgetFindCarStatusIntent: AppIntent {
                 case .failure(let error):
                     continuation.resume(returning: .result(dialog: "检查失败：\(error.localizedDescription)"))
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now()+5, execute: {
-                    LoadingStateManager.shared.setLoading(false, for: .findCar)
-                })
             }
         }
     }

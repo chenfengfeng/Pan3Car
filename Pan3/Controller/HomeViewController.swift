@@ -101,6 +101,8 @@ class HomeViewController: UIViewController, CarDataRefreshable {
         let view = UIView()
         view.backgroundColor = UIColor.white.withAlphaComponent(0.1)
         view.layer.cornerRadius = 12
+        let mapTapGesture = UITapGestureRecognizer(target: self, action: #selector(mapTapped))
+        view.addGestureRecognizer(mapTapGesture)
         return view
     }()
     
@@ -112,11 +114,10 @@ class HomeViewController: UIViewController, CarDataRefreshable {
         mapView.showsScale = false
         mapView.showsCompass = false
         mapView.showsUserLocation = false
+        mapView.isUserInteractionEnabled = false
         if #available(iOS 17.0, *) {
             mapView.showsUserTrackingButton = false
         }
-        let mapTapGesture = UITapGestureRecognizer(target: self, action: #selector(mapTapped))
-        mapView.addGestureRecognizer(mapTapGesture)
         return mapView
     }()
     
@@ -279,6 +280,9 @@ class HomeViewController: UIViewController, CarDataRefreshable {
         // 进入页面的时候通知
         registerAppDidBecomeActiveNotification()
         
+        // 检查是否需要显示首次使用教程
+        checkAndShowFirstTimeTutorial()
+        
         DispatchQueue.main.asyncAfter(deadline: .now()+0.1, execute: {[weak self] in
             guard let self else {return}
             let gradientColors = [
@@ -307,6 +311,42 @@ class HomeViewController: UIViewController, CarDataRefreshable {
     
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - 首次使用教程
+    private func checkAndShowFirstTimeTutorial() {
+        let hasShownTutorial = UserDefaults.standard.bool(forKey: "hasShownFirstTimeTutorial")
+        
+        if !hasShownTutorial {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.showTutorialAlert()
+            }
+        }
+    }
+    
+    private func showTutorialAlert() {
+        let alert = UIAlertController(title: "欢迎使用Pan3Car", message: "这是您第一次使用本应用，是否需要查看使用教程？", preferredStyle: .alert)
+        
+        let cancelAction = UIAlertAction(title: "暂不需要", style: .cancel) { _ in
+            // 标记已显示过教程弹窗，下次不再显示
+            UserDefaults.standard.set(true, forKey: "hasShownFirstTimeTutorial")
+        }
+        
+        let confirmAction = UIAlertAction(title: "查看教程", style: .default) { [weak self] _ in
+            // 标记已显示过教程弹窗
+            UserDefaults.standard.set(true, forKey: "hasShownFirstTimeTutorial")
+            // 显示微信公众号弹窗
+            self?.showWechatTutorial()
+        }
+        
+        alert.addAction(cancelAction)
+        alert.addAction(confirmAction)
+        
+        present(alert, animated: true)
+    }
+    
+    private func showWechatTutorial() {
+        WechatShowView.show(from: self)
     }
     
     // MARK: - 刷新小组件
@@ -850,6 +890,20 @@ extension HomeViewController {
             getTaskStatus()
         }
         
+        // 控制按钮
+        controlButtonsStackView.setupCarModel()
+        controlButtonsStackView.blockPollingChange = { [weak self] originalModel, expectedChange in
+            self?.startPollingForStatusChange(
+                originalModel: originalModel,
+                expectedChange: expectedChange
+            )
+            // 刷新小组件
+            self?.refreshWidget()
+        }
+        controlButtonsStackView.blockTemperatureChange = { [weak self] temperature in
+            self?.presetTemperature.text = "预设温度 \(temperature)˚"
+        }
+        
         // 充电状态
         if model.chgStatus == 2 {
             chargeView.isHidden = true
@@ -865,19 +919,6 @@ extension HomeViewController {
             acStatus.text = "空调已开启"
         }else{
             acStatus.text = "空调已关闭"
-        }
-        
-        // 控制按钮
-        controlButtonsStackView.blockPollingChange = { [weak self] originalModel, expectedChange in
-            self?.startPollingForStatusChange(
-                originalModel: originalModel,
-                expectedChange: expectedChange
-            )
-            // 刷新小组件
-            self?.refreshWidget()
-        }
-        controlButtonsStackView.blockTemperatureChange = { [weak self] temperature in
-            self?.presetTemperature.text = "预设温度 \(temperature)˚"
         }
         
         // 更新车辆状态信息

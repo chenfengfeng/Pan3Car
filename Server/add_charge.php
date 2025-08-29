@@ -1,6 +1,10 @@
 <?php
 // 包含数据库连接代码,外部属性：$pdo
 include $_SERVER['DOCUMENT_ROOT'] . '/db_connect.php';
+
+// 包含车辆信息查询共享函数库
+require_once __DIR__ . '/vehicle_api.php';
+
 // 主逻辑
 header('Content-Type: application/json');
 
@@ -39,40 +43,22 @@ try {
         exit;
     }
     
-    // 2. 通过API获取车辆信息
-    $carInfoUrl = $baseApiUrl . '/api/jac-energy/jacenergy/vehicleInformation/energy-query-vehicle-new-condition';
-    $carInfoData = [
-        'vins' => [$vin]
-    ];
+    // 2. 通过API获取车辆信息 - 使用共享函数库
+    $server_param = ($server === 'spare') ? 'spare' : 'main';
+    $result = getVehicleInfoForWeb($vin, $token, $server_param);
     
-    $carInfoHeaders = [
-        'Content-Type: application/json',
-        'timaToken: ' . $token
-    ];
-    
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $carInfoUrl);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($carInfoData));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $carInfoHeaders);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    
-    $carInfoResponse = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    if ($carInfoResponse === false || $httpCode !== 200) {
-        echo json_encode(['code' => 500, 'msg' => '获取车辆信息失败']);
+    if (!$result['success']) {
+        echo json_encode(['code' => 500, 'msg' => '获取车辆信息失败: ' . $result['error']]);
         exit;
     }
     
-    $carInfo = json_decode($carInfoResponse, true);
-    if (!$carInfo || !$carInfo['returnSuccess']) {
-        $errorMsg = isset($carInfo['returnErrMsg']) ? $carInfo['returnErrMsg'] : '获取车辆信息失败';
-        echo json_encode(['code' => 500, 'msg' => $errorMsg]);
+    // 检查认证失败
+    if ($result['code'] == 403) {
+        echo json_encode(['code' => 403, 'msg' => 'Authentication failure']);
         exit;
     }
+    
+    $carInfo = ['data' => $result['data']];
     
     // 车型配置信息：型号 => [总里程, 电池容量(kWh)]
     $carModels = [

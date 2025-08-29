@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		A6C03AD60AB66B1E8B69F0DE /* Pods_Pan3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1B597635421C2477B544AAE /* Pods_Pan3.framework */; };
 		B2757A4D2E4DE25F00F03D8D /* Car Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B2757A432E4DE25E00F03D8D /* Car Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B28A417C2E5B4FFD002B5AB2 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172512E1A767A00922A0C /* WidgetKit.framework */; };
+		B28A417D2E5B4FFD002B5AB2 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172532E1A767A00922A0C /* SwiftUI.framework */; };
+		B28A41862E5B4FFF002B5AB2 /* CarWatchWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B28A417B2E5B4FFD002B5AB2 /* CarWatchWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B2D172522E1A767A00922A0C /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172512E1A767A00922A0C /* WidgetKit.framework */; };
 		B2D172542E1A767A00922A0C /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172532E1A767A00922A0C /* SwiftUI.framework */; };
 		B2D172652E1A767C00922A0C /* CarWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -21,6 +24,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = B2757A422E4DE25E00F03D8D;
 			remoteInfo = "Car Watch App";
+		};
+		B28A41842E5B4FFF002B5AB2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B2C867312E0F9C45009A8FD6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B28A417A2E5B4FFD002B5AB2;
+			remoteInfo = CarWatchWidgetExtension;
 		};
 		B2D172632E1A767C00922A0C /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -54,6 +64,17 @@
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B28A418B2E5B4FFF002B5AB2 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B28A41862E5B4FFF002B5AB2 /* CarWatchWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B2B8AF2E2E1632F1000FC8E6 /* Embed ExtensionKit Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -71,6 +92,8 @@
 		333EE2A540A61A4EEF08B29E /* Pods-Pan3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Pan3.debug.xcconfig"; path = "Target Support Files/Pods-Pan3/Pods-Pan3.debug.xcconfig"; sourceTree = "<group>"; };
 		B21E2C582E150823000FF4C8 /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
 		B2757A432E4DE25E00F03D8D /* Car Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Car Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B28A417B2E5B4FFD002B5AB2 /* CarWatchWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CarWatchWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B28A41902E5B52C0002B5AB2 /* CarWatchWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CarWatchWidgetExtension.entitlements; sourceTree = "<group>"; };
 		B2C867392E0F9C45009A8FD6 /* Pan3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pan3.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CarWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2D172512E1A767A00922A0C /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -79,13 +102,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		B23E80A12E51808C004E1C25 /* Exceptions for "Shared" folder in "Pan3" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				SharedLoadingStateManager.swift,
-			);
-			target = B2C867382E0F9C45009A8FD6 /* Pan3 */;
-		};
 		B23E80A32E5180B1004E1C25 /* Exceptions for "Shared" folder in "Car Watch App" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -94,6 +110,35 @@
 				SharedNetworkManager.swift,
 			);
 			target = B2757A422E4DE25E00F03D8D /* Car Watch App */;
+		};
+		B28A418A2E5B4FFF002B5AB2 /* Exceptions for "CarWatchWidget" folder in "CarWatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
+		};
+		B28A419F2E5C372C002B5AB2 /* Exceptions for "Car Watch App" folder in "CarWatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				WatchConnectivityManager.swift,
+			);
+			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
+		};
+		B2A430202E5F4CDA0016AB31 /* Exceptions for "CarWidget" folder in "CarWatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AppIntent.swift,
+			);
+			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
+		};
+		B2A430222E5F57E30016AB31 /* Exceptions for "Shared" folder in "CarWatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				SharedAppIntents.swift,
+				SharedNetworkManager.swift,
+			);
+			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
 		};
 		B2D172662E1A767C00922A0C /* Exceptions for "CarWidget" folder in "CarWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -131,21 +176,33 @@
 		B23E80982E51808C004E1C25 /* Shared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				B23E80A12E51808C004E1C25 /* Exceptions for "Shared" folder in "Pan3" target */,
 				B23E80A32E5180B1004E1C25 /* Exceptions for "Shared" folder in "Car Watch App" target */,
+				B2A430222E5F57E30016AB31 /* Exceptions for "Shared" folder in "CarWatchWidgetExtension" target */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
 		};
 		B2757A442E4DE25E00F03D8D /* Car Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B28A419F2E5C372C002B5AB2 /* Exceptions for "Car Watch App" folder in "CarWatchWidgetExtension" target */,
+			);
 			path = "Car Watch App";
+			sourceTree = "<group>";
+		};
+		B28A417E2E5B4FFD002B5AB2 /* CarWatchWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B28A418A2E5B4FFF002B5AB2 /* Exceptions for "CarWatchWidget" folder in "CarWatchWidgetExtension" target */,
+			);
+			path = CarWatchWidget;
 			sourceTree = "<group>";
 		};
 		B2D172552E1A767A00922A0C /* CarWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B2D172662E1A767C00922A0C /* Exceptions for "CarWidget" folder in "CarWidgetExtension" target */,
+				B2A430202E5F4CDA0016AB31 /* Exceptions for "CarWidget" folder in "CarWatchWidgetExtension" target */,
 			);
 			path = CarWidget;
 			sourceTree = "<group>";
@@ -166,6 +223,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B28A41782E5B4FFD002B5AB2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B28A417D2E5B4FFD002B5AB2 /* SwiftUI.framework in Frameworks */,
+				B28A417C2E5B4FFD002B5AB2 /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -203,10 +269,12 @@
 		B2C867302E0F9C45009A8FD6 = {
 			isa = PBXGroup;
 			children = (
+				B28A41902E5B52C0002B5AB2 /* CarWatchWidgetExtension.entitlements */,
 				B2F7CE772E34C0EA00570201 /* Pan3 */,
 				B2D172552E1A767A00922A0C /* CarWidget */,
 				B23E80982E51808C004E1C25 /* Shared */,
 				B2757A442E4DE25E00F03D8D /* Car Watch App */,
+				B28A417E2E5B4FFD002B5AB2 /* CarWatchWidget */,
 				B2C8673A2E0F9C45009A8FD6 /* Products */,
 				E5829C2B69B03C66C9455089 /* Pods */,
 				5512EBC70C9C6A82D7D293EE /* Frameworks */,
@@ -219,6 +287,7 @@
 				B2C867392E0F9C45009A8FD6 /* Pan3.app */,
 				B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */,
 				B2757A432E4DE25E00F03D8D /* Car Watch App.app */,
+				B28A417B2E5B4FFD002B5AB2 /* CarWatchWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -242,10 +311,12 @@
 				B2757A3F2E4DE25E00F03D8D /* Sources */,
 				B2757A402E4DE25E00F03D8D /* Frameworks */,
 				B2757A412E4DE25E00F03D8D /* Resources */,
+				B28A418B2E5B4FFF002B5AB2 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B28A41852E5B4FFF002B5AB2 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				B2757A442E4DE25E00F03D8D /* Car Watch App */,
@@ -254,6 +325,28 @@
 			productName = "Car Watch App";
 			productReference = B2757A432E4DE25E00F03D8D /* Car Watch App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B28A41872E5B4FFF002B5AB2 /* Build configuration list for PBXNativeTarget "CarWatchWidgetExtension" */;
+			buildPhases = (
+				B28A41772E5B4FFD002B5AB2 /* Sources */,
+				B28A41782E5B4FFD002B5AB2 /* Frameworks */,
+				B28A41792E5B4FFD002B5AB2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B28A417E2E5B4FFD002B5AB2 /* CarWatchWidget */,
+			);
+			name = CarWatchWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = CarWatchWidgetExtension;
+			productReference = B28A417B2E5B4FFD002B5AB2 /* CarWatchWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		B2C867382E0F9C45009A8FD6 /* Pan3 */ = {
 			isa = PBXNativeTarget;
@@ -317,6 +410,9 @@
 					B2757A422E4DE25E00F03D8D = {
 						CreatedOnToolsVersion = 16.4;
 					};
+					B28A417A2E5B4FFD002B5AB2 = {
+						CreatedOnToolsVersion = 16.4;
+					};
 					B2C867382E0F9C45009A8FD6 = {
 						CreatedOnToolsVersion = 16.2;
 						LastSwiftMigration = 1620;
@@ -344,12 +440,20 @@
 				B2C867382E0F9C45009A8FD6 /* Pan3 */,
 				B2757A422E4DE25E00F03D8D /* Car Watch App */,
 				B2D1724F2E1A767A00922A0C /* CarWidgetExtension */,
+				B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		B2757A412E4DE25E00F03D8D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B28A41792E5B4FFD002B5AB2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -426,6 +530,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B28A41772E5B4FFD002B5AB2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B2C867352E0F9C45009A8FD6 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -447,6 +558,11 @@
 			isa = PBXTargetDependency;
 			target = B2757A422E4DE25E00F03D8D /* Car Watch App */;
 			targetProxy = B2757A4B2E4DE25F00F03D8D /* PBXContainerItemProxy */;
+		};
+		B28A41852E5B4FFF002B5AB2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
+			targetProxy = B28A41842E5B4FFF002B5AB2 /* PBXContainerItemProxy */;
 		};
 		B2D172642E1A767C00922A0C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -516,6 +632,68 @@
 			};
 			name = Release;
 		};
+		B28A41882E5B4FFF002B5AB2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = CarWatchWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2WP22Y7RSK;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CarWatchWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CarWatchWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car.watchkitapp.CarWatchWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		B28A41892E5B4FFF002B5AB2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = CarWatchWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 2WP22Y7RSK;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CarWatchWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CarWatchWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car.watchkitapp.CarWatchWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		B2C8674D2E0F9C45009A8FD6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 333EE2A540A61A4EEF08B29E /* Pods-Pan3.debug.xcconfig */;
@@ -530,9 +708,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pan3/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "胖3助手";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "此应用需要NFC功能来写入卡实现快捷方式使用";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "通过保存相册的权限可以保存充电金二维码到你的相册";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "获取相册权限后可以更好的提供更多的帮助比如充电金或者头像";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "通过保存相册的权限可以保存二维码到你的相册";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "获取相册权限后可以更好的提供更多的帮助比如头像功能";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -545,7 +724,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -572,9 +751,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pan3/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "胖3助手";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "此应用需要NFC功能来写入卡实现快捷方式使用";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "通过保存相册的权限可以保存充电金二维码到你的相册";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "获取相册权限后可以更好的提供更多的帮助比如充电金或者头像";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "通过保存相册的权限可以保存二维码到你的相册";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "获取相册权限后可以更好的提供更多的帮助比如头像功能";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -587,7 +767,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -796,6 +976,15 @@
 			buildConfigurations = (
 				B2757A4E2E4DE25F00F03D8D /* Debug */,
 				B2757A4F2E4DE25F00F03D8D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B28A41872E5B4FFF002B5AB2 /* Build configuration list for PBXNativeTarget "CarWatchWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B28A41882E5B4FFF002B5AB2 /* Debug */,
+				B28A41892E5B4FFF002B5AB2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

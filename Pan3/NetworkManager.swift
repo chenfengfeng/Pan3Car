@@ -205,7 +205,6 @@ class NetworkManager {
     }
     
     // MARK: - 车辆控制接口
-    
     // 控制车锁
     func energyLock(operation: Int, completion: @escaping (Result<Bool, Error>) -> Void) {
         // 内部获取必要参数
@@ -893,6 +892,8 @@ class NetworkManager {
                         
                         let trips = tripsArray.map { tripJson -> TripRecordData in
                             return TripRecordData(
+                                id: tripJson["id"].intValue,
+                                vin: tripJson["vin"].stringValue,
                                 departureAddress: tripJson["departureAddress"].stringValue,
                                 destinationAddress: tripJson["destinationAddress"].stringValue,
                                 departureTime: tripJson["departureTime"].stringValue,
@@ -902,7 +903,21 @@ class NetworkManager {
                                 achievementRate: tripJson["achievementRate"].doubleValue,
                                 powerConsumption: tripJson["powerConsumption"].doubleValue,
                                 averageSpeed: tripJson["averageSpeed"].doubleValue,
-                                energyEfficiency: tripJson["energyEfficiency"].doubleValue
+                                energyEfficiency: tripJson["energyEfficiency"].doubleValue,
+                                startTime: tripJson["startTime"].stringValue,
+                                endTime: tripJson["endTime"].stringValue,
+                                startLocation: tripJson["startLocation"].stringValue,
+                                endLocation: tripJson["endLocation"].stringValue,
+                                startLatLng: tripJson["startLatLng"].string,
+                                endLatLng: tripJson["endLatLng"].string,
+                                startMileage: tripJson["startMileage"].doubleValue,
+                                endMileage: tripJson["endMileage"].doubleValue,
+                                startRange: tripJson["startRange"].doubleValue,
+                                endRange: tripJson["endRange"].doubleValue,
+                                startSoc: tripJson["startSoc"].intValue,
+                                endSoc: tripJson["endSoc"].intValue,
+                                createdAt: tripJson["createdAt"].stringValue,
+                                updatedAt: tripJson["updatedAt"].stringValue
                             )
                         }
                         

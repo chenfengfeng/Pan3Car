@@ -52,6 +52,25 @@ struct LegacyProvider: TimelineProvider {
             return
         }
         
+        // 检查是否有最近的本地修改
+        if WidgetDataManager.shared.hasRecentLocalModification(withinSeconds: 10) {
+            print("[Legacy Widget Debug] 检测到最近的本地修改，跳过网络请求，使用本地缓存数据")
+            // 使用本地缓存数据，避免覆盖本地修改
+            let carInfo = WidgetDataManager.shared.getCachedCarInfo()
+            let entry: LegacySimpleEntry
+            if let carInfo = carInfo {
+                entry = LegacySimpleEntry(date: currentDate, carInfo: carInfo)
+            } else {
+                entry = LegacySimpleEntry(date: currentDate, carInfo: nil, errorMessage: "无法获取车辆数据")
+            }
+            
+            // 设置下次更新时间为15分钟后
+            let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
+            let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+            completion(timeline)
+            return
+        }
+        
         // 尝试获取最新车辆信息
         SharedNetworkManager.shared.getCarInfo { result in
             var entry: LegacySimpleEntry

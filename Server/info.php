@@ -1,14 +1,25 @@
 <?php
-// 车辆信息获取接口 - Vehicle Information API
-// 此接口用于获取车辆详细信息
+// 设置错误报告级别
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 
-header('Content-Type: application/json');
+// 设置时区
+date_default_timezone_set('Asia/Shanghai');
+
+// 包含车辆信息查询共享函数库
+require_once __DIR__ . '/vehicle_api.php';
+
+// 设置响应头
+header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, timaToken');
+header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
+// 处理OPTIONS请求
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
+    http_response_code(200);
+    exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -79,7 +90,10 @@ if (!$timaToken) {
 
 
 
+// 发送请求的函数 - 已弃用，使用共享函数库
+// 保留此函数以防向后兼容性问题
 function makeRequest($url, $data, $headers = []) {
+    // 此函数已被共享函数库替代，但保留以防兼容性问题
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -117,50 +131,32 @@ function makeRequest($url, $data, $headers = []) {
 }
 
 try {
-    // 获取车辆详细信息
-    $carInfoUrl = $baseApiUrl . '/api/jac-energy/jacenergy/vehicleInformation/energy-query-vehicle-new-condition';
-    $carInfoData = [
-        'vins' => [$input['vin']]
-    ];
+    // 使用共享函数库获取车辆信息
+    $result = getVehicleInfoForWeb($input['vin'], $timaToken, $server);
     
-    $carInfoHeaders = [
-        'timaToken: ' . $timaToken
-    ];
-    
-    $carInfoResponse = makeRequest($carInfoUrl, $carInfoData, $carInfoHeaders);
-    $code = $carInfoResponse['code'] ?? 200;
-    
-    if ($code == 403) {
-        logMessage('认证失败，返回403', 'ERROR');
-        http_response_code(403);
+    if (!$result['success']) {
         echo json_encode([
-            'code' => 403,
+            'success' => false,
+            'message' => $result['error']
+        ]);
+        exit;
+    }
+    
+    // 检查认证失败
+    if ($result['code'] == 403) {
+        echo json_encode([
+            'success' => false,
             'message' => 'Authentication failure'
         ]);
         exit;
     }
     
-    $returnSuccess = $carInfoResponse['returnSuccess'] ?? false;
-    
-    if (!$returnSuccess) {
-        logMessage('获取车辆信息失败: ' . ($carInfoResponse['returnErrMsg'] ?? 'Unknown error'), 'ERROR');
-        http_response_code(500);
-        echo json_encode([
-            'code' => 500,
-            'message' => 'Failed to get car info',
-            'details' => $carInfoResponse['returnErrMsg'] ?? 'Unknown error'
-        ]);
-        exit;
-    }
-
-    // 返回车辆信息
-    $responseData = [
+    // 返回成功结果
+    echo json_encode([
         'code' => 200,
-        'data' => $carInfoResponse['data']
-    ];
-    
-    echo json_encode($responseData);
-    // 移除成功请求的日志记录
+        'success' => true,
+        'data' => $result['data']
+    ]);
     
 } catch (Exception $e) {
     logMessage('异常发生: ' . $e->getMessage(), 'ERROR');

@@ -39,12 +39,16 @@ class WatchConnectivityManager: NSObject, ObservableObject {
             context["defaultVin"] = vin
         }
         
+        // 添加shouldEnableDebug状态
+        let shouldEnableDebug = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
+        context["shouldEnableDebug"] = shouldEnableDebug
+        
         // 添加时间戳确保数据更新
         context["timestamp"] = Date().timeIntervalSince1970
         
         do {
             try WCSession.default.updateApplicationContext(context)
-            print("[WatchConnectivity] 成功发送认证数据到Watch")
+            print("[WatchConnectivity] 成功发送认证数据到Watch，shouldEnableDebug: \(shouldEnableDebug)")
         } catch {
             print("[WatchConnectivity] 发送认证数据失败: \(error)")
         }
@@ -168,6 +172,8 @@ extension WatchConnectivityManager: WCSessionDelegate {
                         reply["timaToken"] = userManager.timaToken ?? NSNull()
                         reply["defaultVin"] = userManager.defaultVin ?? NSNull()
                         reply["isLoggedIn"] = userManager.isLoggedIn
+                        // 添加shouldEnableDebug状态
+                        reply["shouldEnableDebug"] = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
                     }
                 default:
                     break

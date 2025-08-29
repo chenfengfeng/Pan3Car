@@ -19,6 +19,7 @@ class WatchConnectivityManager: NSObject, ObservableObject {
     @Published var isConnected = false
     @Published var timaToken: String?
     @Published var defaultVin: String?
+    @Published var shouldEnableDebug: Bool = false
     
     private override init() {
         super.init()
@@ -41,14 +42,16 @@ class WatchConnectivityManager: NSObject, ObservableObject {
         // 从App Group读取
         timaToken = sharedDefaults?.string(forKey: "timaToken")
         defaultVin = sharedDefaults?.string(forKey: "defaultVin")
+        shouldEnableDebug = sharedDefaults?.bool(forKey: "shouldEnableDebug") ?? false
         
         print("[Watch Debug] 加载已保存的认证数据:")
         print("  - Token: \(timaToken ?? "nil")")
         print("  - VIN: \(defaultVin ?? "nil")")
+        print("  - Debug Mode: \(shouldEnableDebug)")
     }
     
     /// 保存认证数据到UserDefaults
-    private func saveAuthData(token: String?, vin: String?) {
+    private func saveAuthData(token: String?, vin: String?, debugMode: Bool? = nil) {
         let sharedDefaults = UserDefaults(suiteName: "group.com.feng.pan3")
         
         if let token = token {
@@ -67,11 +70,19 @@ class WatchConnectivityManager: NSObject, ObservableObject {
             self.defaultVin = nil
         }
         
+        if let debugMode = debugMode {
+            sharedDefaults?.set(debugMode, forKey: "shouldEnableDebug")
+            self.shouldEnableDebug = debugMode
+        }
+        
         sharedDefaults?.synchronize()
         
         print("[Watch Debug] 保存认证数据到共享UserDefaults:")
         print("  - Token: \(token ?? "nil")")
         print("  - VIN: \(vin ?? "nil")")
+        if let debugMode = debugMode {
+            print("  - Debug Mode: \(debugMode)")
+        }
     }
     
     /// 清除认证数据
@@ -81,11 +92,13 @@ class WatchConnectivityManager: NSObject, ObservableObject {
         // 清除App Group中的数据
         sharedDefaults?.removeObject(forKey: "timaToken")
         sharedDefaults?.removeObject(forKey: "defaultVin")
+        sharedDefaults?.removeObject(forKey: "shouldEnableDebug")
         sharedDefaults?.synchronize()
         
         DispatchQueue.main.async {
             self.timaToken = nil
             self.defaultVin = nil
+            self.shouldEnableDebug = false
         }
         
         print("[Watch Debug] 已清除App Group中的认证数据")
@@ -114,6 +127,9 @@ class WatchConnectivityManager: NSObject, ObservableObject {
                 if let token = reply["timaToken"] as? String,
                    let vin = reply["defaultVin"] as? String {
                     self.saveAuthData(token: token, vin: vin)
+
+                    // 发送通知，通知UI刷新数据
+                    NotificationCenter.default.post(name: .authDataUpdated, object: nil)
                 }
             }
         } errorHandler: { error in
@@ -192,6 +208,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
             // 处理认证数据更新
             var token: String?
             var vin: String?
+            var debugMode: Bool?
             
             if let receivedToken = applicationContext["timaToken"] {
                 if receivedToken is NSNull {
@@ -209,9 +226,13 @@ extension WatchConnectivityManager: WCSessionDelegate {
                 }
             }
             
+            if let receivedDebugMode = applicationContext["shouldEnableDebug"] as? Bool {
+                debugMode = receivedDebugMode
+            }
+            
             // 只有当数据发生变化时才保存
-            if token != self.timaToken || vin != self.defaultVin {
-                self.saveAuthData(token: token, vin: vin)
+            if token != self.timaToken || vin != self.defaultVin || (debugMode != nil && debugMode != self.shouldEnableDebug) {
+                self.saveAuthData(token: token, vin: vin, debugMode: debugMode)
                 
                 // 发送通知，通知UI刷新数据
                 NotificationCenter.default.post(name: .authDataUpdated, object: nil)

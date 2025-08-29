@@ -31,7 +31,8 @@ class SettingViewController: UIViewController {
                 ("二次确认", "confirm", "checkmark.square.fill"),
 //                ("切换服务器", "server", "server.rack"),
                 ("用户反馈", "feedback", "envelope.fill"),
-                ("常见问题", "help", "questionmark.circle.fill")
+                ("常见问题", "help", "questionmark.circle.fill"),
+                ("APP使用教程", "tutorial", "book.fill")
             ],
             // 第二组：账户操作
             [
@@ -251,6 +252,8 @@ extension SettingViewController: UITableViewDelegate {
             showFeedbackAlert()
         case "help":
             showHelpViewController()
+        case "tutorial":
+            showAppTutorial()
         case "logout":
             showLogoutConfirmation()
         case "exit":
@@ -511,6 +514,10 @@ private extension SettingViewController {
         let helpVC = HelpViewController()
         helpVC.hidesBottomBarWhenPushed = true
         navigationController?.show(helpVC, sender: self)
+    }
+    
+    func showAppTutorial() {
+        WechatShowView.show(from: self)
     }
     
     func showLogoutConfirmation() {

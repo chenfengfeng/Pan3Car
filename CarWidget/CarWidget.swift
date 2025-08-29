@@ -38,22 +38,34 @@ struct Provider: AppIntentTimelineProvider {
         if timaToken == nil || defaultVin == nil {
             entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "请先在主应用中登录")
         } else {
-            // 尝试获取最新车辆信息
-            do {
-                if let carInfo = try await getLatestCarInfo() {
-                    WidgetDataManager.shared.updateCarInfo(carInfo)
+            // 检查是否有最近的本地修改
+            if WidgetDataManager.shared.hasRecentLocalModification(withinSeconds: 10) {
+                print("[Widget Debug] 检测到最近的本地修改，跳过网络请求，使用本地缓存数据")
+                // 使用本地缓存数据，避免覆盖本地修改
+                let carInfo = WidgetDataManager.shared.getCachedCarInfo()
+                if let carInfo = carInfo {
                     entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: carInfo)
-                }
-            } catch {
-                print("[Widget Debug] 获取车辆信息失败: \(error.localizedDescription)")
-                // 检查是否是认证失败
-                if error.localizedDescription.contains("Authentication failure") {
-                    entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "认证失败，请重新登录")
                 } else {
-                    // 其他网络错误，尝试使用本地缓存数据
-                    let carInfo = WidgetDataManager.shared.getCachedCarInfo()
-                    if let carInfo = carInfo {
+                    entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "无法获取车辆数据")
+                }
+            } else {
+                // 尝试获取最新车辆信息
+                do {
+                    if let carInfo = try await getLatestCarInfo() {
+                        WidgetDataManager.shared.updateCarInfo(carInfo)
                         entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: carInfo)
+                    }
+                } catch {
+                    print("[Widget Debug] 获取车辆信息失败: \(error.localizedDescription)")
+                    // 检查是否是认证失败
+                    if error.localizedDescription.contains("Authentication failure") {
+                        entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "认证失败，请重新登录")
+                    } else {
+                        // 其他网络错误，尝试使用本地缓存数据
+                        let carInfo = WidgetDataManager.shared.getCachedCarInfo()
+                        if let carInfo = carInfo {
+                            entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: carInfo)
+                        }
                     }
                 }
             }
@@ -212,8 +224,8 @@ struct CarWidgetEntryView: View {
                             title: carInfo.isLocked ? "已锁车" : "已解锁",
                             isActive: carInfo.isLocked,
                             intent: GetWidgetSelectLockStatusIntent(action: carInfo.isLocked ? .unlock : .lock),
-                            isLoading: LoadingStateManager.shared.isLoading(for: .lock),
-                            isEnabled: shouldEnableDebug
+                            backgroundColor: carInfo.isLocked ? Color.white.opacity(0.15) : Color.green,
+                            isEnabled: shouldEnableDebug,
                         )
                         .frame(maxWidth: .infinity)
                         
@@ -223,18 +235,18 @@ struct CarWidgetEntryView: View {
                             title: carInfo.airConditionerOn ? "空调开" : "空调关",
                             isActive: carInfo.airConditionerOn,
                             intent: GetWidgetSelectACStatusIntent(action: carInfo.airConditionerOn ? .turnOff : .turnOn),
-                            isLoading: LoadingStateManager.shared.isLoading(for: .airConditioner),
+                            backgroundColor: carInfo.airConditionerOn ? Color.blue : Color.white.opacity(0.15),
                             isEnabled: shouldEnableDebug
                         )
                         .frame(maxWidth: .infinity)
                         
                         // 车窗按钮
                         ControlButton(
-                            icon: carInfo.windowsOpen ? "dock.arrow.up.rectangle" : "dock.arrow.down.rectangle",
+                            icon: carInfo.windowsOpen ? "window.shade.open" : "window.shade.closed",
                             title: carInfo.windowsOpen ? "窗已开" : "窗已关",
                             isActive: carInfo.windowsOpen,
                             intent: GetWidgetSelectWindowStatusIntent(action: carInfo.windowsOpen ? .close : .open),
-                            isLoading: LoadingStateManager.shared.isLoading(for: .window),
+                            backgroundColor: carInfo.windowsOpen ? Color.cyan : Color.white.opacity(0.15),
                             isEnabled: shouldEnableDebug
                         )
                         .frame(maxWidth: .infinity)
@@ -245,7 +257,7 @@ struct CarWidgetEntryView: View {
                             title: "寻车",
                             isActive: false,
                             intent: GetWidgetFindCarStatusIntent(),
-                            isLoading: LoadingStateManager.shared.isLoading(for: .findCar),
+                            backgroundColor: Color.white.opacity(0.15),
                             isEnabled: shouldEnableDebug
                         )
                         .frame(maxWidth: .infinity)
@@ -300,7 +312,7 @@ struct ControlButton: View {
     let title: String
     let isActive: Bool
     let intent: any AppIntent
-    var isLoading: Bool
+    let backgroundColor: Color
     let isEnabled: Bool
     
     var body: some View {
@@ -309,31 +321,20 @@ struct ControlButton: View {
                 VStack(spacing: 0) {
                     ZStack {
                         Circle()
-                            .fill(isLoading ? Color.orange : Color.clear)
+                            .fill(backgroundColor)
                             .frame(width: 36, height: 36)
                         
                         Image(systemName: icon)
                             .font(.system(size: 20))
                             .foregroundColor(.white)
                     }
-                    if isLoading {
-                        HStack(spacing: 2) {
-                            Image(systemName: "arrow.2.circlepath")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.white)
-                            Text("请求中")
-                                .font(.system(size: 10))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                        }
-                    }else{
-                        Text(title)
-                            .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.8))
-                            .lineLimit(1)
-                    }
+                    Text(title)
+                        .font(.system(size: 10))
+                        .foregroundColor(.white)
+                        .offset(y: 4)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(.easeInOut(duration: 0.3), value: icon)
             }
             .buttonStyle(PlainButtonStyle())
         } else {
@@ -349,8 +350,8 @@ struct ControlButton: View {
                 }
                 Text(title)
                     .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.8))
-                    .lineLimit(1)
+                    .foregroundColor(.white)
+                    .offset(y: 4)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

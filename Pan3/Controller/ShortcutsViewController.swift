@@ -19,6 +19,7 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
     
     // MARK: - 行程记录相关属性
     private var tripRecords: [TripRecordData] = []
+    private var groupedTripRecords: [(date: String, trips: [TripRecordData])] = []
     private var currentPage = 1
     private var totalPages = 1
     private var isLoading = false
@@ -198,6 +199,7 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                     
                     self?.currentPage = response.pagination.currentPage
                     self?.totalPages = response.pagination.totalPages
+                    self?.groupTripRecordsByDate()
                     self?.tableView.reloadData()
                     
                     // 检查是否还有更多数据
@@ -235,20 +237,105 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         ud.set(sender.isOn, forKey: "isBlurAddress")
         tableView.reloadData()
     }
+    
+    // MARK: - 数据分组方法
+    private func groupTripRecordsByDate() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+        
+        // 按日期分组
+        var groupedDict: [String: [TripRecordData]] = [:]
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        
+        let dayFormatter = DateFormatter()
+        dayFormatter.dateFormat = "yyyy-MM-dd"
+        
+        for trip in tripRecords {
+            // 使用完整的 startTime 来解析日期
+            if let date = dateFormatter.date(from: trip.startTime) {
+                let dayStart = calendar.startOfDay(for: date)
+                let dayKey = dayFormatter.string(from: dayStart)
+                
+                if groupedDict[dayKey] == nil {
+                    groupedDict[dayKey] = []
+                }
+                groupedDict[dayKey]?.append(trip)
+            }
+        }
+        
+        // 转换为有序数组并生成显示标题
+        groupedTripRecords = groupedDict.sorted { first, second in
+            return first.key > second.key // 最新日期在前
+        }.map { (dateKey, trips) in
+            let displayTitle = formatDateTitle(dateKey: dateKey, today: today, yesterday: yesterday)
+            return (date: displayTitle, trips: trips)
+        }
+    }
+    
+    private func formatDateTitle(dateKey: String, today: Date, yesterday: Date) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        
+        guard let date = dateFormatter.date(from: dateKey) else {
+            return dateKey
+        }
+        
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: date)
+        
+        // 格式化显示
+        let displayFormatter = DateFormatter()
+        displayFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = displayFormatter.string(from: date)
+        
+        // 获取星期几
+        let weekdayFormatter = DateFormatter()
+        weekdayFormatter.dateFormat = "EEEE"
+        weekdayFormatter.locale = Locale(identifier: "zh_CN")
+        let weekday = weekdayFormatter.string(from: date)
+        
+        var result = "\(dateString) \(weekday)"
+        
+        // 添加今天/昨天标识
+        if calendar.isDate(dayStart, inSameDayAs: today) {
+            result += " 今天"
+        } else if calendar.isDate(dayStart, inSameDayAs: yesterday) {
+            result += " 昨天"
+        }
+        
+        return result
+    }
 }
 
 // MARK: - UITableViewDataSource
 
 extension ShortcutsViewController: UITableViewDataSource {
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return groupedTripRecords.count
+    }
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return tripRecords.count
+        guard section < groupedTripRecords.count else { return 0 }
+        return groupedTripRecords[section].trips.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TripRecordCell", for: indexPath) as! TripRecordCell
-        let tripData = tripRecords[indexPath.row]
+        guard indexPath.section < groupedTripRecords.count,
+              indexPath.row < groupedTripRecords[indexPath.section].trips.count else {
+            return cell
+        }
+        let tripData = groupedTripRecords[indexPath.section].trips[indexPath.row]
         cell.configure(with: tripData)
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        guard section < groupedTripRecords.count else { return nil }
+        return groupedTripRecords[section].date
     }
 }
 
@@ -266,7 +353,9 @@ extension ShortcutsViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
-        guard let cell = tableView.cellForRow(at: indexPath) else {
+        guard indexPath.section < groupedTripRecords.count,
+              indexPath.row < groupedTripRecords[indexPath.section].trips.count,
+              let cell = tableView.cellForRow(at: indexPath) else {
             return
         }
         
@@ -296,6 +385,13 @@ extension ShortcutsViewController: UITableViewDelegate {
     
     // MARK: - 分享行程方法
     private func shareTrip(cell: UITableViewCell) {
+        // 获取cell对应的indexPath
+        guard let indexPath = tableView.indexPath(for: cell),
+              indexPath.section < groupedTripRecords.count,
+              indexPath.row < groupedTripRecords[indexPath.section].trips.count else {
+            return
+        }
+        
         // 创建带有渐变背景和APP信息的分享图片
         let image = cell.qmui_snapshotImage(afterScreenUpdates: true)
         let shareImage = createShareImage(from: image)

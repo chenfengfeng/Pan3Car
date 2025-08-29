@@ -74,12 +74,6 @@ class UserManager {
                     sharedDefaults.set(authResponse.data.vin, forKey: "defaultVin")
                     sharedDefaults.synchronize()
                 }
-                
-                // 发送认证数据到Watch
-                WatchConnectivityManager.shared.sendAuthDataToWatch(
-                    token: authResponse.data.token,
-                    vin: authResponse.data.vin
-                )
             }
         } else {
             UserDefaults.standard.removeObject(forKey: authResponseKey)
@@ -164,5 +158,11 @@ class UserManager {
         
         // 手动保存到本地
         saveAuthResponse()
+        
+        // 发送认证数据到Watch
+        WatchConnectivityManager.shared.sendAuthDataToWatch(
+            token: timaToken,
+            vin: defaultVin
+        )
     }
 }

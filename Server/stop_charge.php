@@ -1,6 +1,8 @@
 <?php
 // 包含数据库连接代码,外部属性：$pdo
 include $_SERVER['DOCUMENT_ROOT'] . '/db_connect.php';
+// 包含车辆API函数
+include $_SERVER['DOCUMENT_ROOT'] . '/vehicle_api.php';
 // 主逻辑
 header('Content-Type: application/json');
 
@@ -13,6 +15,7 @@ if (empty($params)) {
 // 获取用户提交的 vin 和 token
 $vin = $params['vin'];
 $token = $params['token'];
+$push_token = $params['push_token'] ?? '';
 // 获取服务器参数
 $server = $params['server'] ?? '';
 
@@ -90,6 +93,20 @@ try {
         $updateResult = $updateStmt->execute([$chargingTask['id']]);
         
         if ($updateResult) {
+            // 停止充电成功后，检查车辆状态变化并处理行程记录
+            try {
+                $vehicleData = getVehicleInfoForCLI($vin, $token, $push_token, $server);
+                if ($vehicleData && isset($vehicleData['mainLockStatus'])) {
+                    // 调用行程记录处理函数，事件类型为充电停止
+                    handleTripRecordByLockStatus($vin, $vehicleData, $pdo, 'charging_stop', false);
+                    error_log("[TRIP_RECORD] 停止充电后处理行程记录完成，VIN: $vin, lockStatus: {$vehicleData['mainLockStatus']}");
+                } else {
+                    error_log("[TRIP_RECORD] 停止充电后无法获取车辆状态，VIN: $vin");
+                }
+            } catch (Exception $e) {
+                error_log("[TRIP_RECORD] 停止充电后处理行程记录异常，VIN: $vin, Error: " . $e->getMessage());
+            }
+            
             echo json_encode([
                 'code' => 200,
                 'msg' => '充电已成功停止',

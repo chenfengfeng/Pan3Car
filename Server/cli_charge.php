@@ -14,13 +14,16 @@ include __DIR__ . '/db_connect.php';
 // 包含APNs JWT生成器
 require_once __DIR__ . '/apns_jwt_generator.php';
 
+// 包含车辆信息查询共享函数库
+require_once __DIR__ . '/vehicle_api.php';
+
 // 配置常量
 define('TASK_TIMEOUT_HOURS', 6); // 任务超时时间（小时）
 define('API_TIMEOUT', 30); // API超时时间（秒）
 define('API_CONNECT_TIMEOUT', 10); // API连接超时时间（秒）
 define('TOLERANCE_KM', 20.0); // 车型识别误差范围（公里）
 
-// 车型配置信息：型号 => [总里程, 电池容量(kWh)] <mcreference link="https://www.php.net/ChangeLog-8.php" index="5">5</mcreference>
+// 车型配置信息：型号 => [总里程, 电池容量(kWh)]
 $carModels = [
     '330' => ['range' => 330.0, 'battery' => 34.5],
     '405' => ['range' => 405.0, 'battery' => 41.0],
@@ -121,73 +124,10 @@ function stopCharging(string $vin, string $token): array
     return ['success' => true, 'data' => $result];
 }
 
-// 调用第三方API获取车辆信息 - 使用现代PHP最佳实践
+// 调用第三方API获取车辆信息 - 使用共享函数库
 function getVehicleInfo(string $vin, string $token): array
 {
-    $url = 'https://jacsupperapp.jac.com.cn/api/jac-energy/jacenergy/vehicleInformation/energy-query-vehicle-new-condition';
-
-    $data = [
-        'vins' => [$vin]
-    ];
-
-    $headers = [
-        'Content-Type: application/json',
-        'timaToken: ' . $token,
-        'User-Agent: PHP-CLI-ChargeMonitor/1.0'
-    ];
-
-    $ch = curl_init();
-
-    // 使用现代cURL配置和安全设置
-    $curlOptions = [
-        CURLOPT_URL => $url,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode($data, JSON_THROW_ON_ERROR),
-        CURLOPT_HTTPHEADER => $headers,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => API_TIMEOUT,
-        CURLOPT_CONNECTTIMEOUT => API_CONNECT_TIMEOUT,
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
-        CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_MAXREDIRS => 0,
-        CURLOPT_ENCODING => '', // 支持所有编码
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_2_0, // 优先使用HTTP/2
-    ];
-
-    curl_setopt_array($ch, $curlOptions);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-    $totalTime = curl_getinfo($ch, CURLINFO_TOTAL_TIME);
-    curl_close($ch);
-
-    if ($error) {
-        logMessage('CURL错误: ' . $error, 'ERROR');
-        return ['success' => false, 'error' => 'CURL错误: ' . $error];
-    }
-
-    if ($httpCode !== 200) {
-        logMessage("HTTP错误: {$httpCode}", 'ERROR');
-        return ['success' => false, 'error' => "HTTP错误: {$httpCode}"];
-    }
-
-    try {
-        $result = json_decode($response, true, 512, JSON_THROW_ON_ERROR);
-    } catch (JsonException $e) {
-        logMessage('JSON解析错误: ' . $e->getMessage(), 'ERROR');
-        return ['success' => false, 'error' => 'JSON解析错误: ' . $e->getMessage()];
-    }
-
-    if (!$result || !isset($result['returnSuccess']) || !$result['returnSuccess']) {
-        $errorMsg = $result['returnErrMsg'] ?? '未知错误';
-        logMessage("API返回错误: {$errorMsg}", 'ERROR');
-        return ['success' => false, 'error' => "API返回错误: {$errorMsg}"];
-    }
-
-    logMessage("API调用成功，耗时: {$totalTime}秒", 'DEBUG');
-    return ['success' => true, 'data' => $result['data']];
+    return getVehicleInfoForCLI($vin, $token);
 }
 
 // 计算当前电量 - 使用现代PHP类型声明
@@ -425,8 +365,8 @@ try {
             continue;
         }
 
-        // 调用第三方API获取车辆信息
-        $vehicleInfo = getVehicleInfo($vin, $token);
+        // 调用共享函数库获取车辆信息
+        $vehicleInfo = getVehicleInfoForCLI($vin, $token);
 
         // 规则2: 检查API调用是否失败
         if (!$vehicleInfo['success']) {
@@ -447,77 +387,14 @@ try {
         // 计算当前电量
         $currentKwh = calculateCurrentKwh($soc, $acOnMile, $carModels);
 
-        // 添加函数：转换经纬度到地址
-        function getLocationFromLatLng($longitude, $latitude)
-        {
-            $apiKey = 'ad43794c805061ae25622bc72c8f4763';
-            $url = "https://restapi.amap.com/v3/geocode/regeo?key={$apiKey}&location={$longitude},{$latitude}&radius=1000&extensions=base";
-
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-
-            $response = curl_exec($ch);
-            curl_close($ch);
-
-            $result = json_decode($response, true);
-            if ($result['status'] === '1' && isset($result['regeocode']['formatted_address'])) {
-                return $result['regeocode']['formatted_address'];
-            }
-            return '未知位置';
-        }
-
-        // 添加函数：处理充电事件时的行程记录
-        function handleChargingTrip($vin, $vehicleData, $pdo)
-        {
-            $now = date('Y-m-d H:i:s');
-            $lat = $vehicleData['latitude'] ?? '';
-            $lng = $vehicleData['longtitude'] ?? '';
-            $location = getLocationFromLatLng($lng, $lat);
-            $latlng = "{$lng},{$lat}";
-            $totalMileage = (float)($vehicleData['totalMileage'] ?? 0);
-            $acOnMile = (float)($vehicleData['acOnMile'] ?? 0);
-            $soc = (int)($vehicleData['soc'] ?? 0);
-
-            // 获取最后一条未完成的行程
-            $stmt = $pdo->prepare("SELECT * FROM trip_record WHERE vin = :vin AND end_time IS NULL ORDER BY start_time DESC LIMIT 1");
-            $stmt->execute([':vin' => $vin]);
-            $lastTrip = $stmt->fetch();
-
-            if ($lastTrip) {
-                $mileageDiff = $totalMileage - $lastTrip['start_mileage'];
-                if ($mileageDiff >= 1) {
-                    // 结束行程
-                    $updateStmt = $pdo->prepare("UPDATE trip_record SET end_time = :end_time, end_location = :end_location, end_latlng = :end_latlng, end_mileage = :end_mileage, end_range = :end_range, end_soc = :end_soc WHERE id = :id");
-                    $updateStmt->execute([
-                        ':end_time' => $now,
-                        ':end_location' => $location,
-                        ':end_latlng' => $latlng,
-                        ':end_mileage' => $totalMileage,
-                        ':end_range' => $acOnMile,
-                        ':end_soc' => $soc,
-                        ':id' => $lastTrip['id']
-                    ]);
-                    logMessage("充电开始：结束行程 ID {$lastTrip['id']} 以充电时间作为结束点");
-                } else {
-                    // 无里程变化，不记录，删除
-                    $deleteStmt = $pdo->prepare("DELETE FROM trip_record WHERE id = :id");
-                    $deleteStmt->execute([':id' => $lastTrip['id']]);
-                    logMessage("充电开始：删除无里程变化的行程 ID {$lastTrip['id']}");
-                }
-            }
-        }
-
-        // 在主循环中，当ready状态检测到充电开始时调用
-        // 在 if ($currentStatus === 'ready') { ... }
+        // 行程记录逻辑已迁移到 vehicle_api.php 中的 handleTripRecordByLockStatus 函数
 
         if ($currentStatus === 'ready') {
-            if ($chgStatus !== 2) {
-                handleChargingTrip($vin, $vehicleData, $pdo);
-                updateTaskStatus($pdo, $taskId, 'pending', '充电已开始，正在监控充电进度...', null, false, $task);
-                logMessage("任务 {$taskId} 开始充电，状态更新为pending");
+             if ($chgStatus !== 2) {
+                 // 使用新的基于 mainLockStatus 的行程记录逻辑处理充电开始
+                 handleTripRecordByLockStatus($vin, $vehicleData, $pdo, 'charging_start', false);
+                 updateTaskStatus($pdo, $taskId, 'pending', '充电已开始，正在监控充电进度...', null, false, $task);
+                 logMessage("任务 {$taskId} 开始充电，状态更新为pending");
             } else {
                 // 测试状态
                 updateTaskStatus($pdo, $taskId, 'ready', '充电口：现在赶紧拿充电枪插我吧', null, false, $task);

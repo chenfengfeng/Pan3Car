@@ -24,6 +24,10 @@ struct ContentView: View {
     // 第三页详细信息的状态变量
     @State private var currentLocation = "获取位置中..."
     @State private var isHornPressed = false // 鸣笛按钮动画状态
+    @State private var showLockConfirm = false // 车锁二次确认弹窗
+    @State private var showACConfirm = false // 空调二次确认弹窗
+    @State private var showWindowConfirm = false // 车窗二次确认弹窗
+    @State private var showHornConfirm = false // 鸣笛二次确认弹窗
     
     // WatchConnectivity管理器
     @StateObject private var watchConnectivity = WatchConnectivityManager.shared
@@ -45,6 +49,14 @@ struct ContentView: View {
                     carInfoContent()
                         .frame(height: geo.size.height)
                         .tag(0)
+                        .onTapGesture {
+                            if currentPage == 0 {
+                                print("[Watch Debug] 用户点击背景图片，开始刷新车辆数据")
+                                // 防止重复点击
+                                guard !isLoading else { return }
+                                loadCarData()
+                            }
+                        }
                     
                     // 第2页
                     controlPanelView()
@@ -58,6 +70,27 @@ struct ContentView: View {
                 }
                 .tabViewStyle(.verticalPage)
                 .indexViewStyle(.page(backgroundDisplayMode: .never))
+                
+                // Loading 指示器
+                if isLoading {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea(.all)
+                        
+                        VStack(spacing: 8) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(1.2)
+                            
+                            Text("加载中...")
+                                .font(.caption)
+                                .foregroundColor(.white)
+                        }
+                        .padding()
+                        .background(Color.black.opacity(0.6))
+                        .cornerRadius(12)
+                    }
+                }
             }
         }
         .edgesIgnoringSafeArea(.all) // watchOS全屏设置
@@ -144,18 +177,11 @@ struct ContentView: View {
                     // 车锁开关
                     VStack(spacing: 8) {
                         Button(action: {
-                            let operation = isCarLocked ? 2 : 1
-                            SharedNetworkManager.shared.energyLock(operation: operation) { _ in
-                                print("车锁控制按钮被点击，状态已切换")
+                            guard watchConnectivity.shouldEnableDebug else {
+                                print("[Watch Debug] 车锁控制被禁用，调试模式未开启")
+                                return
                             }
-                            
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
-                                // 本地切换车锁状态
-                                if var model = carModel {
-                                    model.mainLockStatus = model.mainLockStatus == 0 ? 1 : 0
-                                    carModel = model
-                                }
-                            }
+                            showLockConfirm = true
                         }) {
                             Image(systemName: isCarLocked ? "lock.fill" : "lock.open.fill")
                                 .font(.system(size: buttonSize * 0.5))
@@ -167,30 +193,36 @@ struct ContentView: View {
                         .clipShape(Circle())
                         .scaleEffect(isCarLocked ? 0.95 : 1.0)
                         .buttonStyle(PlainButtonStyle())
+                        .alert("确认\(isCarLocked ? "解锁车辆" : "锁定车辆")？", isPresented: $showLockConfirm) {
+                            Button("确认") {
+                                let operation = isCarLocked ? 2 : 1 // 2=开锁, 1=关锁
+                                SharedNetworkManager.shared.energyLock(operation: operation) { _ in
+                                    print("车锁控制按钮被点击，状态已切换")
+                                }
+                                
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
+                                    if var model = carModel {
+                                        model.mainLockStatus = model.mainLockStatus == 0 ? 1 : 0
+                                        carModel = model
+                                    }
+                                }
+                            }
+                            Button("取消", role: .cancel) { }
+                        }
                         
                         Text(isCarLocked ? "已锁车" : "已解锁")
                             .font(.system(size: 12))
                             .foregroundColor(.white)
-                            .opacity(isCarLocked ? 0.8 : 1.0)
                     }
                     
                     // 空调开关
                     VStack(spacing: 8) {
                         Button(action: {
-                            let operation = isACOn ? 2 : 1
-                            let temperature = 26 // 默认温度
-                            let duringTime = 30 // 默认持续时间10分钟
-                            
-                            SharedNetworkManager.shared.energyAirConditioner(operation: operation, temperature: temperature, duringTime: duringTime) { _ in
-                                print("空调控制按钮被点击，状态已切换")
+                            guard watchConnectivity.shouldEnableDebug else {
+                                print("[Watch Debug] 空调控制被禁用，调试模式未开启")
+                                return
                             }
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
-                                // 本地切换空调状态
-                                if var model = carModel {
-                                    model.acStatus = model.acStatus == 0 ? 1 : 0
-                                    carModel = model
-                                }
-                            }
+                            showACConfirm = true
                         }) {
                             Image(systemName: isACOn ? "fanblades.fill" : "fanblades.slash.fill")
                                 .font(.system(size: buttonSize * 0.45))
@@ -202,11 +234,27 @@ struct ContentView: View {
                         .clipShape(Circle())
                         .scaleEffect(isACOn ? 1.0 : 0.95)
                         .buttonStyle(PlainButtonStyle())
+                        .alert("确认\(isACOn ? "关闭空调" : "开启空调")？", isPresented: $showACConfirm) {
+                            Button("确认") {
+                                let operation = isACOn ? 1 : 2
+                                let temperature = 26
+                                let duringTime = 30
+                                SharedNetworkManager.shared.energyAirConditioner(operation: operation, temperature: temperature, duringTime: duringTime) { _ in
+                                    print("空调控制按钮被点击，状态已切换")
+                                }
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
+                                    if var model = carModel {
+                                        model.acStatus = model.acStatus == 0 ? 1 : 0
+                                        carModel = model
+                                    }
+                                }
+                            }
+                            Button("取消", role: .cancel) {}
+                        }
                         
                         Text(isACOn ? "空调开" : "空调关")
                             .font(.system(size: 12))
                             .foregroundColor(.white)
-                            .opacity(isACOn ? 1.0 : 0.8)
                     }
                 }
                 
@@ -215,22 +263,11 @@ struct ContentView: View {
                     // 车窗开关
                     VStack(spacing: 8) {
                         Button(action: {
-                            let operation = isWindowOpen ? 1 : 2  // 2开启，1关闭
-                            let openLevel = isWindowOpen ? 0 : 2  // 2完全打开，0关闭
-                            SharedNetworkManager.shared.energyWindow(operation: operation, openLevel: openLevel) { _ in
-                                print("车窗控制按钮被点击")
+                            guard watchConnectivity.shouldEnableDebug else {
+                                print("[Watch Debug] 车窗控制被禁用，调试模式未开启")
+                                return
                             }
-                            
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
-                                // 切换车窗控制功能
-                                if var model = carModel {
-                                    model.lfWindowOpen = model.lfWindowOpen == 0 ? 1 : 0
-                                    model.lrWindowOpen = model.lrWindowOpen == 0 ? 1 : 0
-                                    model.rfWindowOpen = model.rfWindowOpen == 0 ? 1 : 0
-                                    model.rrWindowOpen = model.rrWindowOpen == 0 ? 1 : 0
-                                    carModel = model
-                                }
-                            }
+                            showWindowConfirm = true
                         }) {
                             Image(systemName: isWindowOpen ? "window.shade.open" : "window.shade.closed")
                                 .font(.system(size: buttonSize * 0.5))
@@ -238,41 +275,65 @@ struct ContentView: View {
                                 .offset(y: isWindowOpen ? 0 : 2)
                         }
                         .frame(width: buttonSize, height: buttonSize)
-                        .background(isWindowOpen ? Color.mint.opacity(0.8) : Color.white.opacity(0.2))
+                        .background(isWindowOpen ? Color.cyan.opacity(0.8) : Color.white.opacity(0.2))
                         .clipShape(Circle())
                         .scaleEffect(isWindowOpen ? 1.0 : 0.95)
                         .buttonStyle(PlainButtonStyle())
+                        .alert("确认\(isWindowOpen ? "关闭车窗" : "打开车窗")？", isPresented: $showWindowConfirm) {
+                            Button("确认") {
+                                let operation = isWindowOpen ? 1 : 2  // 2开启，1关闭
+                                let openLevel = isWindowOpen ? 0 : 2  // 2完全打开，0关闭
+                                SharedNetworkManager.shared.energyWindow(operation: operation, openLevel: openLevel) { _ in
+                                    print("车窗控制按钮被点击，状态已切换")
+                                }
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
+                                    if var model = carModel {
+                                        model.lfWindowOpen = model.lfWindowOpen == 0 ? 1 : 0
+                                        model.rfWindowOpen = model.rfWindowOpen == 0 ? 1 : 0
+                                        model.lrWindowOpen = model.lrWindowOpen == 0 ? 1 : 0
+                                        model.rrWindowOpen = model.rrWindowOpen == 0 ? 1 : 0
+                                        carModel = model
+                                    }
+                                }
+                            }
+                            Button("取消", role: .cancel) {}
+                        }
                         
                         Text(isWindowOpen ? "窗已开" : "窗已关")
                             .font(.system(size: 12))
                             .foregroundColor(.white)
-                            .opacity(isWindowOpen ? 1.0 : 0.8)
                     }
                     
                     // 鸣笛按钮
                     VStack(spacing: 8) {
                         Button(action: {
-                            SharedNetworkManager.shared.findCar { _ in
-                                print("鸣笛按钮被点击")
+                            guard watchConnectivity.shouldEnableDebug else {
+                                print("[Watch Debug] 鸣笛功能被禁用，调试模式未开启")
+                                return
                             }
-                            // 鸣笛动作，添加震动和缩放动画效果
-                            withAnimation(.easeInOut(duration: 0.2).repeatCount(3, autoreverses: true)) {
-                                isHornPressed.toggle()
-                            }
-                            // 延迟重置状态
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                isHornPressed = false
-                            }
+                            showHornConfirm = true
                         }) {
                             Image(systemName: "speaker.wave.3.fill")
                                 .font(.system(size: buttonSize * 0.45))
                                 .foregroundColor(.white)
                         }
                         .frame(width: buttonSize, height: buttonSize)
-                        .background(Color.orange.opacity(0.8))
+                        .background(Color.white.opacity(0.2))
                         .clipShape(Circle())
                         .buttonStyle(PlainButtonStyle())
                         .scaleEffect(isHornPressed ? 1.2 : 1.0) // 根据状态控制缩放
+                        .alert("确认鸣笛？", isPresented: $showHornConfirm) {
+                            Button("确认") {
+                                isHornPressed = true
+                                SharedNetworkManager.shared.findCar { _ in
+                                    print("鸣笛按钮被点击")
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    isHornPressed = false
+                                }
+                            }
+                            Button("取消", role: .cancel) {}
+                        }
                         
                         Text("鸣笛")
                             .font(.system(size: 12))
@@ -375,16 +436,15 @@ struct ContentView: View {
                     
                     VStack(spacing: 4) {
                         HStack(spacing: 8) {
-                            doorStatusItem("前左门", isOpen: carModel?.doorStsFrontLeft != 0)
-                            doorStatusItem("前右门", isOpen: carModel?.doorStsFrontRight != 0)
+                            doorStatusItem("前左", isOpen: carModel?.doorStsFrontLeft != 0)
+                            doorStatusItem("前右", isOpen: carModel?.doorStsFrontRight != 0)
                         }
                         HStack(spacing: 8) {
-                            doorStatusItem("后左门", isOpen: carModel?.doorStsRearLeft != 0)
-                            doorStatusItem("后右门", isOpen: carModel?.doorStsRearRight != 0)
+                            doorStatusItem("后左", isOpen: carModel?.doorStsRearLeft != 0)
+                            doorStatusItem("后右", isOpen: carModel?.doorStsRearRight != 0)
                         }
                         HStack {
                             trunkStatusItem("后尾箱", isOpen: carModel?.trunkLockStatus != 0)
-                            Spacer()
                         }
                     }
                 }
@@ -432,7 +492,7 @@ struct ContentView: View {
                 .foregroundColor(isOpen ? Color.orange : Color.green)
                 .fontWeight(.medium)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
     }
     
     // 车门状态项
@@ -446,7 +506,7 @@ struct ContentView: View {
                 .foregroundColor(isOpen ? Color.orange : Color.green)
                 .fontWeight(.medium)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
     }
     
     // 后尾箱状态项
@@ -460,7 +520,8 @@ struct ContentView: View {
                 .foregroundColor(isOpen ? Color.orange : Color.green)
                 .fontWeight(.medium)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .center)
+        
     }
     
     private func socColor(for soc: Int) -> Color {
@@ -565,8 +626,8 @@ struct ContentView: View {
                         if let subLocality = placemark.subLocality {
                             addressComponents.append(subLocality)
                         }
-                        if let thoroughfare = placemark.thoroughfare {
-                            addressComponents.append(thoroughfare)
+                        if let name = placemark.name {
+                            addressComponents.append(name)
                         }
                         
                         currentLocation = addressComponents.joined(separator: " ")

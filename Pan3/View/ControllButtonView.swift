@@ -225,18 +225,42 @@ class ControllButtonView: UIStackView {
     }
     
     @objc private func lockButtonTapped() {
+        // 检查是否启用调试模式
+        let shouldEnableDebug = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
+        guard shouldEnableDebug else {
+            return
+        }
+        
         actionLock(lockBtn)
     }
     
     @objc private func acButtonTapped() {
+        // 检查是否启用调试模式
+        let shouldEnableDebug = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
+        guard shouldEnableDebug else {
+            return
+        }
+        
         actionAC(acBtn)
     }
     
     @objc private func windowButtonTapped() {
+        // 检查是否启用调试模式
+        let shouldEnableDebug = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
+        guard shouldEnableDebug else {
+            return
+        }
+        
         actionWindow(windowBtn)
     }
     
     @objc private func callButtonTapped() {
+        // 检查是否启用调试模式
+        let shouldEnableDebug = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
+        guard shouldEnableDebug else {
+            return
+        }
+        
         actionCall(honkBtn)
     }
     

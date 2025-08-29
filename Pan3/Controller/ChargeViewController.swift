@@ -147,23 +147,6 @@ class ChargeViewController: UIViewController, CarDataRefreshable {
     }
     
     // MARK: - 点击事件
-    @IBAction func clickDianfen(_ sender: Any) {
-        if let image = UIImage(named: "qrcode") {
-            QMUIImageWriteToSavedPhotosAlbumWithAlbumAssetsGroup(image, QMUIAssetsGroup()) { _, error in
-                if error == nil {
-                    let alert = UIAlertController(title: "点击确定跳转到微信扫一扫识别二维码即可领取充电金", message: nil, preferredStyle: .alert)
-                    alert.addAction(title: "确定") { _ in
-                        if let url = URL(string: "weixin://scanqrcode") {
-                            UIApplication.shared.open(url)
-                        }
-                    }
-                    alert.addAction(title: "算了我自己打开微信", style: .cancel)
-                    self.present(alert, animated: true)
-                }
-            }
-        }
-    }
-    
     @IBAction func clickChargeList(_ sender: Any) {
         let vc = ChargeListController()
         vc.hidesBottomBarWhenPushed = true

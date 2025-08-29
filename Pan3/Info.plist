@@ -15,8 +15,6 @@
 			</array>
 		</dict>
 	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>iosamap</string>
@@ -33,7 +31,5 @@
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
-	<key>NFCReaderUsageDescription</key>
-	<string>此应用需要NFC功能来写入卡实现快捷方式使用</string>
 </dict>
 </plist>
