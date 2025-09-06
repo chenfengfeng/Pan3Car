@@ -194,12 +194,12 @@ if ($httpCode === 200 && $responseData && isset($responseData['operationId'])) {
     echo $response;
 }
 
-// 如果是LOCK操作，处理行程记录
+// 如果是LOCK操作，获取车辆数据（行程记录现在自动处理）
 if ($input['operationType'] === 'LOCK') {
     $vehicleData = getVehicleData($input['vin'], $input['timaToken'], $baseApiUrl);
     if ($vehicleData) {
-        // 使用新的基于 mainLockStatus 的行程记录逻辑
-        handleTripRecordByLockStatus($input['vin'], $vehicleData, $pdo, 'lock_change', false);
+        // 行程记录现在通过getVehicleData自动处理，无需手动调用
+        // 这里可以添加其他LOCK操作相关的逻辑
     }
 }
 ?>

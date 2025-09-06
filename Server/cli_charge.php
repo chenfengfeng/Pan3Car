@@ -387,12 +387,10 @@ try {
         // 计算当前电量
         $currentKwh = calculateCurrentKwh($soc, $acOnMile, $carModels);
 
-        // 行程记录逻辑已迁移到 vehicle_api.php 中的 handleTripRecordByLockStatus 函数
-
+        // 行程记录逻辑已简化，现在通过车辆信息同步自动处理，无需手动调用
         if ($currentStatus === 'ready') {
-             if ($chgStatus !== 2) {
-                 // 使用新的基于 mainLockStatus 的行程记录逻辑处理充电开始
-                 handleTripRecordByLockStatus($vin, $vehicleData, $pdo, 'charging_start', false);
+            if ($chgStatus !== 2) {
+                 // 行程记录现在通过getVehicleInfoForCLI自动处理
                  updateTaskStatus($pdo, $taskId, 'pending', '充电已开始，正在监控充电进度...', null, false, $task);
                  logMessage("任务 {$taskId} 开始充电，状态更新为pending");
             } else {

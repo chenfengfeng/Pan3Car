@@ -154,6 +154,15 @@ function getVehicleInformation($vin, $token, $server = 'main', $isCliMode = fals
 
     // 成功返回数据
     vehicleApiLogMessage("API调用成功，耗时: {$totalTime}秒", 'DEBUG', $isCliMode);
+    
+    // 自动处理行程记录（基于车辆信息同步）
+    if (isset($result['data']) && is_array($result['data']) && count($result['data']) > 0) {
+        $vehicleData = $result['data'][0]; // 获取第一个车辆的数据
+        if (isset($vehicleData['vin'])) {
+            handleTripRecordByVehicleInfo($vehicleData['vin'], $vehicleData, $isCliMode);
+        }
+    }
+    
     return [
         'success' => true,
         'data' => $result['data'],
@@ -220,68 +229,48 @@ function getLocationFromLatLng($longitude, $latitude) {
     return '未知位置';
 }
 
+
+
+
+
 /**
- * 基于 mainLockStatus 的行程记录处理函数
+ * 简化的行程记录处理函数 - 基于车辆信息同步自动处理
+ * 通过比较车辆状态变化来判断是否需要记录行程，避免频繁操作
  * @param string $vin 车辆VIN码
- * @param array $vehicleData 车辆数据
- * @param PDO $pdo 数据库连接
- * @param string $eventType 事件类型: 'lock_change' 或 'charging_start'
+ * @param array $vehicleData 当前车辆数据
  * @param bool $isCliMode 是否为CLI模式
  */
-function handleTripRecordByLockStatus($vin, $vehicleData, $pdo, $eventType = 'lock_change', $isCliMode = false) {
-    $now = date('Y-m-d H:i:s');
-    $lat = $vehicleData['latitude'] ?? '';
-    $lng = $vehicleData['longtitude'] ?? '';
-    $location = getLocationFromLatLng($lng, $lat);
-    $latlng = "{$lng},{$lat}";
-    $totalMileage = (float)($vehicleData['totalMileage'] ?? 0);
-    $acOnMile = (float)($vehicleData['acOnMile'] ?? 0);
-    $soc = (int)($vehicleData['soc'] ?? 0);
-    $mainLockStatus = (int)($vehicleData['mainLockStatus'] ?? 0);
+function handleTripRecordByVehicleInfo($vin, $vehicleData, $isCliMode = false) {
+    // 获取数据库连接
+    require_once __DIR__ . '/db_connect.php';
     
-    // 记录日志
-    $logMessage = "行程记录处理 - VIN: {$vin}, 事件: {$eventType}, 锁状态: {$mainLockStatus}";
-    vehicleApiLogMessage($logMessage, 'INFO', $isCliMode);
-    
-    // 获取最后一条未完成的行程
-    $stmt = $pdo->prepare("SELECT * FROM trip_record WHERE vin = :vin AND end_time IS NULL ORDER BY start_time DESC LIMIT 1");
-    $stmt->execute([':vin' => $vin]);
-    $lastTrip = $stmt->fetch();
-    
-    if ($eventType === 'charging_start') {
-        // 充电开始时，结束当前行程（如果存在且有里程变化）
-        if ($lastTrip) {
-            $mileageDiff = $totalMileage - $lastTrip['start_mileage'];
-            if ($mileageDiff >= 1) {
-                // 结束行程
-                $updateStmt = $pdo->prepare("UPDATE trip_record SET end_time = :end_time, end_location = :end_location, end_latlng = :end_latlng, end_mileage = :end_mileage, end_range = :end_range, end_soc = :end_soc WHERE id = :id");
-                $updateStmt->execute([
-                    ':end_time' => $now,
-                    ':end_location' => $location,
-                    ':end_latlng' => $latlng,
-                    ':end_mileage' => $totalMileage,
-                    ':end_range' => $acOnMile,
-                    ':end_soc' => $soc,
-                    ':id' => $lastTrip['id']
-                ]);
-                vehicleApiLogMessage("充电开始：结束行程 ID {$lastTrip['id']}", 'INFO', $isCliMode);
-            } else {
-                // 无里程变化，删除无效行程
-                $deleteStmt = $pdo->prepare("DELETE FROM trip_record WHERE id = :id");
-                $deleteStmt->execute([':id' => $lastTrip['id']]);
-                vehicleApiLogMessage("充电开始：删除无里程变化的行程 ID {$lastTrip['id']}", 'INFO', $isCliMode);
-            }
-        }
-        return;
-    }
-    
-    if ($eventType === 'charging_stop') {
-        // 充电停止时，根据当前锁状态决定是否开始新行程
-        vehicleApiLogMessage("充电停止：当前锁状态 mainLockStatus = {$mainLockStatus}", 'INFO', $isCliMode);
+    try {
+        $pdo = getDbConnection();
         
-        if ($mainLockStatus === 0) { // 解锁状态 - 可能需要开始新行程
+        $now = date('Y-m-d H:i:s');
+        $lat = $vehicleData['latitude'] ?? '';
+        $lng = $vehicleData['longtitude'] ?? '';
+        $location = getLocationFromLatLng($lng, $lat);
+        $latlng = "{$lng},{$lat}";
+        $totalMileage = (float)($vehicleData['totalMileage'] ?? 0);
+        $acOnMile = (float)($vehicleData['acOnMile'] ?? 0);
+        $soc = (int)($vehicleData['soc'] ?? 0);
+        $mainLockStatus = (int)($vehicleData['mainLockStatus'] ?? 0);
+        $chargingStatus = (int)($vehicleData['chargingStatus'] ?? 0); // 0:未充电, 1:充电中
+        
+        // 记录日志
+        $logMessage = "简化行程记录处理 - VIN: {$vin}, 锁状态: {$mainLockStatus}, 充电状态: {$chargingStatus}";
+        vehicleApiLogMessage($logMessage, 'INFO', $isCliMode);
+        
+        // 获取最后一条未完成的行程记录
+        $stmt = $pdo->prepare("SELECT * FROM trip_record WHERE vin = :vin AND end_time IS NULL ORDER BY start_time DESC LIMIT 1");
+        $stmt->execute([':vin' => $vin]);
+        $lastTrip = $stmt->fetch();
+        
+        // 核心逻辑：基于解锁状态判断行程记录
+        if ($mainLockStatus === 0) { // 解锁状态 - 可能需要开始行程
             if (!$lastTrip) {
-                // 没有未完成行程，开始新行程
+                // 没有未完成行程且车辆解锁，开始新行程
                 $insertStmt = $pdo->prepare("INSERT INTO trip_record (vin, start_time, start_location, start_latlng, start_mileage, start_range, start_soc) VALUES (:vin, :start_time, :start_location, :start_latlng, :start_mileage, :start_range, :start_soc)");
                 $insertStmt->execute([
                     ':vin' => $vin,
@@ -292,96 +281,47 @@ function handleTripRecordByLockStatus($vin, $vehicleData, $pdo, $eventType = 'lo
                     ':start_range' => $acOnMile,
                     ':start_soc' => $soc
                 ]);
-                vehicleApiLogMessage("充电停止：车辆已解锁，开始新行程", 'INFO', $isCliMode);
+                vehicleApiLogMessage("车辆解锁：开始新行程", 'INFO', $isCliMode);
             } else {
-                vehicleApiLogMessage("充电停止：车辆已解锁，但存在未完成行程 ID {$lastTrip['id']}，无需重复开始", 'DEBUG', $isCliMode);
+                // 已有未完成行程，检查是否需要更新（避免频繁操作）
+                $timeDiff = strtotime($now) - strtotime($lastTrip['start_time']);
+                if ($timeDiff > 300) { // 5分钟以上才记录日志，避免频繁日志
+                    vehicleApiLogMessage("车辆解锁：存在未完成行程 ID {$lastTrip['id']}，无需重复开始", 'DEBUG', $isCliMode);
+                }
+            }
+        } elseif ($mainLockStatus === 1) { // 锁定状态 - 可能需要结束行程
+            if ($lastTrip) {
+                $mileageDiff = $totalMileage - $lastTrip['start_mileage'];
+                if ($mileageDiff >= 1) {
+                    // 有效里程变化，结束行程
+                    $updateStmt = $pdo->prepare("UPDATE trip_record SET end_time = :end_time, end_location = :end_location, end_latlng = :end_latlng, end_mileage = :end_mileage, end_range = :end_range, end_soc = :end_soc WHERE id = :id");
+                    $updateStmt->execute([
+                        ':end_time' => $now,
+                        ':end_location' => $location,
+                        ':end_latlng' => $latlng,
+                        ':end_mileage' => $totalMileage,
+                        ':end_range' => $acOnMile,
+                        ':end_soc' => $soc,
+                        ':id' => $lastTrip['id']
+                    ]);
+                    vehicleApiLogMessage("车辆锁定：结束行程 ID {$lastTrip['id']}，里程变化: {$mileageDiff}公里", 'INFO', $isCliMode);
+                } else {
+                    // 无效里程变化，删除无效行程
+                    $deleteStmt = $pdo->prepare("DELETE FROM trip_record WHERE id = :id");
+                    $deleteStmt->execute([':id' => $lastTrip['id']]);
+                    vehicleApiLogMessage("车辆锁定：删除无效行程 ID {$lastTrip['id']}，里程变化: {$mileageDiff}公里（小于1公里阈值）", 'INFO', $isCliMode);
+                }
+            } else {
+                // 锁定状态但没有未完成行程，正常情况，无需处理
+                vehicleApiLogMessage("车辆锁定：当前无未完成行程，状态正常", 'DEBUG', $isCliMode);
             }
         } else {
-            vehicleApiLogMessage("充电停止：车辆处于锁定状态，无需开始行程", 'DEBUG', $isCliMode);
+            // 未知锁定状态
+            vehicleApiLogMessage("警告：未知的 mainLockStatus 值: {$mainLockStatus}", 'WARNING', $isCliMode);
         }
-        return;
-    }
-    
-    // 基于 mainLockStatus 的行程记录逻辑
-    if ($mainLockStatus === 0) { // 解锁状态 - 开始行程
-        if ($lastTrip) {
-            // 检查里程消耗(1公里以下抛弃)
-            $mileageDiff = $totalMileage - $lastTrip['start_mileage'];
-            if ($mileageDiff >= 1) {
-                // 结束上次行程
-                $updateStmt = $pdo->prepare("UPDATE trip_record SET end_time = :end_time, end_location = :end_location, end_latlng = :end_latlng, end_mileage = :end_mileage, end_range = :end_range, end_soc = :end_soc WHERE id = :id");
-                $updateStmt->execute([
-                    ':end_time' => $now,
-                    ':end_location' => $location,
-                    ':end_latlng' => $latlng,
-                    ':end_mileage' => $totalMileage,
-                    ':end_range' => $acOnMile,
-                    ':end_soc' => $soc,
-                    ':id' => $lastTrip['id']
-                ]);
-                vehicleApiLogMessage("解锁：结束上次行程 ID {$lastTrip['id']}", 'INFO', $isCliMode);
-                
-                // 开始新行程
-                $insertStmt = $pdo->prepare("INSERT INTO trip_record (vin, start_time, start_location, start_latlng, start_mileage, start_range, start_soc) VALUES (:vin, :start_time, :start_location, :start_latlng, :start_mileage, :start_range, :start_soc)");
-                $insertStmt->execute([
-                    ':vin' => $vin,
-                    ':start_time' => $now,
-                    ':start_location' => $location,
-                    ':start_latlng' => $latlng,
-                    ':start_mileage' => $totalMileage,
-                    ':start_range' => $acOnMile,
-                    ':start_soc' => $soc
-                ]);
-                vehicleApiLogMessage("解锁：开始新行程", 'INFO', $isCliMode);
-            } else {
-                // 无消耗，删除无效行程，但不开始新行程（避免重复记录）
-                $deleteStmt = $pdo->prepare("DELETE FROM trip_record WHERE id = :id");
-                $deleteStmt->execute([':id' => $lastTrip['id']]);
-                vehicleApiLogMessage("解锁：删除无效行程 ID {$lastTrip['id']}，由于里程变化小于1公里，不开始新行程", 'INFO', $isCliMode);
-            }
-        } else {
-            // 没有未完成的行程，开始新行程
-            $insertStmt = $pdo->prepare("INSERT INTO trip_record (vin, start_time, start_location, start_latlng, start_mileage, start_range, start_soc) VALUES (:vin, :start_time, :start_location, :start_latlng, :start_mileage, :start_range, :start_soc)");
-            $insertStmt->execute([
-                ':vin' => $vin,
-                ':start_time' => $now,
-                ':start_location' => $location,
-                ':start_latlng' => $latlng,
-                ':start_mileage' => $totalMileage,
-                ':start_range' => $acOnMile,
-                ':start_soc' => $soc
-            ]);
-            vehicleApiLogMessage("解锁：开始新行程", 'INFO', $isCliMode);
-        }
-    } elseif ($mainLockStatus === 1) { // 锁定状态 - 结束行程
-        if ($lastTrip) {
-            $mileageDiff = $totalMileage - $lastTrip['start_mileage'];
-            if ($mileageDiff >= 1) {
-                // 结束行程
-                $updateStmt = $pdo->prepare("UPDATE trip_record SET end_time = :end_time, end_location = :end_location, end_latlng = :end_latlng, end_mileage = :end_mileage, end_range = :end_range, end_soc = :end_soc WHERE id = :id");
-                $updateStmt->execute([
-                    ':end_time' => $now,
-                    ':end_location' => $location,
-                    ':end_latlng' => $latlng,
-                    ':end_mileage' => $totalMileage,
-                    ':end_range' => $acOnMile,
-                    ':end_soc' => $soc,
-                    ':id' => $lastTrip['id']
-                ]);
-                vehicleApiLogMessage("锁定：结束行程 ID {$lastTrip['id']}，里程变化: {$mileageDiff}公里", 'INFO', $isCliMode);
-            } else {
-                // 无消耗，删除无效行程
-                $deleteStmt = $pdo->prepare("DELETE FROM trip_record WHERE id = :id");
-                $deleteStmt->execute([':id' => $lastTrip['id']]);
-                vehicleApiLogMessage("锁定：删除无效行程 ID {$lastTrip['id']}，里程变化: {$mileageDiff}公里（小于1公里阈值）", 'INFO', $isCliMode);
-            }
-        } else {
-            // 锁定状态但没有未完成行程，记录此状态以便调试
-            vehicleApiLogMessage("锁定：当前无未完成行程，无需处理", 'DEBUG', $isCliMode);
-        }
-    } else {
-        // 未知的锁定状态，记录警告
-        vehicleApiLogMessage("警告：未知的 mainLockStatus 值: {$mainLockStatus}", 'WARNING', $isCliMode);
+        
+    } catch (Exception $e) {
+        vehicleApiLogMessage("行程记录处理异常: " . $e->getMessage(), 'ERROR', $isCliMode);
     }
 }
 

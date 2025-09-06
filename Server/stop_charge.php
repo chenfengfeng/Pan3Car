@@ -93,18 +93,17 @@ try {
         $updateResult = $updateStmt->execute([$chargingTask['id']]);
         
         if ($updateResult) {
-            // 停止充电成功后，检查车辆状态变化并处理行程记录
+            // 停止充电成功后，获取车辆状态（行程记录现在自动处理）
             try {
                 $vehicleData = getVehicleInfoForCLI($vin, $token, $push_token, $server);
                 if ($vehicleData && isset($vehicleData['mainLockStatus'])) {
-                    // 调用行程记录处理函数，事件类型为充电停止
-                    handleTripRecordByLockStatus($vin, $vehicleData, $pdo, 'charging_stop', false);
-                    error_log("[TRIP_RECORD] 停止充电后处理行程记录完成，VIN: $vin, lockStatus: {$vehicleData['mainLockStatus']}");
+                    // 行程记录现在通过getVehicleInfoForCLI自动处理
+                    error_log("[TRIP_RECORD] 停止充电后车辆状态同步完成，VIN: $vin, lockStatus: {$vehicleData['mainLockStatus']}");
                 } else {
                     error_log("[TRIP_RECORD] 停止充电后无法获取车辆状态，VIN: $vin");
                 }
             } catch (Exception $e) {
-                error_log("[TRIP_RECORD] 停止充电后处理行程记录异常，VIN: $vin, Error: " . $e->getMessage());
+                error_log("[TRIP_RECORD] 停止充电后车辆状态同步异常，VIN: $vin, Error: " . $e->getMessage());
             }
             
             echo json_encode([
