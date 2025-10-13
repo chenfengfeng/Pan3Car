@@ -102,14 +102,12 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		B23E80A32E5180B1004E1C25 /* Exceptions for "Shared" folder in "Car Watch App" target */ = {
+		B27B072F2E764E0100590DC8 /* Exceptions for "Shared" folder in "Pan3" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				SharedAppIntents.swift,
-				SharedCarModel.swift,
-				SharedNetworkManager.swift,
 			);
-			target = B2757A422E4DE25E00F03D8D /* Car Watch App */;
+			target = B2C867382E0F9C45009A8FD6 /* Pan3 */;
 		};
 		B28A418A2E5B4FFF002B5AB2 /* Exceptions for "CarWatchWidget" folder in "CarWatchWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -118,25 +116,17 @@
 			);
 			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
 		};
-		B28A419F2E5C372C002B5AB2 /* Exceptions for "Car Watch App" folder in "CarWatchWidgetExtension" target */ = {
+		B2BD59772E6F2B46009F3339 /* Exceptions for "Shared" folder in "Car Watch App" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				WatchConnectivityManager.swift,
+				SharedCarModel.swift,
 			);
-			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
+			target = B2757A422E4DE25E00F03D8D /* Car Watch App */;
 		};
-		B2A430202E5F4CDA0016AB31 /* Exceptions for "CarWidget" folder in "CarWatchWidgetExtension" target */ = {
+		B2BD59782E6F2B46009F3339 /* Exceptions for "Shared" folder in "CarWatchWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AppIntent.swift,
-			);
-			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
-		};
-		B2A430222E5F57E30016AB31 /* Exceptions for "Shared" folder in "CarWatchWidgetExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				SharedAppIntents.swift,
-				SharedNetworkManager.swift,
+				SharedCarModel.swift,
 			);
 			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
 		};
@@ -146,7 +136,6 @@
 				Info.plist,
 			);
 			platformFiltersByRelativePath = {
-				AppIntent.swift = (ios, );
 				CarWidget.swift = (ios, );
 				CarWidgetBundle.swift = (ios, );
 				CarWidgetControl.swift = (ios, );
@@ -166,7 +155,7 @@
 		B2F7CE922E34C0EA00570201 /* Exceptions for "Pan3" folder in "CarWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				LiveActivityManager.swift,
+				Manager/LiveActivityManager.swift,
 			);
 			target = B2D1724F2E1A767A00922A0C /* CarWidgetExtension */;
 		};
@@ -176,17 +165,15 @@
 		B23E80982E51808C004E1C25 /* Shared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				B23E80A32E5180B1004E1C25 /* Exceptions for "Shared" folder in "Car Watch App" target */,
-				B2A430222E5F57E30016AB31 /* Exceptions for "Shared" folder in "CarWatchWidgetExtension" target */,
+				B27B072F2E764E0100590DC8 /* Exceptions for "Shared" folder in "Pan3" target */,
+				B2BD59772E6F2B46009F3339 /* Exceptions for "Shared" folder in "Car Watch App" target */,
+				B2BD59782E6F2B46009F3339 /* Exceptions for "Shared" folder in "CarWatchWidgetExtension" target */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
 		};
 		B2757A442E4DE25E00F03D8D /* Car Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				B28A419F2E5C372C002B5AB2 /* Exceptions for "Car Watch App" folder in "CarWatchWidgetExtension" target */,
-			);
 			path = "Car Watch App";
 			sourceTree = "<group>";
 		};
@@ -202,7 +189,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B2D172662E1A767C00922A0C /* Exceptions for "CarWidget" folder in "CarWidgetExtension" target */,
-				B2A430202E5F4CDA0016AB31 /* Exceptions for "CarWidget" folder in "CarWatchWidgetExtension" target */,
 			);
 			path = CarWidget;
 			sourceTree = "<group>";
@@ -342,8 +328,6 @@
 				B28A417E2E5B4FFD002B5AB2 /* CarWatchWidget */,
 			);
 			name = CarWatchWidgetExtension;
-			packageProductDependencies = (
-			);
 			productName = CarWatchWidgetExtension;
 			productReference = B28A417B2E5B4FFD002B5AB2 /* CarWatchWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";

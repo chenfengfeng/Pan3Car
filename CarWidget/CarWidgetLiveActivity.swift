@@ -117,22 +117,28 @@ struct LockScreenLiveActivityView: View {
     
     private var statusText: String {
         switch context.state.status {
-        case "pending": return "充电中"
-        case "ready": return "准备中"
-        case "done": return "已完成"
-        case "timeout", "error": return "失败"
-        case "cancelled": return "已取消"
-        default: return context.state.status
+        case "PREPARING":
+            return "准备中"
+        case "RUNNING", "CHARGING":
+            return "充电中"
+        case "COMPLETED":
+            return "已完成"
+        case "FAILED":
+            return "失败"
+        case "CANCELLED":
+            return "已取消"
+        default:
+            return context.state.status
         }
     }
     
     private var statusColor: Color {
         switch context.state.status {
-        case "ready": return .yellow
-        case "pending": return .green
-        case "done": return .green
-        case "timeout", "error": return .red
-        case "cancelled": return .orange
+        case "PREPARING": return .yellow
+        case "RUNNING", "CHARGING": return .green
+        case "COMPLETED": return .green
+        case "FAILED": return .red
+        case "CANCELLED": return .orange
         default: return .gray
         }
     }
@@ -215,7 +221,7 @@ struct CompactTrailingView: View {
     }
     
     private var displayText: String {
-        if context.state.status == "ready" {
+        if context.state.status == "PREPARING" {
             return "等待充电"
         } else {
             return "\(context.state.percentage)%"
@@ -258,12 +264,18 @@ struct ExpandedLeadingView: View {
     
     private var statusText: String {
         switch context.state.status {
-        case "pending": return "充电中"
-        case "ready": return "准备中"
-        case "done": return "已完成"
-        case "timeout", "error": return "失败"
-        case "cancelled": return "已取消"
-        default: return context.state.status
+        case "PREPARING":
+            return "准备中"
+        case "RUNNING", "CHARGING":
+            return "充电中"
+        case "COMPLETED":
+            return "已完成"
+        case "FAILED":
+            return "失败"
+        case "CANCELLED":
+            return "已取消"
+        default:
+            return context.state.status
         }
     }
     

@@ -8,6 +8,12 @@
 import UIKit
 import Foundation
 
+// MARK: - 通知名称定义
+extension Notification.Name {
+    /// 车辆数据更新通知
+    static let carDataDidUpdate = Notification.Name("carDataDidUpdate")
+}
+
 // MARK: - 车辆数据刷新协议
 @objc protocol CarDataRefreshable: AnyObject {
     /// 刷新车辆数据的方法
@@ -42,6 +48,34 @@ extension CarDataRefreshable where Self: UIViewController {
         )
     }
     
+    /// 注册车辆数据更新通知
+    func registerCarDataUpdateNotification() {
+        NotificationCenter.default.addObserver(
+            forName: .carDataDidUpdate,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleCarDataUpdate(notification)
+        }
+    }
+    
+    /// 移除车辆数据更新通知
+    func unregisterCarDataUpdateNotification() {
+        NotificationCenter.default.removeObserver(
+            self,
+            name: .carDataDidUpdate,
+            object: nil
+        )
+    }
+    
+    /// 处理车辆数据更新通知的默认实现
+    func handleCarDataUpdate(_ notification: Notification) {
+        print("\(String(describing: type(of: self))): 收到车辆数据更新通知")
+        // 在主线程中刷新车辆数据
+        DispatchQueue.main.async { [weak self] in
+            self?.refreshCarData()
+        }
+    }
 
 }
 

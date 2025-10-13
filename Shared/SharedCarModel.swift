@@ -201,19 +201,3 @@ struct SharedCarModel: Codable {
         return (lat, lng)
     }
 }
-
-// MARK: - 扩展：网络管理器集成
-extension SharedNetworkManager {
-    /// 获取解析后的车辆信息
-    func getCarModel(completion: @escaping (Result<SharedCarModel, Error>) -> Void) {
-        getCarInfo { result in
-            switch result {
-            case .success(let data):
-                let carModel = SharedCarModel(from: data)
-                completion(.success(carModel))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
-    }
-}

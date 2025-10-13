@@ -1,0 +1,52 @@
+{
+  "LJ1EEKSP5R7408099": {
+    "pid": 723814,
+    "status": "PREPARING",
+    "startTime": "2025-10-13T05:04:54.251Z",
+    "taskDetails": {
+      "standardPushToken": "11503ccac60866728798952c2de27ce350a0f208c7482293910b8c3f967e12fd",
+      "monitoringMode": "range",
+      "targetRange": 230,
+      "liveActivityPushToken": "",
+      "vin": "LJ1EEKSP5R7408099",
+      "timaToken": "Tima eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySW5mbyI6IntcIkFBQUlkXCI6MTMzNDIyMDUwOCxcIlRTUElkXCI6MTMzNDIyMDUwOCxcImFhYVRva2VuXCI6XCIyNDlhOWQ4ZS0zOWU0LTQwZTAtOTE2Yy01MDA3YjYyMjBhMGNcIixcImF0dHJpYnV0ZTRcIjpcIjBcIixcImF0dHJpYnV0ZTVcIjpcIjVcIixcImF1dGhlbnRpY2F0aW9uU3RhdHVzXCI6MCxcImJhbkRhdGVcIjoxNzE5NDg0MzU1MDAwLFwiY3JlYXRlZERhdGVcIjoxNzE5NDg0MzU1MDAwLFwiZGVsZXRlRmxhZ1wiOlwiMFwiLFwiaGVhZFVybFwiOlwiaHR0cHM6Ly95aXdlaWF1dG8uY24vcGljdHVyZS8yMDIzLy9qZWN0UGF0aC8vaGVhZDIwMjQxMDAzMTgzOTQ3MDg3NC5wbmdcIixcImlkXCI6MTIwMTY3NSxcImluaXRVc2VyXCI6MCxcImlzUGFydG5lclwiOjAsXCJsYXN0TW9kaWZpZWREYXRlXCI6MTc1NzI2MDcwMDAwMCxcIm5vXCI6XCJBRDAyMjAyNDA2MjcwNjMyMzUwNDQ1M1wiLFwicGFzc3dvcmRcIjpcIjMzM2MwY2Q5MGNkZTllYjA0MDUwN2U2YjI2YzI4ODhmXCIsXCJwaG9uZVwiOlwiMTM1MzY4NDE2ODhcIixcInJlYWxQaG9uZVwiOlwiMTM1KioqKjE2ODhcIixcInVzZXJDb2RlXCI6XCIxMzUzNjg0MTY4OFwiLFwidXNlck5hbWVcIjpcIuWXt-WRnFwiLFwidXNlclN0YXR1c1wiOjAsXCJ1c2VyVHlwZVwiOlwiMDFcIixcInZlcnNpb25cIjo2MjF9IiwiY3JlYXRlZCI6MTc1OTAyOTM5MDA5OSwidXNlck5vIjoiQUQwMjIwMjQwNjI3MDYzMjM1MDQ0NTMiLCJhYWFJZCI6IjEzMzQyMjA1MDgiLCJ1c2VyVHlwZSI6IjAxIiwidXNlck5hbWUiOiLll7flkZwiLCJ1c2VySWQiOjEyMDE2NzV9.PcSkYsxpx57JvnnvAAsULJhiHw3YB98ersW09U49LrQ"
+    },
+    "latestVehicleData": {
+      "doorStsRearRight": 0,
+      "keyStatus": 2,
+      "defrostStatus": 0,
+      "soc": "43",
+      "quickChgLeftTime": 327670,
+      "rfTirePresure": 0,
+      "latitude": "30.893291618260243",
+      "chgPlugStatus": 1,
+      "topWindowOpen": 0,
+      "longtitude": "103.61984778250424",
+      "acOnMile": 142,
+      "quickcoolACStatus": null,
+      "doorStsFrontRight": 0,
+      "totalMileage": "12462.2",
+      "lowlightStatus": 0,
+      "lfWindowOpen": 0,
+      "doorStsRearLeft": 0,
+      "lrTirePresure": 0,
+      "quickheatACStatus": 0,
+      "lrWindowOpen": 0,
+      "lfTirePresure": 0,
+      "rfWindowOpen": 0,
+      "doorsLockStatus": null,
+      "highlightStatus": 0,
+      "mainLockStatus": 0,
+      "trunkLockStatus": 0,
+      "doorStsFrontLeft": 0,
+      "temperatureInCar": 214,
+      "chgStatus": 2,
+      "slowChgLeftTime": 327670,
+      "batteryHeatStatus": 3,
+      "acStatus": 2,
+      "acOffMile": 142,
+      "rrWindowOpen": 0,
+      "rrTirePresure": 0
+    }
+  }
+}

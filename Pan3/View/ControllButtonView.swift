@@ -91,7 +91,6 @@ class ControllButtonView: UIStackView {
         return label
     }()
     
-    var blockPollingChange: ((CarModel, @escaping (CarModel, CarModel) -> Bool) -> ())?
     var blockTemperatureChange: ((Int) -> ())?
 
     func setupUI() {
@@ -231,7 +230,7 @@ class ControllButtonView: UIStackView {
             return
         }
         
-        actionLock(lockBtn)
+        actionLock()
     }
     
     @objc private func acButtonTapped() {
@@ -241,7 +240,7 @@ class ControllButtonView: UIStackView {
             return
         }
         
-        actionAC(acBtn)
+        actionAC()
     }
     
     @objc private func windowButtonTapped() {
@@ -251,7 +250,7 @@ class ControllButtonView: UIStackView {
             return
         }
         
-        actionWindow(windowBtn)
+        actionWindow()
     }
     
     @objc private func callButtonTapped() {
@@ -261,7 +260,7 @@ class ControllButtonView: UIStackView {
             return
         }
         
-        actionCall(honkBtn)
+        actionCall()
     }
     
     // MARK: - 二次确认相关方法
@@ -283,7 +282,7 @@ class ControllButtonView: UIStackView {
         qmui_viewController?.present(alert, animated: true, completion: nil)
     }
     
-    func actionLock(_ sender: QMUIButton) {
+    func actionLock() {
         guard let model = UserManager.shared.carModel else { return }
         
         let isLocked = model.mainLockStatus == 0
@@ -305,120 +304,73 @@ class ControllButtonView: UIStackView {
             loadingText: "\(actionText)中...",
             successText: "\(actionText)指令发送成功",
             failureText: "\(actionText)失败",
-            expectedStatusChange: { oldModel, newModel in
-                return oldModel.mainLockStatus != newModel.mainLockStatus
-            },
             controlAction: { completion in
-                NetworkManager.shared.energyLock(operation: operation, completion: completion)
+                let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
+                NetworkManager.shared.syncVehicle(operationType: "LOCK", operation: operation, pushToken: pushToken, completion: completion)
             }
         )
     }
     
-    func actionAC(_ sender: QMUIButton) {
+    func actionAC() {
         guard let model = UserManager.shared.carModel else { return }
-        guard let vc = qmui_viewController else {return}
+        guard let vc = qmui_viewController else { return }
         
-        let isOff = model.acStatus == 2
+        let isACOn = model.acStatus == 1
+        let actionText = isACOn ? "关闭空调" : "开启空调"
         
-        if isOff {
-            // 弹出选择界面
-            ACSelectView.show(from: vc) { [weak self] temperature, time in
-                guard let self else {return}
-                if self.isConfirmationEnabled() {
-                    // 延迟确保能出现弹窗
-                    DispatchQueue.main.asyncAfter(deadline: .now()+0.1, execute: {
-                        self.showConfirmationAlert(title: "确认开启空调", message: "确定要开启空调吗？") {
-                            self.startAirConditioner(temperature: temperature, time: time)
-                        }
-                    })
-                }else{
-                    self.startAirConditioner(temperature: temperature, time: time)
-                }
+        if isACOn {
+            // 如果空调是开启的，则执行关闭逻辑
+            let action = { self.performAirConditionerAction(operation: 1, actionText: actionText) } // 1 代表关闭
+            
+            if isConfirmationEnabled() {
+                showConfirmationAlert(title: "确认\(actionText)", message: "确定要\(actionText)吗?", confirmAction: action)
+            } else {
+                action()
             }
         } else {
-            // 空调开启时，检查是否需要二次确认
-            if isConfirmationEnabled() {
-                showConfirmationAlert(title: "确认关闭空调", message: "确定要关闭空调吗？") {
-                    self.closeAirConditioner()
-                }
-            } else {
-                closeAirConditioner()
-            }
-        }
-    }
-    // MARK: - 通用车辆控制方法
-    private func executeCarControl(
-        loadingText: String,
-        successText: String,
-        failureText: String,
-        expectedStatusChange: @escaping (CarModel, CarModel) -> Bool,
-        controlAction: @escaping (@escaping (Result<Bool, Error>) -> Void) -> Void
-    ) {
-        guard let originalModel = UserManager.shared.carModel else { return }
-        guard let vc = qmui_viewController else {return}
-        
-        QMUITips.showLoading(loadingText, in: vc.view)
-        
-        controlAction { [weak self] result in
-            guard let self = self else { return }
-            
-            DispatchQueue.main.async {
-                QMUITips.hideAllTips()
+            // 如果空调是关闭的，则弹出选择框，执行开启逻辑
+            ACSelectView.show(from: vc) { [weak self] temperature, time in
+                guard let self = self else { return }
                 
-                switch result {
-                case .success(_):
-                    QMUITips.show(withText: successText)
-                    // 开始轮询状态变化
-                    if let block = self.blockPollingChange {
-                        block(originalModel, expectedStatusChange)
+                UserDefaults.standard.set(temperature, forKey: "PresetTemperature")
+                self.blockTemperatureChange?(temperature)
+                
+                let action = { self.performAirConditionerAction(operation: 2, temperature: temperature, time: time, actionText: actionText) } // 2 代表开启
+                
+                if self.isConfirmationEnabled() {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        self.showConfirmationAlert(title: "确认\(actionText)", message: "确定要\(actionText)吗?", confirmAction: action)
                     }
-                    
-                case .failure(let error):
-                    QMUITips.show(withText: "\(failureText): \(error.localizedDescription)", in: vc.view, hideAfterDelay: 2.0)
+                } else {
+                    action()
                 }
             }
         }
     }
     
-    // MARK: - 开启空调
-    private func startAirConditioner(temperature: Int, time: Int) {
-        // 保存用户选择的温度到UserDefaults
-        UserDefaults.standard.set(temperature, forKey: "PresetTemperature")
-        
-        // 立即更新预设温度显示
-        if let block = blockTemperatureChange {
-            block(temperature)
-        }
-        
+    /// 执行空调控制的私有通用函数
+    private func performAirConditionerAction(operation: Int, temperature: Int = 26, time: Int = 30, actionText: String) {
         executeCarControl(
-            loadingText: "打开空调中...",
-            successText: "打开空调指令发送成功",
-            failureText: "打开空调失败",
-            expectedStatusChange: { oldModel, newModel in
-                return oldModel.acStatus != newModel.acStatus
-            },
+            loadingText: "\(actionText)中...",
+            successText: "\(actionText)指令发送成功",
+            failureText: "\(actionText)失败",
             controlAction: { completion in
-                NetworkManager.shared.energyAirConditioner(operation: 2, temperature: temperature, duringTime: time, completion: completion)
+                let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
+                
+                NetworkManager.shared.syncVehicle(
+                    operationType: "INTELLIGENT_AIRCONDITIONER",
+                    operation: operation,
+                    temperature: temperature,
+                    duringTime: time,
+                    pushToken: pushToken,
+                    completion: completion
+                )
             }
         )
     }
     
-    // MARK: - 关闭空调
-    private func closeAirConditioner() {
-        executeCarControl(
-            loadingText: "关闭空调中...",
-            successText: "关闭空调指令发送成功",
-            failureText: "关闭空调失败",
-            expectedStatusChange: { oldModel, newModel in
-                return oldModel.acStatus != newModel.acStatus
-            },
-            controlAction: { completion in
-                NetworkManager.shared.energyAirConditioner(operation: 1, temperature: 26, duringTime: 30, completion: completion)
-            }
-        )
-    }
-    
-    func actionWindow(_ sender: QMUIButton) {
+    // MARK: - 控制车窗
+    func actionWindow() {
         guard let vc = qmui_viewController else {return}
         
         guard let model = UserManager.shared.carModel else {
@@ -449,29 +401,60 @@ class ControllButtonView: UIStackView {
             loadingText: "\(actionText)中...",
             successText: "\(actionText)指令发送成功",
             failureText: "\(actionText)失败",
-            expectedStatusChange: { oldModel, newModel in
-                return oldModel.lfWindowOpen != newModel.lfWindowOpen &&
-                oldModel.rfWindowOpen != newModel.rfWindowOpen &&
-                oldModel.lrWindowOpen != newModel.lrWindowOpen &&
-                oldModel.rrWindowOpen != newModel.rrWindowOpen
-            },
             controlAction: { completion in
-                NetworkManager.shared.energyWindow(operation: operation, openLevel: openLevel, completion: completion)
+                let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
+                NetworkManager.shared.syncVehicle(
+                    operationType: "WINDOW",
+                    operation: operation,
+                    openLevel: openLevel,
+                    pushToken: pushToken,
+                    completion: completion
+                )
             }
         )
     }
     
-    func actionCall(_ sender: QMUIButton) {
+    func actionCall() {
         guard let vc = qmui_viewController else {return}
         
+        let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
         QMUITips.showLoading("鸣笛寻车指令发送中...", in: vc.view)
-        NetworkManager.shared.energyFind { result in
-            QMUITips.hideAllTips()
-            switch result {
-            case .success(_):
-                QMUITips.show(withText: "鸣笛指令发送成功")
-            default:
-                break
+        NetworkManager.shared.syncVehicle(
+            operationType: "FIND_VEHICLE",
+            pushToken: pushToken) { result in
+                QMUITips.hideAllTips()
+                switch result {
+                case .success(_):
+                    QMUITips.show(withText: "鸣笛指令发送成功")
+                default:
+                    break
+                }
+            }
+    }
+    
+    // MARK: - 通用车辆控制方法
+    private func executeCarControl(
+        loadingText: String,
+        successText: String,
+        failureText: String,
+        controlAction: @escaping (@escaping (Result<Bool, Error>) -> Void) -> Void
+    ) {
+        guard let vc = qmui_viewController else {return}
+        
+        QMUITips.showLoading(loadingText, in: vc.view)
+        
+        controlAction { result in
+            DispatchQueue.main.async {
+                QMUITips.hideAllTips()
+                
+                switch result {
+                case .success(_):
+                    QMUITips.show(withText: successText)
+                    // 直接请求模式：操作成功后等待推送更新数据
+                    
+                case .failure(let error):
+                    QMUITips.show(withText: "\(failureText): \(error.localizedDescription)", in: vc.view, hideAfterDelay: 2.0)
+                }
             }
         }
     }

@@ -6,6 +6,7 @@ target 'Pan3' do
   pod 'IQKeyboardManagerSwift'
   pod 'SwifterSwift'
   pod 'Kingfisher'
+  pod 'GRDB.swift'
   pod 'SwiftyJSON'
   pod 'Alamofire'
   pod 'MJRefresh'

@@ -45,12 +45,20 @@ class MileageView: UIView {
         label.font = UIFont.systemFont(ofSize: 14)
         return label
     }()
+    // 充电状态
+    lazy var chargeLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = .systemGreen
+        label.font = UIFont.systemFont(ofSize: 14)
+        return label
+    }()
     
     func setupUI() {
         addSubview(currentMileageLabel)
         addSubview(mileageUnitLabel)
         addSubview(batteryProgressView)
         addSubview(totalMileageLabel)
+        addSubview(chargeLabel)
         
         currentMileageLabel.snp.makeConstraints { make in
             make.leading.top.equalToSuperview().inset(8)
@@ -69,8 +77,12 @@ class MileageView: UIView {
             make.trailing.equalToSuperview().inset(20)
             make.bottom.equalTo(batteryProgressView.snp.bottom)
         }
+        chargeLabel.snp.makeConstraints { make in
+            make.top.equalTo(batteryProgressView.snp.bottom).offset(3)
+            make.leading.equalTo(batteryProgressView.snp.leading)
+        }
         
-        az_setGradientBackground(with: [.black, .black.withAlphaComponent(0)], start: CGPoint(x: 0, y: 0.5), end: CGPoint(x: 0, y: 1))
+        az_setGradientBackground(with: [.black, .black.withAlphaComponent(0)], start: CGPoint(x: 0, y: 0.7), end: CGPoint(x: 0, y: 1))
     }
     
     // MARK: - 按键事件
@@ -94,12 +106,12 @@ class MileageView: UIView {
         guard let model = UserManager.shared.carModel else { return }
         
         let targetMileValue = model.acOnMile
-        let targetSocValue = model.soc.nsString.floatValue / 100
+        let targetSocValue = BatteryCalculationUtility.getCurrentSoc(from: model) / 100
         
         if isFirstDataLoad {
             // 首次加载 - 执行动画
             animateMileage(to: targetMileValue)
-            animateSOC(to: targetSocValue)
+            animateSOC(to: Float(targetSocValue))
         } else {
             // 后续更新 - 根据当前显示状态设置对应数值
             if mileageUnitLabel.text == "km" {
@@ -109,7 +121,7 @@ class MileageView: UIView {
                 // 当前显示电量，更新为最新电量数据
                 currentMileageLabel.text = model.soc
             }
-            batteryProgressView.progress = targetSocValue
+            batteryProgressView.progress = Float(targetSocValue)
             
             // 根据SOC值设置进度条颜色
             let percentage = targetSocValue * 100
@@ -124,6 +136,23 @@ class MileageView: UIView {
         
         // 总里程直接设置
         totalMileageLabel.text = "总里程：\(model.totalMileage)km"
+        
+        // 充电状态设置
+        if model.chgStatus == 2 {
+            chargeLabel.isHidden = true
+        }else{
+            chargeLabel.isHidden = false
+            chargeLabel.text = "正在充电 剩余"+formatTime(minutes: model.quickChgLeftTime.float)
+        }
+    }
+    
+    // MARK: - 配置信息
+    private func formatTime(minutes: Float) -> String {
+        let totalSeconds = Int(minutes * 60)
+        let hours = totalSeconds / 3600
+        let mins = (totalSeconds % 3600) / 60
+        let secs = totalSeconds % 60
+        return "\(hours)小时\(mins)分钟\(secs)秒"
     }
     
     // MARK: - 动画的关联密钥

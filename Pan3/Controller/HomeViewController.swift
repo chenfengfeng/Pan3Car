@@ -35,8 +35,8 @@ class HomeViewController: UIViewController, CarDataRefreshable {
     
     private lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
-        scrollView.showsVerticalScrollIndicator = false
         scrollView.delegate = self
+        scrollView.showsVerticalScrollIndicator = false
         scrollView.contentInset = UIEdgeInsets(top: 200, left: 0, bottom: 0, right: 0)
         return scrollView
     }()
@@ -48,17 +48,6 @@ class HomeViewController: UIViewController, CarDataRefreshable {
         stackView.axis = .vertical
         stackView.isLayoutMarginsRelativeArrangement = true
         stackView.layoutMargins = UIEdgeInsets(top: 0, left: 20, bottom: 16, right: 20)
-        return stackView
-    }()
-    
-    private lazy var chargeView: UIStackView = {
-        let stackView = UIStackView()
-        stackView.axis = .horizontal
-        stackView.alignment = .center
-        stackView.layer.cornerRadius = 12
-        stackView.distribution = .fillProportionally
-        stackView.backgroundColor = UIColor.white.withAlphaComponent(0.1)
-        stackView.isHidden = true
         return stackView
     }()
     
@@ -280,6 +269,9 @@ class HomeViewController: UIViewController, CarDataRefreshable {
         // 进入页面的时候通知
         registerAppDidBecomeActiveNotification()
         
+        // 注册车辆数据更新通知
+        registerCarDataUpdateNotification()
+        
         // 检查是否需要显示首次使用教程
         checkAndShowFirstTimeTutorial()
         
@@ -292,7 +284,6 @@ class HomeViewController: UIViewController, CarDataRefreshable {
                 UIColor.white.withAlphaComponent(0.0)
             ]
             
-            chargeView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
             controlButtonsStackView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
             mapInfoView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
             temperatureInfoView.addGradientBorder(colors: gradientColors, width: 1.0, cornerRadius: 12)
@@ -350,11 +341,11 @@ class HomeViewController: UIViewController, CarDataRefreshable {
     }
     
     // MARK: - 刷新小组件
-    /// 刷新小组件时间线，遵循最小 30 秒刷新间隔
+    /// 刷新小组件时间线，遵循最小 10 秒刷新间隔
     private func refreshWidget() {
-        // 检查刷新频率限制（30秒最小间隔）
+        // 检查刷新频率限制（10秒最小间隔）
         let now = Date()
-        let minimumInterval: TimeInterval = 30
+        let minimumInterval: TimeInterval = 10
         
         if now.timeIntervalSince(lastWidgetRefreshTime) < minimumInterval {
             print("小组件刷新频率限制，跳过本次刷新")
@@ -377,7 +368,9 @@ class HomeViewController: UIViewController, CarDataRefreshable {
                 if response.hasRunningTask {
                     // 当前有正在充电的任务
                     if let task = response.task {
-                        LiveActivityManager.shared.startChargeActivity(with: task)
+                        let attributes = task.toCarWidgetAttributes()
+                        let contentState = task.toContentState()
+                        LiveActivityManager.shared.startChargeActivity(attributes: attributes, initialState: contentState)
                     }
                 }
             default:
@@ -455,13 +448,6 @@ extension HomeViewController {
         // 添加主StackView作为scrollView的唯一子视图
         scrollView.addSubview(mainStackView)
         
-        // 充电时间
-        mainStackView.addArrangedSubview(chargeView)
-        chargeView.addArrangedSubview(addSpacingView())
-        chargeView.addArrangedSubview(chargeTimeTitle)
-        chargeView.addArrangedSubview(leftChargeTime)
-        chargeView.addArrangedSubview(addSpacingView())
-        
         // 控制按钮区域 - 使用StackView
         mainStackView.addArrangedSubview(controlButtonsStackView)
         controlButtonsStackView.setupUI()
@@ -521,7 +507,7 @@ extension HomeViewController {
         
         // 顶部信息区域约束（在导航顶部）
         mileageHeaderView.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide.snp.top).offset(20)
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
             make.leading.trailing.equalToSuperview()
             make.height.equalTo(100)
         }
@@ -542,10 +528,6 @@ extension HomeViewController {
         // 只需要为控制按钮设置高度约束
         controlButtonsStackView.snp.makeConstraints { make in
             make.height.equalTo(80)
-        }
-        
-        chargeView.snp.makeConstraints { make in
-            make.height.equalTo(54)
         }
         
         controlButtonsStackView.arrangedSubviews.forEach { containerView in
@@ -609,18 +591,9 @@ extension HomeViewController {
         let mj_header = MJRefreshNormalHeader(refreshingBlock: {
             self.fetchCarInfo()
         })
-        mj_header.ignoredScrollViewContentInsetTop = 170
+        mj_header.ignoredScrollViewContentInsetTop = 150
         mj_header.lastUpdatedTimeLabel?.isHidden = true
         scrollView.mj_header = mj_header
-    }
-    
-    // MARK: - 配置信息
-    private func formatTime(minutes: Float) -> String {
-        let totalSeconds = Int(minutes * 60)
-        let hours = totalSeconds / 3600
-        let mins = (totalSeconds % 3600) / 60
-        let secs = totalSeconds % 60
-        return "\(hours)小时\(mins)分钟\(secs)秒"
     }
 }
 
@@ -655,8 +628,8 @@ extension HomeViewController {
         
         // 为iPad设置popover
         if let popover = alertController.popoverPresentationController {
-            popover.sourceView = sender
-            popover.sourceRect = sender.bounds
+            popover.sourceView = mapInfoView
+            popover.sourceRect = mapInfoView.bounds
         }
         
         present(alertController, animated: true, completion: nil)
@@ -842,10 +815,9 @@ extension HomeViewController {
                     // 更严格的认证错误检测
                     let isAuthError = errorDescription.contains("unauthorized") ||
                     errorDescription.contains("token") ||
-                    errorDescription.contains("401") ||
                     errorDescription.contains("authentication") ||
                     errorDescription.contains("用户未登录") ||
-                    errorDomain.contains("carinfo") && errorCode == -1
+                    errorDomain.contains("carinfo") || errorCode == 403
                     
                     if isAuthError && !self.isAutoReloginInProgress {
                         print("[HomeViewController] 检测到认证相关错误，尝试自动重新登录")
@@ -892,26 +864,15 @@ extension HomeViewController {
         
         // 控制按钮
         controlButtonsStackView.setupCarModel()
-        controlButtonsStackView.blockPollingChange = { [weak self] originalModel, expectedChange in
-            self?.startPollingForStatusChange(
-                originalModel: originalModel,
-                expectedChange: expectedChange
-            )
-            // 刷新小组件
-            self?.refreshWidget()
-        }
         controlButtonsStackView.blockTemperatureChange = { [weak self] temperature in
             self?.presetTemperature.text = "预设温度 \(temperature)˚"
         }
         
         // 充电状态
         if model.chgStatus == 2 {
-            chargeView.isHidden = true
             backgroundImageView.image = UIImage(named: "my_car")
         }else{
-            chargeView.isHidden = false
             backgroundImageView.image = UIImage(named: "my_car_charge")
-            leftChargeTime.text = "预计充满："+formatTime(minutes: model.quickChgLeftTime.float)
         }
         
         // 温度显示
@@ -1000,51 +961,7 @@ extension HomeViewController {
         }
     }
     
-    // MARK: - 轮询状态变化
-    private func startPollingForStatusChange(
-        originalModel: CarModel,
-        expectedChange: @escaping (CarModel, CarModel) -> Bool
-    ) {
-        var pollCount = 0
-        let maxPollCount = 10 // 最多轮询10次
-        
-        func pollStatus() {
-            pollCount += 1
-            
-            fetchCarInfo(showSuccessMessage: false)
-            
-            // 延迟检查状态变化
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                guard let newModel = UserManager.shared.carModel else {
-                    if pollCount < maxPollCount {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            pollStatus()
-                        }
-                    }
-                    return
-                }
-                
-                // 检查状态是否发生了预期的变化
-                if expectedChange(originalModel, newModel) {
-                    // 状态已变化，停止轮询
-                    print("状态变化检测到，停止轮询")
-                    return
-                }
-                
-                // 如果还没有达到最大轮询次数，继续轮询
-                if pollCount < maxPollCount {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        pollStatus()
-                    }
-                } else {
-                    print("轮询超时，停止轮询")
-                }
-            }
-        }
-        
-        // 开始第一次轮询
-        pollStatus()
-    }
+
 }
 
 // MARK: - MKMapViewDelegate代理

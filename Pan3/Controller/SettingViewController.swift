@@ -582,9 +582,9 @@ private extension SettingViewController {
                     
                     // 返回登录界面
                     if let appDelegate = UIApplication.shared.delegate as? AppDelegate {
-                        let loginStoryboard = UIStoryboard(name: "Login", bundle: nil)
-                        let loginViewController = loginStoryboard.instantiateInitialViewController()
-                        appDelegate.window?.rootViewController = loginViewController
+                        let loginViewController = LoginViewController()
+                        let navigationController = UINavigationController(rootViewController: loginViewController)
+                        appDelegate.window?.rootViewController = navigationController
                         appDelegate.window?.makeKeyAndVisible()
                     }
                 case .failure(let error):

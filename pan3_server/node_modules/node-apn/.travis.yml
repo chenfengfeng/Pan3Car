@@ -1,0 +1,18 @@
+language: node_js
+node_js:
+- 6
+- 8
+- 10
+after_success:
+- npm install -g istanbul
+- npm install coveralls
+- istanbul cover node_modules/.bin/_mocha --report lcovonly -- -R spec
+- "./node_modules/.bin/coveralls < ./coverage/lcov.info"
+- rm -rf ./coverage
+deploy:
+  provider: npm
+  email: florian.reinhart@gmail.com
+  api_key:
+    secure: LU3rf3mjV9Xg9EUepJDTCKqoC/VzTb42y1BD2ULoVmQ1NTmUHthEa4oMYy8bzq1tk5sMlBlkW5IFZDKjwpdGznsTl5/9nGp7J44mzFuJXL1RWlNxiUEBV27WkZ7jaF70K/Ie44V2UpGeO+KF9jMcjDj/ePbkjegZS1Fm+NUNHWE=
+  on:
+    tags: true

@@ -7,14 +7,12 @@
 
 import SwiftUI
 import CoreLocation
-import WatchConnectivity
 import WatchKit
 
 // 使用自定义Button样式以保持视觉一致性
 
 struct ContentView: View {
     @State private var currentPage = 0
-
     
     // 车辆数据模型
     @State private var carModel: SharedCarModel?
@@ -29,8 +27,7 @@ struct ContentView: View {
     @State private var showWindowConfirm = false // 车窗二次确认弹窗
     @State private var showHornConfirm = false // 鸣笛二次确认弹窗
     
-    // WatchConnectivity管理器
-    @StateObject private var watchConnectivity = WatchConnectivityManager.shared
+    // WatchConnectivity管理器已删除
     
     var body: some View {
         GeometryReader { geo in
@@ -95,16 +92,6 @@ struct ContentView: View {
         }
         .edgesIgnoringSafeArea(.all) // watchOS全屏设置
         .onAppear {
-            // 初始化WatchConnectivity
-            _ = WatchConnectivityManager.shared
-            loadCarData()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .authDataUpdated)) { _ in
-            print("[Watch Debug] 收到认证数据更新通知，开始刷新车辆数据")
-            loadCarData()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: WKExtension.applicationDidBecomeActiveNotification)) { _ in
-            print("[Watch Debug] Watch应用变为活跃状态，刷新车辆数据")
             loadCarData()
         }
 
@@ -177,10 +164,6 @@ struct ContentView: View {
                     // 车锁开关
                     VStack(spacing: 8) {
                         Button(action: {
-                            guard watchConnectivity.shouldEnableDebug else {
-                                print("[Watch Debug] 车锁控制被禁用，调试模式未开启")
-                                return
-                            }
                             showLockConfirm = true
                         }) {
                             Image(systemName: isCarLocked ? "lock.fill" : "lock.open.fill")
@@ -196,9 +179,9 @@ struct ContentView: View {
                         .alert("确认\(isCarLocked ? "解锁车辆" : "锁定车辆")？", isPresented: $showLockConfirm) {
                             Button("确认") {
                                 let operation = isCarLocked ? 2 : 1 // 2=开锁, 1=关锁
-                                SharedNetworkManager.shared.energyLock(operation: operation) { _ in
-                                    print("车锁控制按钮被点击，状态已切换")
-                                }
+//                                SharedNetworkManager.shared.energyLock(operation: operation) { _ in
+//                                    print("车锁控制按钮被点击，状态已切换")
+//                                }
                                 
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
                                     if var model = carModel {
@@ -218,10 +201,6 @@ struct ContentView: View {
                     // 空调开关
                     VStack(spacing: 8) {
                         Button(action: {
-                            guard watchConnectivity.shouldEnableDebug else {
-                                print("[Watch Debug] 空调控制被禁用，调试模式未开启")
-                                return
-                            }
                             showACConfirm = true
                         }) {
                             Image(systemName: isACOn ? "fanblades.fill" : "fanblades.slash.fill")
@@ -239,9 +218,9 @@ struct ContentView: View {
                                 let operation = isACOn ? 1 : 2
                                 let temperature = 26
                                 let duringTime = 30
-                                SharedNetworkManager.shared.energyAirConditioner(operation: operation, temperature: temperature, duringTime: duringTime) { _ in
-                                    print("空调控制按钮被点击，状态已切换")
-                                }
+//                                SharedNetworkManager.shared.energyAirConditioner(operation: operation, temperature: temperature, duringTime: duringTime) { _ in
+//                                    print("空调控制按钮被点击，状态已切换")
+//                                }
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
                                     if var model = carModel {
                                         model.acStatus = model.acStatus == 0 ? 1 : 0
@@ -263,10 +242,6 @@ struct ContentView: View {
                     // 车窗开关
                     VStack(spacing: 8) {
                         Button(action: {
-                            guard watchConnectivity.shouldEnableDebug else {
-                                print("[Watch Debug] 车窗控制被禁用，调试模式未开启")
-                                return
-                            }
                             showWindowConfirm = true
                         }) {
                             Image(systemName: isWindowOpen ? "window.shade.open" : "window.shade.closed")
@@ -283,9 +258,9 @@ struct ContentView: View {
                             Button("确认") {
                                 let operation = isWindowOpen ? 1 : 2  // 2开启，1关闭
                                 let openLevel = isWindowOpen ? 0 : 2  // 2完全打开，0关闭
-                                SharedNetworkManager.shared.energyWindow(operation: operation, openLevel: openLevel) { _ in
-                                    print("车窗控制按钮被点击，状态已切换")
-                                }
+                                // SharedNetworkManager.shared.energyWindow(operation: operation, openLevel: openLevel) { _ in
+                                //     print("车窗控制按钮被点击，状态已切换")
+                                // }
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
                                     if var model = carModel {
                                         model.lfWindowOpen = model.lfWindowOpen == 0 ? 1 : 0
@@ -307,10 +282,6 @@ struct ContentView: View {
                     // 鸣笛按钮
                     VStack(spacing: 8) {
                         Button(action: {
-                            guard watchConnectivity.shouldEnableDebug else {
-                                print("[Watch Debug] 鸣笛功能被禁用，调试模式未开启")
-                                return
-                            }
                             showHornConfirm = true
                         }) {
                             Image(systemName: "speaker.wave.3.fill")
@@ -325,9 +296,6 @@ struct ContentView: View {
                         .alert("确认鸣笛？", isPresented: $showHornConfirm) {
                             Button("确认") {
                                 isHornPressed = true
-                                SharedNetworkManager.shared.findCar { _ in
-                                    print("鸣笛按钮被点击")
-                                }
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                     isHornPressed = false
                                 }
@@ -464,7 +432,7 @@ struct ContentView: View {
                         Spacer()
                     }
                     HStack {
-                        Text(watchConnectivity.defaultVin ?? "获取中...")
+                        Text("获取中...")
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.8))
                             .tracking(1)
@@ -564,44 +532,18 @@ struct ContentView: View {
     
     /// 加载车辆数据
     private func loadCarData() {
-        guard !isLoading else { return }
-        
-        isLoading = true
-        SharedNetworkManager.shared.getCarModel { result in
-            DispatchQueue.main.async {
-                isLoading = false
-                lastUpdateTime = Date()
-                
-                switch result {
-                case .success(let model):
-                    carModel = model
-                    updateUIFromCarModel(model)
-                case .failure(let error):
-                    print("[Watch Debug] 获取车辆数据失败: \(error.localizedDescription)")
-                }
-            }
-        }
+        // 网络相关代码已删除
+        // 使用默认数据或占位数据
+//        carModel = SharedCarModel()
+//        updateUIFromCarModel(carModel)
     }
     
     /// 刷新车辆数据（异步版本）
     private func refreshCarData() async {
-        await withCheckedContinuation { continuation in
-            SharedNetworkManager.shared.getCarModel { result in
-                DispatchQueue.main.async {
-                    lastUpdateTime = Date()
-                    
-                    switch result {
-                    case .success(let model):
-                        carModel = model
-                        updateUIFromCarModel(model)
-                    case .failure(let error):
-                        print("[Watch Debug] 刷新车辆数据失败: \(error.localizedDescription)")
-                    }
-                    
-                    continuation.resume()
-                }
-            }
-        }
+        // 网络相关代码已删除
+        // 使用默认数据或占位数据
+//        carModel = SharedCarModel()
+//        updateUIFromCarModel(carModel)
     }
     
     /// 从车辆模型更新UI状态
@@ -710,11 +652,4 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .onAppear {
-            // This will be overridden by the preview data below
-        }
-        .environmentObject({
-            let manager = WatchConnectivityManager.shared
-            return manager
-        }())
 }

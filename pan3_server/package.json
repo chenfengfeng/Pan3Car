@@ -1,0 +1,9 @@
+{
+  "name": "pan3-car-api",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "express": "^5.1.0",
+    "node-apn": "^3.0.0"
+  }
+}

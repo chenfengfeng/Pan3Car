@@ -15,15 +15,15 @@ extension ChargeTaskModel {
     // 状态颜色
     var statusColor: UIColor {
         switch status {
-        case "ready":
+        case "PREPARING":
             return .systemYellow
-        case "pending":
+        case "RUNNING", "CHARGING":
             return .systemBlue
-        case "done":
+        case "COMPLETED":
             return .systemGreen
-        case "timeout", "error":
+        case "FAILED":
             return .systemRed
-        case "cancelled":
+        case "CANCELLED":
             return .systemOrange
         default:
             return .systemGray
@@ -233,13 +233,16 @@ class ChargeListCell: UITableViewCell {
         initialKwhLabel.text = "初始电量: \(String(format: "%.1f", task.initialKwh)) kWh"
         chargeKwhLabel.text = "目标电量: \(String(format: "%.1f", task.targetKwh)) kWh"
         
-        // 计算进度和百分比 - 基于已充电量
-        let targetChargeAmount = task.targetKwh - task.initialKwh
-        let progress: Float = targetChargeAmount > 0 ? task.chargedKwh / targetChargeAmount : 0
+        // 使用工具类计算进度和百分比
+        let progress = BatteryCalculationUtility.calculateChargingProgress(
+            initialKwh: Double(task.initialKwh),
+            targetKwh: Double(task.targetKwh),
+            chargedKwh: Double(task.chargedKwh)
+        ) / 100.0 // 转换为0-1的进度值
         let percentage = Int(min(progress * 100, 100))
         percentageLabel.text = "\(percentage)%"
         
-        progressView.progress = min(max(progress, 0), 1)
+        progressView.progress = Float(min(max(progress, 0), 1))
         
         // 格式化创建时间显示
         let formatter = DateFormatter()
@@ -263,7 +266,7 @@ class ChargeListCell: UITableViewCell {
         }
         
         // 设置电池图标和进度条颜色
-        updateBatteryIcon(progress: progress)
+        updateBatteryIcon(progress: Float(progress))
     }
     
     private func updateBatteryIcon(progress: Float) {
