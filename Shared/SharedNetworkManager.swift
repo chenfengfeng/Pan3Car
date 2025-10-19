@@ -14,7 +14,7 @@ import WatchConnectivity
 class SharedNetworkManager {
     static let shared = SharedNetworkManager()
     
-    private let baseURL = "https://car.dreamforge.top"
+    private let baseURL = "https://pan3.dreamforge.top/api"
     
     // 请求频率控制
     private var lastInfoRequestTime: Date = Date(timeIntervalSince1970: 0)
@@ -48,15 +48,14 @@ class SharedNetworkManager {
         #endif
     }
     
-    // 获取当前服务器类型
-    private func getServerType() -> String {
-        return UserDefaults(suiteName: "group.com.feng.pan3")?.string(forKey: "ServerType") ?? "main"
-    }
-    
-    // 根据服务器类型获取参数
-    private func getServerParameter() -> String? {
-        let serverType = getServerType()
-        return serverType == "spare" ? "spare" : nil
+    private var pushToken: String? {
+        #if os(watchOS)
+        // 在Watch应用中，从WatchConnectivityManager获取pushToken
+        return WatchConnectivityManager.shared.getCurrentPushToken()
+        #else
+        // 在iPhone应用中，从App Groups获取
+        return UserDefaults(suiteName: "group.com.feng.pan3")?.string(forKey: "pushToken")
+        #endif
     }
     
     // MARK: - 车辆控制方法（使用energy端点）
@@ -70,19 +69,14 @@ class SharedNetworkManager {
             return
         }
         
-        let url = "\(baseURL)/energy"
+        let url = "\(baseURL)/car/sync"
         
-        var parameters: [String: Any] = [
+        let parameters: [String: Any] = [
             "vin": vin,
             "operation": operation, // 1关锁，2开锁
             "operationType": "LOCK",
-            "timaToken": timaToken
+            "pushToken": pushToken ?? ""
         ]
-        
-        // 添加服务器参数
-        if let serverParam = getServerParameter() {
-            parameters["server"] = serverParam
-        }
         
         print("[Shared Debug] 执行远程锁操作：\(operation)")
         
@@ -98,20 +92,15 @@ class SharedNetworkManager {
             return
         }
         
-        let url = "\(baseURL)/energy"
+        let url = "\(baseURL)/car/sync"
         
-        var parameters: [String: Any] = [
+        let parameters: [String: Any] = [
             "vin": vin,
             "operation": operation, // 执行动作类型，1关闭，2开启
             "operationType": "WINDOW",
             "openLevel": openLevel, // 开窗等级：0=关闭，2=完全打开
-            "timaToken": timaToken
+            "pushToken": pushToken ?? ""
         ]
-        
-        // 添加服务器参数
-        if let serverParam = getServerParameter() {
-            parameters["server"] = serverParam
-        }
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }
@@ -125,21 +114,16 @@ class SharedNetworkManager {
             return
         }
         
-        let url = "\(baseURL)/energy"
+        let url = "\(baseURL)/car/sync"
         
-        var parameters: [String: Any] = [
+        let parameters: [String: Any] = [
             "vin": vin,
             "operation": operation, // 2表示开启，1表示关闭
             "operationType": "INTELLIGENT_AIRCONDITIONER",
             "temperature": temperature,
             "duringTime": duringTime,
-            "timaToken": timaToken
+            "pushToken": pushToken ?? ""
         ]
-        
-        // 添加服务器参数
-        if let serverParam = getServerParameter() {
-            parameters["server"] = serverParam
-        }
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }
@@ -153,18 +137,13 @@ class SharedNetworkManager {
             return
         }
         
-        let url = "\(baseURL)/energy"
+        let url = "\(baseURL)/car/sync"
         
-        var parameters: [String: Any] = [
+        let parameters: [String: Any] = [
             "vin": vin,
             "operationType": "FIND_VEHICLE",
-            "timaToken": timaToken
+            "pushToken": pushToken ?? ""
         ]
-        
-        // 添加服务器参数
-        if let serverParam = getServerParameter() {
-            parameters["server"] = serverParam
-        }
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }
@@ -229,11 +208,10 @@ class SharedNetworkManager {
         lastInfoRequestTime = Date()
         print("[Shared Debug] 执行info请求，时间: \(lastInfoRequestTime)，等待队列数量: \(pendingInfoCompletions.count)")
         
-        let url = "\(baseURL)/info"
+        let url = "\(baseURL)/car/info"
         
         let parameters: [String: Any] = [
-            "vin": vin,
-            "timaToken": timaToken
+            "vin": vin
         ]
         
         performCarInfoRequest(url: url, parameters: parameters, timaToken: timaToken) { [weak self] result in
@@ -254,7 +232,7 @@ class SharedNetworkManager {
     
     // MARK: - 通用网络请求方法
     
-    /// 通用请求方法（用于energy端点）
+    /// 通用请求方法（用于car/sync端点）
     private func performRequest(url: String, parameters: [String: Any], timaToken: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
         guard let requestURL = URL(string: url) else {
             let error = NSError(domain: "NetworkError", code: -1, userInfo: [NSLocalizedDescriptionKey: "无效的URL"])
@@ -290,7 +268,7 @@ class SharedNetworkManager {
                 do {
                     print("收到接口请求回调")
                     if let jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                        if let returnSuccess = jsonObject["returnSuccess"] as? Int, returnSuccess == 1 {
+                        if let code = jsonObject["code"] as? Int, code == 200 {
                             completion(.success(jsonObject))
                         } else {
                             let errorMessage = jsonObject["message"] as? String ?? "操作失败"

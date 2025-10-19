@@ -45,7 +45,7 @@ struct LegacyProvider: TimelineProvider {
         
         // 如果没有认证信息，显示错误状态
         if timaToken == nil || defaultVin == nil {
-            let entry = LegacySimpleEntry(date: currentDate, carInfo: nil, errorMessage: "请先在主应用中登录")
+            let entry = LegacySimpleEntry(date: currentDate, carInfo: nil, errorMessage: "开启您的胖3之旅")
             let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
             let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
             completion(timeline)
@@ -79,6 +79,8 @@ struct LegacyProvider: TimelineProvider {
             case .success(let carData):
                 let carInfo = CarInfo.parseCarInfo(from: carData)
                 WidgetDataManager.shared.updateCarInfo(carInfo)
+                // 设置本地修改标记，供小组件检测
+                WidgetDataManager.shared.markLocalModification()
                 entry = LegacySimpleEntry(date: currentDate, carInfo: carInfo)
                 
             case .failure(let error):
@@ -93,7 +95,7 @@ struct LegacyProvider: TimelineProvider {
                     if let carInfo = carInfo {
                         entry = LegacySimpleEntry(date: currentDate, carInfo: carInfo)
                     } else {
-                        entry = LegacySimpleEntry(date: currentDate, carInfo: nil, errorMessage: "无法获取车辆数据")
+                        entry = LegacySimpleEntry(date: currentDate, carInfo: nil, errorMessage: "开启您的胖3之旅")
                     }
                 }
             }
@@ -124,115 +126,137 @@ struct CarWidgetLegacyEntryView: View {
     var body: some View {
         if let errorMessage = entry.errorMessage {
             // 错误状态显示
-            ZStack {
-                GeometryReader { geo in
-                    Color.black
-                        .frame(width: geo.size.width  + 20 + 20,
-                               height: geo.size.height + 20 + 20)
-                        .offset(x: -20, y: -20)
-                }
-                Image("my_car")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .clipped()
-                
-                VStack(spacing: 4) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.title2)
-                        .foregroundColor(.orange)
-                    
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                }
-                .padding(8)
+            if #available(iOS 17.0, *) {
+                errorView(errorMessage)
+                    .containerBackground(for: .widget) {
+                        // 在这个闭包里定义你的背景
+                        Color.blue
+                    }
+            } else {
+                // Fallback on earlier versions
+                errorView(errorMessage)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if let carInfo = entry.carInfo {
-            ZStack {
-                GeometryReader { geo in
-                    Color.black
-                        .frame(width: geo.size.width  + 20 + 20,
-                               height: geo.size.height + 20 + 20)
-                        .offset(x: -20, y: -20)
-                }
-                
-                Image(carInfo.isCharge ? "my_car_charge" : "my_car")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .clipped()
-                // 重新设计的布局
-                GeometryReader { geometry in
-                    VStack(spacing: 2) {
-                        // 剩余里程 - 顶部大字显示，左对齐8px
-                        HStack(alignment: .bottom, spacing: 2) {
-                            Text("\(carInfo.remainingMileage)")
-                                .font(.title)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
+            if #available(iOS 17.0, *) {
+                contentView(carInfo)
+                    .containerBackground(for: .widget) {
+                        // 在这个闭包里定义你的背景
+                        Color.blue
+                    }
+            } else {
+                // Fallback on earlier versions
+                contentView(carInfo)
+            }
+        }
+    }
+    
+    private func errorView(_ errorMessage: String) -> some View {
+        ZStack(alignment: .bottom) {
+            GeometryReader { geo in
+                Color.black
+                    .frame(width: geo.size.width  + 20 + 20,
+                           height: geo.size.height + 20 + 20)
+                    .offset(x: -20, y: -20)
+            }
+            Image("my_car")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            
+            VStack(spacing: 4) {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+            }
+            .padding(8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func contentView(_ carInfo: CarInfo) -> some View {
+        ZStack {
+            GeometryReader { geo in
+                Color.black
+                    .frame(width: geo.size.width  + 20 + 20,
+                           height: geo.size.height + 20 + 20)
+                    .offset(x: -20, y: -20)
+            }
+            
+            Image(carInfo.isCharge ? "my_car_charge" : "my_car")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            // 重新设计的布局
+            GeometryReader { geometry in
+                VStack(spacing: 2) {
+                    // 剩余里程 - 顶部大字显示，左对齐8px
+                    HStack(alignment: .bottom, spacing: 2) {
+                        Text("\(carInfo.remainingMileage)")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Text("km")
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                            .offset(y: -2)
+                        
+                        Spacer()
+                    }
+                    .padding(.leading, 8)
+                    .offset(x: 40)
+                    
+                    // SOC进度条 - 中间，左对齐8px，最大宽度为小组件宽度的一半
+                    HStack {
+                        ZStack(alignment: .leading) {
+                            // 灰色背景进度条
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: geometry.size.width / 3, height: 6)
+                                .cornerRadius(3)
                             
-                            Text("km")
-                                .font(.subheadline)
-                                .foregroundColor(.white)
-                                .offset(y: -2)
-                            
-                            Spacer()
+                            // 实际进度条
+                            Rectangle()
+                                .fill(socColor(for: carInfo.soc))
+                                .frame(width: (geometry.size.width / 3) * (Double(carInfo.soc) / 100.0), height: 6)
+                                .cornerRadius(3)
                         }
                         .padding(.leading, 8)
                         .offset(x: 40)
                         
-                        // SOC进度条 - 中间，左对齐8px，最大宽度为小组件宽度的一半
-                        HStack {
-                            ZStack(alignment: .leading) {
-                                // 灰色背景进度条
-                                Rectangle()
-                                    .fill(Color.gray.opacity(0.3))
-                                    .frame(width: geometry.size.width / 3, height: 6)
-                                    .cornerRadius(3)
-                                
-                                // 实际进度条
-                                Rectangle()
-                                    .fill(socColor(for: carInfo.soc))
-                                    .frame(width: (geometry.size.width / 3) * (Double(carInfo.soc) / 100.0), height: 6)
-                                    .cornerRadius(3)
-                            }
-                            .padding(.leading, 8)
-                            .offset(x: 40)
-                            
-                            Spacer()
-                        }
-                        
-                        Spacer(minLength: 4)
-                        
-                        // 状态信息 - 底部
-                        if carInfo.isCharge {
-                            VStack(spacing: 2) {
-                                Text("正在充电")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
-                                    .fontWeight(.semibold)
-                                
-                                if carInfo.chgLeftTime > 0 {
-                                    Text("剩余 \(formatMinutes(carInfo.chgLeftTime))")
-                                        .font(.caption2)
-                                        .foregroundColor(.white.opacity(0.9))
-                                }
-                            }
-                        } else {
-                            Text("更新于 \(carInfo.lastUpdated, formatter: timeFormatter)")
-                                .font(.caption2)
-                                .foregroundColor(.white.opacity(0.8))
-                        }
+                        Spacer()
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    
+                    Spacer(minLength: 4)
+                    
+                    // 状态信息 - 底部
+                    if carInfo.isCharge {
+                        VStack(spacing: 2) {
+                            Text("正在充电")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                                .fontWeight(.semibold)
+                            
+                            if carInfo.chgLeftTime > 0 {
+                                Text("剩余 \(formatMinutes(carInfo.chgLeftTime))")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.9))
+                            }
+                        }
+                    } else {
+                        Text("更新于 \(carInfo.lastUpdated, formatter: timeFormatter)")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private func socColor(for soc: Int) -> Color {
@@ -285,10 +309,11 @@ struct CarWidgetLegacy: Widget {
     }
 }
 
-// Preview is only available in iOS 17+, so we comment it out for iOS 16 compatibility
-// #Preview(as: .systemSmall) {
-//     CarWidgetLegacy()
-// } timeline: {
-//     LegacySimpleEntry(date: .now, carInfo: CarInfo.placeholder)
-//     LegacySimpleEntry(date: .now, carInfo: nil, errorMessage: "请先在主应用中登录")
-// }
+
+@available(iOSApplicationExtension 17.0, *)
+ #Preview(as: .systemSmall) {
+     CarWidgetLegacy()
+ } timeline: {
+     LegacySimpleEntry(date: .now, carInfo: CarInfo.placeholder)
+     LegacySimpleEntry(date: .now, carInfo: nil, errorMessage: "开启您的胖3之旅")
+ }

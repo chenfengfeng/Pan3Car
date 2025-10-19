@@ -9,6 +9,7 @@ import UIKit
 import QMUIKit
 import SafariServices
 import SnapKit
+import Alamofire
 
 class LoginViewController: UIViewController, QMUITextFieldDelegate {
     // UI元素
@@ -140,6 +141,9 @@ class LoginViewController: UIViewController, QMUITextFieldDelegate {
         setupConstraints()
         setupProtocolLabel()
         loadSavedCredentials()
+        
+        // 激活网络权限检查
+        checkNetworkPermission()
     }
     
     func setupUI() {
@@ -436,5 +440,20 @@ class LoginViewController: UIViewController, QMUITextFieldDelegate {
             clickLogin(loginBtn)
         }
         return true
+    }
+    
+    // MARK: - 网络权限检查
+    /// 检查网络权限并激活网络访问
+    private func checkNetworkPermission() {
+        // 简单请求 apple.com 来激活网络权限弹窗
+        AF.request("https://www.apple.com", method: .get)
+            .response { response in
+                switch response.result {
+                case .success:
+                    print("网络权限激活成功")
+                case .failure(let error):
+                    print("网络请求失败: \(error.localizedDescription)")
+                }
+            }
     }
 }

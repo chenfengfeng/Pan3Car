@@ -5,9 +5,11 @@
 //  Created by Feng on 2025/6/28.
 //
 
-import Foundation
+import GRDB
+import UIKit
 import Alamofire
 import SwiftyJSON
+import CoreLocation
 
 struct ChargeListResponse {
     let tasks: [ChargeTaskModel]
@@ -130,7 +132,7 @@ class NetworkManager {
     
     // MARK: - 车辆信息接口
     // 获取车辆详细信息
-    func getInfo(completion: @escaping (Result<JSON, Error>) -> Void) {
+    func getInfo(completion: @escaping (Result<CarModel, Error>) -> Void) {
         // 内部获取必要参数
         guard let vin = UserManager.shared.defaultVin,
               let timaToken = UserManager.shared.timaToken else {
@@ -162,7 +164,62 @@ class NetworkManager {
                     let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
                     let json = JSON(jsonObject)
                     if !json["data"].dictionaryValue.isEmpty {
-                        completion(.success(json["data"]))
+                        let model = CarModel(json: json["data"])
+                        // 根据充电状态，维护本地充电记录
+                        // chgStatus == 2 表示“未在充电”，其他值视为“正在充电”
+                        do {
+                            try AppDatabase.dbQueue.write { db in
+                                // 查询最新一条充电记录
+                                let latestSQL = "SELECT * FROM chargeTask ORDER BY startTime DESC LIMIT 1"
+                                let latestRecord = try ChargeTaskRecord.fetchOne(db, sql: latestSQL)
+
+                                if model.chgStatus == 2 {
+                                    // 未在充电：若存在未完成记录，则写入结束数据
+                                    if var record = latestRecord, record.endTime == nil {
+                                        record.endTime = Date()
+                                        // 将当前车辆数据写入结束值
+                                        record.endSoc = model.soc
+                                        record.endKm = model.acOnMile
+                                        try record.update(db)
+                                    }
+                                } else {
+                                    // 正在充电：若不存在记录或最新记录已结束，则插入一条新的记录
+                                    if latestRecord == nil || latestRecord?.endTime != nil {
+                                        // 从model获取GPS坐标
+                                        let lat = Double(model.latitude)
+                                        let lon = Double(model.longitude)
+                                        
+                                        var newRecord = ChargeTaskRecord(
+                                            startTime: Date(),
+                                            startSoc: model.soc,
+                                            startKm: model.acOnMile,
+                                            lat: lat,
+                                            lon: lon
+                                        )
+                                        try newRecord.save(db)
+                                        
+                                        // 异步进行GPS逆编码获取地址
+                                        self.reverseGeocodeLocation(latitude: lat, longitude: lon) { address in
+                                            // 更新记录的地址信息
+                                            try? AppDatabase.dbQueue.write { db in
+                                                if var savedRecord = try ChargeTaskRecord.fetchOne(db, sql: "SELECT * FROM chargeTask ORDER BY id DESC LIMIT 1") {
+                                                    savedRecord.address = address
+                                                    try savedRecord.update(db)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } catch {
+                            // 本地数据库维护失败不影响车辆信息返回，只打印日志
+                            print("维护本地充电记录失败: \(error)")
+                        }
+                        
+                        // 更新UserManager中的车辆信息
+                        UserManager.shared.updateCarInfo(with: model)
+                        
+                        completion(.success(model))
                     } else {
                         let errorMsg = json["message"].stringValue.isEmpty ? "获取车辆信息失败" : json["message"].stringValue
                         let error = NSError(domain: "CarInfoError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
@@ -282,14 +339,12 @@ class NetworkManager {
         }
         
         let url = "\(baseURL)/charge/start"
-        let standardPushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
-        let liveActivityPushToken = ""
+        let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
         
         var parameters: [String: Any] = [
             "vin": vin,
             "monitoringMode": mode,
-            "standardPushToken": standardPushToken,
-            "liveActivityPushToken": liveActivityPushToken
+            "pushToken": pushToken
         ]
         
         if mode == "time", let timestamp = targetTimestamp {
@@ -336,132 +391,8 @@ class NetworkManager {
         }
     }
     
-    /// 获取当前充电监控任务的状态
-    func getChargeStatus(completion: @escaping (Result<ChargeStatusResponse, Error>) -> Void) {
-        guard let vin = UserManager.shared.defaultVin,
-              let timaToken = UserManager.shared.timaToken else {
-            let error = NSError(domain: "ChargeStatusError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
-            completion(.failure(error))
-            return
-        }
-        
-        // 使用 GET 方法和正确的 URL
-        let url = "\(baseURL)/charge/status/\(vin)"
-        
-        let headers: HTTPHeaders = [
-            "Content-Type": "application/json",
-            "Timatoken": timaToken
-        ]
-        
-        AF.request(url, method: .get, headers: headers)
-            .responseData { response in
-                switch response.result {
-                case .success(let data):
-                    do { 
-                        let json = try JSON(data: data)
-                        if json["code"].intValue == 200 {
-                            let isRunning = json["data"]["isRunning"].boolValue
-                            var taskModel: ChargeTaskModel? = nil
-                            
-                            // 如果有任务在运行，则解析任务数据
-                            if isRunning, let taskJson = json["data"]["task"].dictionary {
-                                // 解析任务基本信息
-                                let taskId = taskJson["pid"]?.intValue ?? 0
-                                let status = taskJson["status"]?.stringValue ?? "unknown"
-                                let startTime = taskJson["startTime"]?.stringValue ?? ""
-                                
-                                // 解析任务详情
-                                let taskDetails = taskJson["taskDetails"]?.dictionaryValue ?? [:]
-                                let vin = taskDetails["vin"]?.stringValue ?? ""
-                                let targetTimestamp = taskDetails["targetTimestamp"]?.stringValue ?? ""
-                                let monitoringMode = taskDetails["monitoringMode"]?.stringValue ?? ""
-                                
-                                // 解析车辆数据并创建 CarModel
-                                if let latestVehicleData = taskJson["latestVehicleData"]?.dictionaryValue {
-                                    let vehicleJSON = JSON(latestVehicleData)
-                                    let carModel = CarModel(json: vehicleJSON)
-                                    
-                                    // 使用工具类获取当前电量和里程
-                                    let currentSoc = BatteryCalculationUtility.getCurrentSoc(from: carModel)
-                                    let currentMileage = Float(carModel.totalMileage) ?? 0.0
-                                    let batteryCapacity = BatteryCalculationUtility.getBatteryCapacity(from: carModel)
-                                    let currentKwh = Float(BatteryCalculationUtility.calculateCurrentKwh(soc: currentSoc, batteryCapacity: batteryCapacity))
-                                    
-                                    // 根据监控模式计算目标值
-                                    var targetKwh: Float = currentKwh
-                                    var targetKm: Float = currentMileage
-                                    var message: String = ""
-                                    
-                                    switch monitoringMode {
-                                    case "time":
-                                        // 时间模式：根据目标时间戳计算消息
-                                        if let timestamp = Double(targetTimestamp) {
-                                            let targetDate = Date(timeIntervalSince1970: timestamp)
-                                            let formatter = DateFormatter()
-                                            formatter.dateFormat = "MM-dd HH:mm"
-                                            message = "监控至 \(formatter.string(from: targetDate))"
-                                        }
-                                        targetKwh = currentKwh // 时间模式下保持当前电量
-                                        targetKm = currentMileage
-                                    case "kwh":
-                                        // 电量模式：需要从其他地方获取目标电量值
-                                        // 这里暂时使用当前值，实际应该从任务详情中获取
-                                        message = "电量监控模式"
-                                    case "range":
-                                        // 里程模式：需要从其他地方获取目标里程值
-                                        message = "里程监控模式"
-                                    default:
-                                        message = "未知监控模式"
-                                    }
-                                    
-                                    // 根据充电状态决定 finishTime
-                                    let finishTime: String?
-                                    switch status.lowercased() {
-                                    case "completed", "failed":
-                                        // 充电已完成的状态，设置当前时间为完成时间
-                                        let formatter = DateFormatter()
-                                        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-                                        finishTime = formatter.string(from: Date())
-                                    default:
-                                        // 充电进行中的状态，不设置完成时间
-                                        finishTime = nil
-                                    }
-                                    
-                                    // 创建 ChargeTaskModel
-                                    taskModel = ChargeTaskModel(
-                                        id: taskId,
-                                        vin: vin,
-                                        initialKwh: currentKwh,
-                                        targetKwh: targetKwh,
-                                        chargedKwh: currentKwh,
-                                        initialKm: currentMileage,
-                                        targetKm: targetKm,
-                                        status: status.lowercased(),
-                                        message: message,
-                                        createdAt: startTime,
-                                        finishTime: finishTime
-                                    )
-                                }
-                            }
-                            
-                            let statusResponse = ChargeStatusResponse(hasRunningTask: isRunning, task: taskModel)
-                            completion(.success(statusResponse))
-                        } else {
-                            let errorMsg = json["message"].stringValue.isEmpty ? "获取状态失败" : json["message"].stringValue
-                            let error = NSError(domain: "ChargeStatusError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
-                            completion(.failure(error))
-                        }
-                    } catch {
-                        completion(.failure(error))
-                    }
-                case .failure(let error):
-                    completion(.failure(error))
-                }
-            }
-    }
-    
     /// 更新实时活动的推送Token
-    func updateLiveActivityToken(newToken: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+    func updateLiveActivityToken(_ token: String, completion: @escaping (Result<Bool, Error>) -> Void) {
         guard let vin = UserManager.shared.defaultVin,
               let timaToken = UserManager.shared.timaToken else {
             let error = NSError(domain: "UpdateTokenError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
@@ -474,7 +405,7 @@ class NetworkManager {
         
         let parameters: [String: Any] = [
             "vin": vin,
-            "newToken": newToken
+            "activityToken": token
         ]
         
         let headers: HTTPHeaders = [
@@ -505,7 +436,7 @@ class NetworkManager {
     }
     
     /// 手动停止充电监控任务
-    func stopChargeMonitoring(completion: @escaping (Result<Bool, Error>) -> Void) {
+    func stopChargeMonitoring(mode: String, completion: @escaping (Result<Bool, Error>) -> Void) {
         guard let vin = UserManager.shared.defaultVin,
               let timaToken = UserManager.shared.timaToken else {
             let error = NSError(domain: "StopMonitorError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
@@ -517,7 +448,8 @@ class NetworkManager {
         let url = "\(baseURL)/charge/stop"
         
         let parameters: [String: Any] = [
-            "vin": vin
+            "vin": vin,
+            "monitoringMode": mode
         ]
         
         let headers: HTTPHeaders = [
@@ -638,6 +570,42 @@ class NetworkManager {
                 }
             case .failure(let error):
                 completion(.failure(error))
+            }
+        }
+    }
+    
+    // MARK: - GPS逆编码功能
+    /// 将GPS坐标转换为地址
+    /// - Parameters:
+    ///   - latitude: 纬度
+    ///   - longitude: 经度
+    ///   - completion: 完成回调，返回地址字符串
+    private func reverseGeocodeLocation(latitude: Double, longitude: Double, completion: @escaping (String) -> Void) {
+        let geocoder = CLGeocoder()
+        let location = CLLocation(latitude: latitude, longitude: longitude)
+        
+        geocoder.reverseGeocodeLocation(location) { placemarks, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("GPS逆编码失败: \(error.localizedDescription)")
+                    completion("未知地址")
+                    return
+                }
+                
+                guard let placemark = placemarks?.first else {
+                    print("GPS逆编码未找到地址信息")
+                    completion("未知地址")
+                    return
+                }
+                
+                var address = [placemark.subLocality, placemark.name]
+                    .compactMap { $0 }
+                    .joined(separator: "")
+                
+                if address.isEmpty {
+                    address = "未知地址"
+                }
+                completion(address)
             }
         }
     }

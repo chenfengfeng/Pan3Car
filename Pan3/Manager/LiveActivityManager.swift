@@ -91,35 +91,29 @@ class LiveActivityManager {
     }
     
     // MARK: - 结束指定任务的实时活动
-    func endChargeActivity(for taskId: Int, dismissalPolicy: ActivityUIDismissalPolicy = .default) {
-        guard let activity = currentActivity,
-              activity.attributes.taskId == taskId else {
-            return
-        }
-        
-        endCurrentActivity(dismissalPolicy: dismissalPolicy)
-    }
-    
     // MARK: - 检查是否有活跃的实时活动
-    func hasActiveActivity(for taskId: Int) -> Bool {
-        guard let activity = currentActivity else {
-            return false
-        }
-        return activity.attributes.taskId == taskId
+    func hasActiveActivity() -> Bool {
+        return currentActivity != nil
     }
     
-    // MARK: - 获取当前活动状态
-    func getCurrentActivityState() -> String? {
-        return currentActivity?.content.state.status
+    // MARK: - 获取当前活动进度
+    func getCurrentActivityProgress() -> Int? {
+        return currentActivity?.content.state.chargeProgress
     }
     
     // MARK: - 私有方法
-    /// 计算充电百分比
-    private func calculatePercentage(from initialKwh: Float, to targetKwh: Float, charged chargedKwh: Float) -> Int {
-        // 直接使用计算公式，避免导入问题
-        guard targetKwh > initialKwh else { return 0 }
-        let progress = (chargedKwh - initialKwh) / (targetKwh - initialKwh)
+    /// 计算里程进度百分比
+    private func calculateMileageProgress(from startKm: Int, to endKm: Int, current currentKm: Int) -> Int {
+        guard endKm > startKm else { return 0 }
+        let progress = Float(currentKm - startKm) / Float(endKm - startKm)
         return Int(max(0, min(1, progress)) * 100)
+    }
+    
+    /// 计算SOC进度百分比 (基于当前SOC相对于初始SOC的变化)
+    private func calculateSocProgress(from initialSoc: Int, current currentSoc: Int) -> Int {
+        // 简单计算SOC变化的百分比，这里可以根据实际需求调整计算逻辑
+        let socChange = currentSoc - initialSoc
+        return max(0, socChange) // 返回SOC增加的数值
     }
 }
 
@@ -129,38 +123,36 @@ extension LiveActivityManager {
     
     // 根据充电任务状态自动管理实时活动
     func manageActivityForTask(attributes: CarWidgetAttributes, state: CarWidgetAttributes.ContentState) {
-        switch state.status {
-        case "PREPARING", "RUNNING", "CHARGING":
+        // 基于充电进度判断充电状态
+        switch state.chargeProgress {
+        case 0..<100:
             // 充电进行中，启动或更新实时活动
-            if hasActiveActivity(for: attributes.taskId) {
+            if hasActiveActivity() {
                 updateChargeActivity(with: state)
             } else {
                 startChargeActivity(attributes: attributes, initialState: state)
             }
             
-        case "COMPLETED":
+        case 100:
             // 充电完成，更新状态并延迟结束
-            if hasActiveActivity(for: attributes.taskId) {
+            if hasActiveActivity() {
                 updateChargeActivity(with: state)
                 // 5秒后自动结束实时活动
                 DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                     let endTime = Date().addingTimeInterval(10)
-                    self.endChargeActivity(for: attributes.taskId, dismissalPolicy: .after(endTime))
-                }
-            }
-            
-        case "FAILED":
-            // 充电失败，立即结束实时活动
-            if hasActiveActivity(for: attributes.taskId) {
-                updateChargeActivity(with: state)
-                // 3秒后结束实时活动
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    self.endChargeActivity(for: attributes.taskId, dismissalPolicy: .default)
+                    self.endCurrentActivity(dismissalPolicy: .after(endTime))
                 }
             }
             
         default:
-            break
+            // 其他情况（如负值表示失败），立即结束实时活动
+            if hasActiveActivity() {
+                updateChargeActivity(with: state)
+                // 3秒后结束实时活动
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self.endCurrentActivity(dismissalPolicy: .default)
+                }
+            }
         }
     }
     

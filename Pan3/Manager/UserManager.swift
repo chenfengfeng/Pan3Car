@@ -8,6 +8,7 @@
 import Foundation
 import WatchConnectivity
 import SwiftyJSON
+import WidgetKit
 
 class UserManager {
     static let shared = UserManager()
@@ -160,6 +161,15 @@ class UserManager {
         // 手动保存到本地
         saveAuthResponse()
         
+        // 保存完整的CarModel数据到App Groups供小组件使用
+        saveCarModelToAppGroups(newCarModel)
+        
+        // 设置本地修改标记，供小组件检测
+        setLocalModificationFlag()
+        
+        // 刷新小组件
+        WidgetCenter.shared.reloadAllTimelines()
+        
         // 发送认证数据到Watch
         WatchConnectivityManager.shared.sendAuthDataToWatch(
             token: timaToken,
@@ -180,5 +190,33 @@ class UserManager {
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .carDataDidUpdate, object: nil)
         }
+    }
+    
+    /// 将CarModel数据保存到App Groups供小组件使用
+    private func saveCarModelToAppGroups(_ carModel: CarModel) {
+        guard let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3") else {
+            print("[UserManager] 无法访问App Groups")
+            return
+        }
+        
+        // 将CarModel转换为字典并保存
+        let carModelDict = carModel.toDictionary()
+        userDefaults.set(carModelDict, forKey: "CarModelData")
+        
+        print("[UserManager] 已保存完整CarModel数据到App Groups")
+    }
+    
+    /// 设置本地修改标记，供小组件检测最近的数据更新
+    private func setLocalModificationFlag() {
+        guard let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3") else {
+            print("[UserManager] 无法访问App Groups设置本地修改标记")
+            return
+        }
+        
+        userDefaults.set(true, forKey: "widgetLocalModification")
+        userDefaults.set(Date().timeIntervalSince1970, forKey: "widgetLocalModificationTime")
+        userDefaults.synchronize()
+        
+        print("[UserManager] 已设置本地修改标记，时间: \(Date())")
     }
 }

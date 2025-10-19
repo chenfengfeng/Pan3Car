@@ -67,6 +67,8 @@ struct RectangularProvider: TimelineProvider {
             case .success(let carData):
                 let carInfo = CarInfo.parseCarInfo(from: carData)
                 WidgetDataManager.shared.updateCarInfo(carInfo)
+                // 设置本地修改标记，供小组件检测
+                WidgetDataManager.shared.markLocalModification()
                 entry = RectangularSimpleEntry(date: currentDate, carInfo: carInfo)
                 
             case .failure(let error):

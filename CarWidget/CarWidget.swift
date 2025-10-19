@@ -25,19 +25,24 @@ struct Provider: AppIntentTimelineProvider {
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
         let currentDate = Date()
+        print("[Widget Debug] timeline方法被调用，当前时间: \(currentDate)")
         
         // 检查认证信息是否存在
         let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3")
         let defaultVin = userDefaults?.string(forKey: "defaultVin")
         let timaToken = userDefaults?.string(forKey: "timaToken")
         
+        print("[Widget Debug] 认证信息检查 - defaultVin: \(defaultVin != nil ? "存在" : "不存在"), timaToken: \(timaToken != nil ? "存在" : "不存在")")
+        
         // 没有缓存数据，显示错误状态
         var entry: SimpleEntry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "无法获取车辆数据")
         
         // 如果没有认证信息，显示错误状态
         if timaToken == nil || defaultVin == nil {
-            entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "请先在主应用中登录")
+            print("[Widget Debug] 认证信息缺失，显示错误状态")
+            entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "开启您的胖3之旅")
         } else {
+            print("[Widget Debug] 认证信息存在，检查本地修改状态")
             // 检查是否有最近的本地修改
             if WidgetDataManager.shared.hasRecentLocalModification(withinSeconds: 10) {
                 print("[Widget Debug] 检测到最近的本地修改，跳过网络请求，使用本地缓存数据")
@@ -49,6 +54,7 @@ struct Provider: AppIntentTimelineProvider {
                     entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "无法获取车辆数据")
                 }
             } else {
+                print("[Widget Debug] 没有检测到最近的本地修改，尝试获取最新车辆信息")
                 // 尝试获取最新车辆信息
                 do {
                     if let carInfo = try await getLatestCarInfo() {
@@ -94,6 +100,10 @@ struct Provider: AppIntentTimelineProvider {
                     
                     print("[Widget Debug] [\(Date())] 解析结果 - SOC: \(carInfo.soc), 剩余里程: \(carInfo.remainingMileage)")
                     
+                    // 保存到本地缓存并设置本地修改标记
+                    WidgetDataManager.shared.updateCarInfo(carInfo)
+                    WidgetDataManager.shared.markLocalModification()
+                    
                     continuation.resume(returning: carInfo)
                 case .failure(let error):
                     print("[Widget Debug] [\(Date())] 网络请求失败: \(error.localizedDescription)")
@@ -128,18 +138,16 @@ struct CarWidgetEntryView: View {
             if let errorMessage = entry.errorMessage {
                 // 错误状态显示
                 VStack(spacing: 8) {
-                    Text(errorMessage)
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.leading)
-                    
-                    Text("请检查网络连接或重新登录")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                        .multilineTextAlignment(.leading)
-                    
                     Spacer()
+                    
+                    Text(errorMessage)
+                        .font(.subheadline)
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .offset(y: 20)
                 }
+                .padding()
             } else if let carInfo = entry.carInfo {
                 // 正常状态显示
                 VStack(spacing: 0) {
@@ -212,20 +220,15 @@ struct CarWidgetEntryView: View {
                         }
                     }
                     
-                    // 底部控制按钮区域 - 不受safe area保护
-                    // 检查是否启用调试模式来控制按钮功能
-                    let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3")
-                    let shouldEnableDebug = userDefaults?.bool(forKey: "shouldEnableDebug") ?? false
-                    
+                    // 底部控制按钮区域
                     HStack(spacing: 0) {
                         // 车锁按钮
                         ControlButton(
                             icon: carInfo.isLocked ? "lock.fill" : "lock.open.fill",
                             title: carInfo.isLocked ? "已锁车" : "已解锁",
                             isActive: carInfo.isLocked,
-                            intent: GetWidgetSelectLockStatusIntent(action: carInfo.isLocked ? .unlock : .lock),
                             backgroundColor: carInfo.isLocked ? Color.white.opacity(0.15) : Color.green,
-                            isEnabled: shouldEnableDebug,
+                            action: "lock"
                         )
                         .frame(maxWidth: .infinity)
                         
@@ -234,9 +237,8 @@ struct CarWidgetEntryView: View {
                             icon: carInfo.airConditionerOn ? "fan" : "fan.slash",
                             title: carInfo.airConditionerOn ? "空调开" : "空调关",
                             isActive: carInfo.airConditionerOn,
-                            intent: GetWidgetSelectACStatusIntent(action: carInfo.airConditionerOn ? .turnOff : .turnOn),
                             backgroundColor: carInfo.airConditionerOn ? Color.blue : Color.white.opacity(0.15),
-                            isEnabled: shouldEnableDebug
+                            action: "ac"
                         )
                         .frame(maxWidth: .infinity)
                         
@@ -245,9 +247,8 @@ struct CarWidgetEntryView: View {
                             icon: carInfo.windowsOpen ? "window.shade.open" : "window.shade.closed",
                             title: carInfo.windowsOpen ? "窗已开" : "窗已关",
                             isActive: carInfo.windowsOpen,
-                            intent: GetWidgetSelectWindowStatusIntent(action: carInfo.windowsOpen ? .close : .open),
                             backgroundColor: carInfo.windowsOpen ? Color.cyan : Color.white.opacity(0.15),
-                            isEnabled: shouldEnableDebug
+                            action: "window"
                         )
                         .frame(maxWidth: .infinity)
                         
@@ -256,9 +257,8 @@ struct CarWidgetEntryView: View {
                             icon: "location.circle",
                             title: "寻车",
                             isActive: false,
-                            intent: GetWidgetFindCarStatusIntent(),
                             backgroundColor: Color.white.opacity(0.15),
-                            isEnabled: shouldEnableDebug
+                            action: "call"
                         )
                         .frame(maxWidth: .infinity)
                     }
@@ -311,37 +311,15 @@ struct ControlButton: View {
     let icon: String
     let title: String
     let isActive: Bool
-    let intent: any AppIntent
     let backgroundColor: Color
-    let isEnabled: Bool
+    let action: String // 添加action参数来区分不同的按钮功能
     
     var body: some View {
-        if isEnabled {
-            Button(intent: intent) {
-                VStack(spacing: 0) {
-                    ZStack {
-                        Circle()
-                            .fill(backgroundColor)
-                            .frame(width: 36, height: 36)
-                        
-                        Image(systemName: icon)
-                            .font(.system(size: 20))
-                            .foregroundColor(.white)
-                    }
-                    Text(title)
-                        .font(.system(size: 10))
-                        .foregroundColor(.white)
-                        .offset(y: 4)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .animation(.easeInOut(duration: 0.3), value: icon)
-            }
-            .buttonStyle(PlainButtonStyle())
-        } else {
+        Link(destination: URL(string: "pan3://\(action)")!) {
             VStack(spacing: 0) {
                 ZStack {
                     Circle()
-                        .fill(Color.clear)
+                        .fill(backgroundColor)
                         .frame(width: 36, height: 36)
                     
                     Image(systemName: icon)
@@ -354,6 +332,7 @@ struct ControlButton: View {
                     .offset(y: 4)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .animation(.easeInOut(duration: 0.3), value: icon)
         }
     }
 }
@@ -385,5 +364,5 @@ struct CarWidget: Widget {
     SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), carInfo: CarInfo.placeholder)
     SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), carInfo: CarInfo.placeholder1)
     SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), carInfo: CarInfo.placeholder2)
-    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), carInfo: nil, errorMessage: "请先在主应用中登录")
+    SimpleEntry(date: .now, configuration: ConfigurationAppIntent(), carInfo: nil, errorMessage: "开启您的胖3之旅")
 }

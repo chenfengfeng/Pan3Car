@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="bum-Sn-Vg1">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24127" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="bum-Sn-Vg1">
     <device id="retina6_3" orientation="portrait" appearance="dark"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23721"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -16,7 +16,7 @@
                     <tabBarItem key="tabBarItem" title="车辆" image="car.fill" catalog="system" id="hcY-ce-JA0"/>
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" largeTitles="YES" id="bPl-kL-cXb">
-                        <rect key="frame" x="0.0" y="124" width="402" height="96"/>
+                        <rect key="frame" x="0.0" y="124" width="402" height="106"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <nil name="viewControllers"/>
@@ -59,7 +59,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bN5-rc-4Qr" customClass="MileageView" customModule="Pan3" customModuleProvider="target">
-                                <rect key="frame" x="0.0" y="220" width="402" height="100"/>
+                                <rect key="frame" x="0.0" y="230" width="402" height="100"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="100" id="3E6-lf-bwH"/>
@@ -84,10 +84,10 @@
         <scene sceneID="wUj-at-GQj">
             <objects>
                 <navigationController automaticallyAdjustsScrollViewInsets="NO" id="PkQ-R8-NJ5" sceneMemberID="viewController">
-                    <tabBarItem key="tabBarItem" title="充电" image="bolt.fill" catalog="system" id="eE5-uu-uPT"/>
+                    <tabBarItem key="tabBarItem" title="充电" image="bolt.car.fill" catalog="system" id="eE5-uu-uPT"/>
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" largeTitles="YES" id="jZP-PZ-Eem">
-                        <rect key="frame" x="0.0" y="124" width="402" height="96"/>
+                        <rect key="frame" x="0.0" y="124" width="402" height="106"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <nil name="viewControllers"/>
@@ -99,7 +99,7 @@
             </objects>
             <point key="canvasLocation" x="1065" y="732"/>
         </scene>
-        <!--效率-->
+        <!--行程-->
         <scene sceneID="xOD-u7-u4R">
             <objects>
                 <viewController id="H33-KM-JfB" customClass="ShortcutsViewController" customModule="Pan3" customModuleProvider="target" sceneMemberID="viewController">
@@ -107,39 +107,31 @@
                         <rect key="frame" x="0.0" y="0.0" width="402" height="874"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="0" translatesAutoresizingMaskIntoConstraints="NO" id="PWm-yo-9NN">
-                                <rect key="frame" x="20" y="220" width="362" height="55"/>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Jkt-I0-WgL">
+                                <rect key="frame" x="0.0" y="230" width="402" height="10"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="54" id="Bk4-m3-7V4"/>
+                                    <constraint firstAttribute="height" constant="10" id="QAc-sv-gSA"/>
                                 </constraints>
-                                <segments>
-                                    <segment title="行程"/>
-                                    <segment title="Siri"/>
-                                    <segment title="NFC"/>
-                                </segments>
-                                <color key="selectedSegmentTintColor" systemColor="systemGreenColor"/>
-                                <connections>
-                                    <action selector="changeSegment:" destination="H33-KM-JfB" eventType="valueChanged" id="rhK-UD-daF"/>
-                                </connections>
-                            </segmentedControl>
+                            </view>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="zfh-vv-3db">
-                                <rect key="frame" x="0.0" y="294" width="402" height="580"/>
+                                <rect key="frame" x="0.0" y="240" width="402" height="634"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                             </tableView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="GRg-22-vtG"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
-                            <constraint firstItem="GRg-22-vtG" firstAttribute="trailing" secondItem="PWm-yo-9NN" secondAttribute="trailing" constant="20" id="0fn-pQ-JNz"/>
-                            <constraint firstItem="zfh-vv-3db" firstAttribute="top" secondItem="PWm-yo-9NN" secondAttribute="bottom" constant="20" id="3R8-nn-jk3"/>
-                            <constraint firstItem="PWm-yo-9NN" firstAttribute="top" secondItem="GRg-22-vtG" secondAttribute="top" id="9HQ-jP-JE0"/>
+                            <constraint firstItem="Jkt-I0-WgL" firstAttribute="leading" secondItem="GRg-22-vtG" secondAttribute="leading" id="37Y-ZL-R5b"/>
+                            <constraint firstItem="zfh-vv-3db" firstAttribute="top" secondItem="Jkt-I0-WgL" secondAttribute="bottom" id="NZG-6M-zAN"/>
                             <constraint firstAttribute="bottom" secondItem="zfh-vv-3db" secondAttribute="bottom" id="ZJC-TN-Maq"/>
                             <constraint firstItem="GRg-22-vtG" firstAttribute="trailing" secondItem="zfh-vv-3db" secondAttribute="trailing" id="cZO-tQ-2WV"/>
-                            <constraint firstItem="PWm-yo-9NN" firstAttribute="leading" secondItem="GRg-22-vtG" secondAttribute="leading" constant="20" id="tus-Np-ng7"/>
+                            <constraint firstItem="Jkt-I0-WgL" firstAttribute="top" secondItem="GRg-22-vtG" secondAttribute="top" id="lQM-wq-2po"/>
+                            <constraint firstItem="GRg-22-vtG" firstAttribute="trailing" secondItem="Jkt-I0-WgL" secondAttribute="trailing" id="nCR-q2-bA0"/>
                             <constraint firstItem="zfh-vv-3db" firstAttribute="leading" secondItem="GRg-22-vtG" secondAttribute="leading" id="yjP-Vk-dQg"/>
                         </constraints>
                     </view>
-                    <navigationItem key="navigationItem" title="效率" id="mpf-r7-eaK"/>
+                    <navigationItem key="navigationItem" title="行程" id="mpf-r7-eaK"/>
                     <connections>
                         <outlet property="tableView" destination="zfh-vv-3db" id="3gu-Hs-u6G"/>
                     </connections>
@@ -148,14 +140,14 @@
             </objects>
             <point key="canvasLocation" x="1991.044776119403" y="1481.4645308924485"/>
         </scene>
-        <!--效率-->
+        <!--行程-->
         <scene sceneID="NdM-ax-5bp">
             <objects>
                 <navigationController automaticallyAdjustsScrollViewInsets="NO" id="D24-HR-1ku" sceneMemberID="viewController">
-                    <tabBarItem key="tabBarItem" title="效率" image="iphone.radiowaves.left.and.right" catalog="system" id="qV1-Ii-elz"/>
+                    <tabBarItem key="tabBarItem" title="行程" image="car.rear.road.lane.dashed" catalog="system" id="qV1-Ii-elz"/>
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" largeTitles="YES" id="F09-Al-tBv">
-                        <rect key="frame" x="0.0" y="124" width="402" height="96"/>
+                        <rect key="frame" x="0.0" y="124" width="402" height="106"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <nil name="viewControllers"/>
@@ -176,7 +168,7 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="bWT-Nf-J9W">
-                                <rect key="frame" x="20" y="220" width="100" height="100"/>
+                                <rect key="frame" x="20" y="230" width="100" height="100"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="100" id="a8Q-qB-zn3"/>
                                     <constraint firstAttribute="height" constant="100" id="bVI-rP-SGu"/>
@@ -194,7 +186,7 @@
                                 </userDefinedRuntimeAttributes>
                             </imageView>
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="yc0-8C-HHw">
-                                <rect key="frame" x="140" y="240.66666666666666" width="49.666666666666657" height="58.666666666666657"/>
+                                <rect key="frame" x="140" y="250.66666666666666" width="49.666666666666657" height="58.666666666666657"/>
                                 <subviews>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="昵称" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="QcE-Jp-IOz">
                                         <rect key="frame" x="0.0" y="0.0" width="49.666666666666664" height="19.333333333333332"/>
@@ -211,7 +203,7 @@
                                 </subviews>
                             </stackView>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="insetGrouped" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="18" estimatedSectionHeaderHeight="-1" sectionFooterHeight="18" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="abf-eG-hEX">
-                                <rect key="frame" x="0.0" y="340" width="402" height="417"/>
+                                <rect key="frame" x="0.0" y="350" width="402" height="407"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <connections>
                                     <outlet property="dataSource" destination="QJq-Z7-dag" id="P5b-zA-3eW"/>
@@ -251,7 +243,7 @@
                     <tabBarItem key="tabBarItem" title="设置" image="gear" catalog="system" id="vji-Zq-nzH"/>
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" largeTitles="YES" id="Lta-64-bWb">
-                        <rect key="frame" x="0.0" y="124" width="402" height="96"/>
+                        <rect key="frame" x="0.0" y="124" width="402" height="106"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <nil name="viewControllers"/>
@@ -281,18 +273,15 @@
         </scene>
     </scenes>
     <resources>
-        <image name="bolt.fill" catalog="system" width="100" height="128"/>
+        <image name="bolt.car.fill" catalog="system" width="128" height="95"/>
         <image name="car.fill" catalog="system" width="128" height="95"/>
+        <image name="car.rear.road.lane.dashed" catalog="system" width="128" height="66"/>
         <image name="gear" catalog="system" width="128" height="122"/>
-        <image name="iphone.radiowaves.left.and.right" catalog="system" width="128" height="85"/>
         <systemColor name="labelColor">
             <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
-        <systemColor name="systemGreenColor">
-            <color red="0.20392156859999999" green="0.78039215689999997" blue="0.34901960780000002" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
     </resources>
 </document>

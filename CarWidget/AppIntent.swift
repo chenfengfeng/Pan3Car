@@ -111,8 +111,15 @@ struct CarInfo: Codable, Hashable {
     
     // 通用的解析CarInfo方法
     static func parseCarInfo(from carData: [String: Any]) -> CarInfo {
-        let socString = carData["soc"] as? String ?? "0"
-        let soc = Int(socString) ?? 0
+        // 兼容处理SOC字段：可能是Int或String类型
+        let soc: Int
+        if let socInt = carData["soc"] as? Int {
+            soc = socInt  // 主APP保存的Int类型
+        } else if let socString = carData["soc"] as? String {
+            soc = Int(socString) ?? 0  // 小组件保存的String类型
+        } else {
+            soc = 0  // 默认值
+        }
         let remainingMileage = carData["acOnMile"] as? Int ?? 0
         let mainLockStatus = carData["mainLockStatus"] as? Int ?? 0
         let acStatus = carData["acStatus"] as? Int ?? 0
@@ -140,26 +147,44 @@ struct CarInfo: Codable, Hashable {
 class WidgetDataManager {
     static let shared = WidgetDataManager()
     private let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3")
-    private let carInfoKey = "widgetCarInfo"
+    private let carInfoKey = "CarModelData"  // 修改为与UserManager一致的key
     private let localModificationKey = "widgetLocalModification"
     private let localModificationTimeKey = "widgetLocalModificationTime"
     
     private init() {}
     
-    // 获取缓存的CarInfo（仅作为备用）
+    // 获取缓存的CarInfo（从CarModel数据转换）
     func getCachedCarInfo() -> CarInfo? {
-        print("获取缓存的CarInfo（仅作为备用）")
-        guard let data = userDefaults?.data(forKey: carInfoKey),
-              let carInfo = try? JSONDecoder().decode(CarInfo.self, from: data) else {
+        print("获取缓存的CarInfo（从CarModel数据转换）")
+        guard let carModelData = userDefaults?.object(forKey: carInfoKey) as? [String: Any] else {
+            print("[Widget Debug] 未找到CarModel缓存数据")
             return nil
         }
+        
+        // 使用CarInfo.parseCarInfo方法从CarModel字典转换
+        let carInfo = CarInfo.parseCarInfo(from: carModelData)
+        print("[Widget Debug] 成功从CarModel缓存转换CarInfo: soc=\(carInfo.soc), 里程=\(carInfo.remainingMileage)")
         return carInfo
     }
     
-    // 保存CarInfo
+    // 保存CarInfo（转换为CarModel格式保存）
     func updateCarInfo(_ carInfo: CarInfo) {
-        guard let data = try? JSONEncoder().encode(carInfo) else { return }
-        userDefaults?.set(data, forKey: carInfoKey)
+        // 将CarInfo转换为CarModel字典格式，保持与主APP一致的数据类型
+        let carModelDict: [String: Any] = [
+            "soc": carInfo.soc,  // 保存为Int类型，与主APP一致
+            "acOnMile": carInfo.remainingMileage,
+            "mainLockStatus": carInfo.isLocked ? 0 : 1,  // 0表示锁定
+            "lfWindowOpen": carInfo.windowsOpen ? 100 : 0,
+            "rfWindowOpen": carInfo.windowsOpen ? 100 : 0,
+            "lrWindowOpen": carInfo.windowsOpen ? 100 : 0,
+            "rrWindowOpen": carInfo.windowsOpen ? 100 : 0,
+            "chgStatus": carInfo.isCharge ? 1 : 2,  // 2表示未充电
+            "acStatus": carInfo.airConditionerOn ? 1 : 0,
+            "quickChgLeftTime": carInfo.chgLeftTime,
+            "lastUpdated": carInfo.lastUpdated.timeIntervalSince1970
+        ]
+        userDefaults?.set(carModelDict, forKey: carInfoKey)
+        print("[Widget Debug] 已将CarInfo转换为CarModel格式并保存，SOC: \(carInfo.soc)")
     }
     
     // 标记本地状态已被修改
@@ -178,9 +203,19 @@ class WidgetDataManager {
     
     // 检查是否有本地修改且在指定时间内
     func hasRecentLocalModification(withinSeconds seconds: TimeInterval = 10) -> Bool {
-        guard let hasModification = userDefaults?.bool(forKey: localModificationKey),
+        print("[Widget Debug] 开始检查本地修改状态")
+        print("[Widget Debug] localModificationKey: \(localModificationKey)")
+        print("[Widget Debug] localModificationTimeKey: \(localModificationTimeKey)")
+        
+        let hasModificationValue = userDefaults?.bool(forKey: localModificationKey)
+        let modificationTimeValue = userDefaults?.double(forKey: localModificationTimeKey)
+        
+        print("[Widget Debug] UserDefaults中的值 - hasModification: \(hasModificationValue ?? false), modificationTime: \(modificationTimeValue ?? 0)")
+        
+        guard let hasModification = hasModificationValue,
               hasModification,
-              let modificationTime = userDefaults?.double(forKey: localModificationTimeKey) else {
+              let modificationTime = modificationTimeValue else {
+            print("[Widget Debug] 本地修改检查失败: hasModification=\(hasModificationValue ?? false), modificationTime=\(modificationTimeValue ?? 0)")
             return false
         }
         
@@ -200,6 +235,8 @@ class WidgetDataManager {
                 case .success(let data):
                     let carInfo = CarInfo.parseCarInfo(from: data)
                     self?.updateCarInfo(carInfo)
+                    // 设置本地修改标记，供小组件检测
+                    self?.markLocalModification()
                 case .failure(let error):
                     print("[Widget Debug] 获取车辆信息失败: \(error.localizedDescription)")
                     // 保持现有缓存数据，不更新错误信息到界面
@@ -224,6 +261,8 @@ struct GetWidgetCarInfoIntent: AppIntent {
                     
                     // 保存到本地并刷新Widget
                     WidgetDataManager.shared.updateCarInfo(carInfo)
+                    // 设置本地修改标记，供小组件检测
+                    WidgetDataManager.shared.markLocalModification()
                     continuation.resume(returning: .result())
                 case .failure(let error):
                     continuation.resume(throwing: error)

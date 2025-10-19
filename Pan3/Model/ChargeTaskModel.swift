@@ -7,117 +7,105 @@
 
 import Foundation
 
-// MARK: - 充电相关数据模型
+// MARK: - 充电相关数据模型（严格以 ChargeTaskRecord/数据库字段为准）
 struct ChargeTaskModel {
-    let id: Int
-    let vin: String
-    let initialKwh: Float
-    let targetKwh: Float
-    let chargedKwh: Float
-    let initialKm: Float
-    let targetKm: Float
-    let status: String
-    let message: String?
-    let createdAt: String
-    let finishTime: String?
-    
-    var statusText: String {
-        switch status {
-        case "PREPARING":
-            return "准备中"
-        case "RUNNING", "CHARGING":
-            return "充电中"
-        case "COMPLETED":
-            return "已完成"
-        case "FAILED":
-            return "失败"
-        case "CANCELLED":
-            return "已取消"
-        default:
-            return status
-        }
+    // 数据库主键（对应 chargeTask.id）
+    let id: Int64?
+
+    // 时间字段（对应 chargeTask.startTime / endTime）
+    let startTime: Date
+    let endTime: Date?
+
+    // SOC 信息（对应 chargeTask.startSoc / endSoc）
+    let startSoc: Int
+    let endSoc: Int?
+
+    // 里程信息（对应 chargeTask.startKm / endKm）
+    let startKm: Int
+    let endKm: Int?
+
+    // GPS 信息（对应 chargeTask.lat / lon / address）
+    let lat: Double?
+    let lon: Double?
+    let address: String?
+
+    // 从数据库记录初始化
+    init(from record: ChargeTaskRecord) {
+        self.id = record.id  // 现在是可选类型，直接赋值
+        self.startTime = record.startTime
+        self.endTime = record.endTime
+        self.startSoc = record.startSoc
+        self.endSoc = record.endSoc
+        self.startKm = record.startKm
+        self.endKm = record.endKm
+        self.lat = record.lat
+        self.lon = record.lon
+        self.address = record.address
     }
-    
-    // 直接初始化方法，接受所有属性作为参数
-    init(id: Int, vin: String, initialKwh: Float, targetKwh: Float, chargedKwh: Float, 
-         initialKm: Float, targetKm: Float, status: String, message: String?, 
-         createdAt: String, finishTime: String?) {
-        self.id = id
-        self.vin = vin
-        self.initialKwh = initialKwh
-        self.targetKwh = targetKwh
-        self.chargedKwh = chargedKwh
-        self.initialKm = initialKm
-        self.targetKm = targetKm
-        self.status = status
-        self.message = message
-        self.createdAt = createdAt
-        self.finishTime = finishTime
-    }
-    
-    init(from record: ChargeTaskRecord, carModel: CarModel) {
-        self.id = Int(record.id ?? 0)
-        self.vin = record.vin
-        self.status = record.finalStatus
-        self.message = record.finalMessage
-        
-        // --- Perform Calculations ---
-        let batteryCapacity = carModel.estimatedModelAndCapacity.batteryCapacity
-        let startSoc = Double(record.startSoc ?? 0)
-        let endSoc = Double(record.endSoc ?? 0)
-        
-        self.initialKwh = Float((startSoc / 100.0) * batteryCapacity)
-        let finalKwh = Float((endSoc / 100.0) * batteryCapacity)
-        self.chargedKwh = Float(max(0, finalKwh - initialKwh))
-        
-        self.initialKm = Float(record.startRange ?? 0)
-        
-        // Calculate targetKm based on monitoring mode
-        if record.monitoringMode == "range" {
-            self.targetKm = Float(record.targetValue) ?? 0.0
+
+    // 兼容网络返回的初始化方法（不保存多余属性，仅映射到数据库字段）
+    // 注意：此初始化仅用于兼容已有调用，参数中的 vin/status/message 等不作为模型属性保存
+    init(id: Int,
+         vin: String,
+         startKm: Int,
+         endKm: Int,
+         status: String,
+         message: String,
+         createdAt: String,
+         finishTime: String?,
+         lat: Double? = nil,
+         lon: Double? = nil,
+         address: String? = nil) {
+        // 主键
+        self.id = Int64(id)
+
+        // 时间字段（字符串转 Date）
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        self.startTime = formatter.date(from: createdAt) ?? Date()
+        if let finish = finishTime, let end = formatter.date(from: finish) {
+            self.endTime = end
         } else {
-            // For time mode, there's no specific km target, you can use endRange or initialKm
-            self.targetKm = Float(record.endRange ?? record.startRange ?? 0)
+            self.endTime = nil
         }
+
+        // 里程与 SOC（网络返回不提供精确 SOC，则置为默认值；里程按 start/end 映射）
+        self.startKm = startKm
+        self.endKm = endKm
+        self.startSoc = 0 // 网络返回时没有SOC信息，设为默认值
+        self.endSoc = nil
         
-        // Target kWh can also be calculated if needed, otherwise set to a default
-        self.targetKwh = 0 // Or calculate based on targetKm/targetSoc if necessary
-        
-        // --- Format Dates ---
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
-        self.createdAt = Self.format(date: record.startTime)
-        self.finishTime = record.endTime != nil ? Self.format(date: record.endTime!) : nil
+        // GPS 信息
+        self.lat = lat
+        self.lon = lon
+        self.address = address
     }
-    
-    private static func format(date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return formatter.string(from: date)
-    }
-    
+
+    // 充电时长（基于开始/结束时间）
     var chargeDuration: String {
-        guard let finishTime = finishTime, !finishTime.isEmpty else {
-            return "--"
-        }
-        
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        
-        guard let startDate = formatter.date(from: createdAt),
-              let endDate = formatter.date(from: finishTime) else {
-            return "--"
-        }
-        
-        let duration = endDate.timeIntervalSince(startDate)
+        guard let endTime = endTime else { return "--" }
+        let duration = endTime.timeIntervalSince(startTime)
         let hours = Int(duration) / 3600
-        let minutes = Int(duration) % 3600 / 60
-        
+        let minutes = (Int(duration) % 3600) / 60
         if hours > 0 {
             return "\(hours)小时\(minutes)分钟"
         } else {
             return "\(minutes)分钟"
         }
+    }
+
+    // MARK: - 兼容旧UI/调用的计算属性（不作为持久化字段）
+    // 字符串形式的开始/结束时间（用于 Cell 展示）
+    var createdAt: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd HH:mm:ss"
+        return formatter.string(from: startTime)
+    }
+
+    var finishTime: String? {
+        guard let end = endTime else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: end)
     }
 }

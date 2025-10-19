@@ -13,30 +13,57 @@ import ActivityKit
 struct CarWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: CarWidgetAttributes.self) { context in
-            // 锁屏界面
+            // Lock screen/banner UI goes here
             LockScreenLiveActivityView(context: context)
         } dynamicIsland: { context in
             DynamicIsland {
-                // 展开视图
+                // Expanded UI goes here.  Compose the expanded UI through
+                // various regions, like leading/trailing/center/bottom
                 DynamicIslandExpandedRegion(.leading) {
                     ExpandedLeadingView(context: context)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     ExpandedTrailingView(context: context)
                 }
-                DynamicIslandExpandedRegion(.bottom) {
-                    ExpandedBottomView(context: context)
+                DynamicIslandExpandedRegion(.center) {
+                    ExpandedCenterView(context: context)
                 }
             } compactLeading: {
-                // 紧凑视图左侧
                 CompactLeadingView(context: context)
             } compactTrailing: {
-                // 紧凑视图右侧
                 CompactTrailingView(context: context)
             } minimal: {
-                // 最小化视图
                 MinimalView(context: context)
             }
+            .widgetURL(URL(string: "http://www.apple.com"))
+            .keylineTint(Color.red)
+        }
+    }
+}
+
+// MARK: - Shared Progress Utilities
+extension View {
+    func progressColor(for progress: Int) -> Color {
+        if progress <= 20 {
+            return .red
+        } else if progress <= 50 {
+            return .orange
+        } else if progress <= 75 {
+            return .yellow
+        } else {
+            return .green
+        }
+    }
+    
+    func batteryIcon(for progress: Int) -> String {
+        if progress <= 20 {
+            return "battery.25"
+        } else if progress <= 50 {
+            return "battery.50"
+        } else if progress <= 75 {
+            return "battery.75"
+        } else {
+            return "battery.100"
         }
     }
 }
@@ -46,127 +73,117 @@ struct LockScreenLiveActivityView: View {
     let context: ActivityViewContext<CarWidgetAttributes>
     
     var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                // 状态标签
-                Text(statusText)
-                    .font(.caption)
+        VStack(spacing: 8) {
+            // 顶部：左侧徽章 + 右侧当前 SOC，减少冗余并保证信息完整
+            HStack(spacing: 8) {
+                Text("充电进度")
+                    .font(.caption2)
                     .fontWeight(.semibold)
                     .foregroundColor(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(statusColor)
-                    .cornerRadius(6)
-                
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.green)
+                    .cornerRadius(4)
                 Spacer()
-                
-                // 百分比
-                Text("\(context.state.percentage)%")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(batteryColor)
-            }
-            
-            // 进度条
-            HStack(spacing: 8) {
-                Image(systemName: batteryIcon)
-                    .foregroundColor(batteryColor)
-                    .font(.title3)
-                
-                ProgressView(value: Float(context.state.percentage), total: 100)
-                    .progressViewStyle(LinearProgressViewStyle(tint: batteryColor))
-                    .scaleEffect(y: 2)
-            }
-            
-            // 详细信息
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("初始: \(String(format: "%.1f", context.attributes.initialKm)) km")
+                HStack(spacing: 4) {
+                    Text("当前SOC")
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    Text("目标: \(String(format: "%.1f", context.attributes.targetKm)) km")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    Text("\(context.state.currentSoc)%")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
+            }
+            
+            // 进度：电池图标 + 线形进度条 + 百分比
+            HStack(spacing: 6) {
+                Image(systemName: batteryIcon(for: context.state.chargeProgress))
+                    .foregroundColor(progressColor(for: context.state.chargeProgress))
+                    .font(.subheadline)
                 
-                Spacer()
+                ProgressView(value: Float(context.state.chargeProgress), total: 100)
+                    .progressViewStyle(LinearProgressViewStyle(tint: progressColor(for: context.state.chargeProgress)))
+                    .scaleEffect(y: 1.6)
+                
+                Text("\(context.state.chargeProgress)%")
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(progressColor(for: context.state.chargeProgress))
+                    .lineLimit(1)
+            }
+            
+            // 三栏关键信息：起始 / SOC变化 / 目标
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("起始")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text("\(context.attributes.startKm)km")
+                        .font(.caption2)
+                        .foregroundColor(.primary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                VStack(alignment: .center, spacing: 2) {
+                    Text("SOC变化")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text("+\(context.state.currentSoc - context.attributes.initialSoc)%")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundColor(.green)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity)
                 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("已充: \(String(format: "%.1f", context.state.chargedKwh)) kWh")
+                    Text("目标")
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    Text("目标: \(String(format: "%.1f", context.attributes.targetKwh)) kWh")
+                    Text("\(context.attributes.endKm)km")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.primary)
+                        .monospacedDigit()
+                        .lineLimit(1)
                 }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .minimumScaleFactor(0.8)
+            
+            // 当前里程独立一行，便于阅读
+            HStack(spacing: 6) {
+                Text("当前里程")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text("\(context.state.currentKm)km")
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             
-            // 消息
+            // 消息提示
             if let message = context.state.message, !message.isEmpty {
                 Text(message)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
-        .padding()
+        .padding(16)
         .background(Color(.systemBackground))
-        .cornerRadius(12)
-    }
-    
-    private var statusText: String {
-        switch context.state.status {
-        case "PREPARING":
-            return "准备中"
-        case "RUNNING", "CHARGING":
-            return "充电中"
-        case "COMPLETED":
-            return "已完成"
-        case "FAILED":
-            return "失败"
-        case "CANCELLED":
-            return "已取消"
-        default:
-            return context.state.status
-        }
-    }
-    
-    private var statusColor: Color {
-        switch context.state.status {
-        case "PREPARING": return .yellow
-        case "RUNNING", "CHARGING": return .green
-        case "COMPLETED": return .green
-        case "FAILED": return .red
-        case "CANCELLED": return .orange
-        default: return .gray
-        }
-    }
-    
-    private var batteryColor: Color {
-        let percentage = context.state.percentage
-        if percentage <= 20 {
-            return .red
-        } else if percentage <= 50 {
-            return .orange
-        } else if percentage <= 75 {
-            return .yellow
-        } else {
-            return .green
-        }
-    }
-    
-    private var batteryIcon: String {
-        let percentage = context.state.percentage
-        if percentage <= 20 {
-            return "battery.25"
-        } else if percentage <= 50 {
-            return "battery.50"
-        } else if percentage <= 75 {
-            return "battery.75"
-        } else {
-            return "battery.100"
-        }
+        .cornerRadius(8)
     }
 }
 
@@ -175,38 +192,15 @@ struct CompactLeadingView: View {
     let context: ActivityViewContext<CarWidgetAttributes>
     
     var body: some View {
-        HStack {
-            Image("logo")
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 25, height: 25) // 你可以根据需要调小尺寸
-                .clipShape(Circle())
-        }
-    }
-    
-    private var batteryColor: Color {
-        let percentage = context.state.percentage
-        if percentage <= 20 {
-            return .red
-        } else if percentage <= 50 {
-            return .orange
-        } else if percentage <= 75 {
-            return .yellow
-        } else {
-            return .green
-        }
-    }
-    
-    private var batteryIcon: String {
-        let percentage = context.state.percentage
-        if percentage <= 20 {
-            return "battery.25"
-        } else if percentage <= 50 {
-            return "battery.50"
-        } else if percentage <= 75 {
-            return "battery.75"
-        } else {
-            return "battery.100"
+        HStack(spacing: 4) {
+            Image(systemName: batteryIcon(for: context.state.chargeProgress))
+                .foregroundColor(progressColor(for: context.state.chargeProgress))
+                .font(.subheadline)
+            
+            Text("\(context.state.chargeProgress)%")
+                .font(.subheadline)
+                .fontWeight(.bold)
+                .foregroundColor(progressColor(for: context.state.chargeProgress))
         }
     }
 }
@@ -215,16 +209,11 @@ struct CompactTrailingView: View {
     let context: ActivityViewContext<CarWidgetAttributes>
     
     var body: some View {
-        Text(displayText)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundColor(.primary)
-    }
-    
-    private var displayText: String {
-        if context.state.status == "PREPARING" {
-            return "等待充电"
-        } else {
-            return "\(context.state.percentage)%"
+        VStack(alignment: .trailing, spacing: 1) {
+            Text("\(context.state.currentKm) km")
+                .font(.caption2)
+                .foregroundColor(.white)
+                .lineLimit(1)
         }
     }
 }
@@ -233,9 +222,16 @@ struct MinimalView: View {
     let context: ActivityViewContext<CarWidgetAttributes>
     
     var body: some View {
-        Text("\(context.state.percentage)%")
-            .font(.system(size: 12, weight: .bold))
-            .foregroundColor(.primary)
+        HStack(spacing: 3) {
+            Image(systemName: batteryIcon(for: context.state.chargeProgress))
+                .foregroundColor(progressColor(for: context.state.chargeProgress))
+                .font(.caption2)
+            
+            Text("\(context.state.chargeProgress)%")
+                .font(.caption2)
+                .fontWeight(.semibold)
+                .foregroundColor(progressColor(for: context.state.chargeProgress))
+        }
     }
 }
 
@@ -243,66 +239,8 @@ struct ExpandedLeadingView: View {
     let context: ActivityViewContext<CarWidgetAttributes>
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Image(systemName: batteryIcon)
-                    .foregroundColor(batteryColor)
-                    .font(.title2)
-                
-                Text("\(context.state.percentage)%")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(batteryColor)
-            }
-            
-            Text(statusText)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-        }
-    }
-    
-    private var statusText: String {
-        switch context.state.status {
-        case "PREPARING":
-            return "准备中"
-        case "RUNNING", "CHARGING":
-            return "充电中"
-        case "COMPLETED":
-            return "已完成"
-        case "FAILED":
-            return "失败"
-        case "CANCELLED":
-            return "已取消"
-        default:
-            return context.state.status
-        }
-    }
-    
-    private var batteryColor: Color {
-        let percentage = context.state.percentage
-        if percentage <= 20 {
-            return .red
-        } else if percentage <= 50 {
-            return .orange
-        } else if percentage <= 75 {
-            return .yellow
-        } else {
-            return .green
-        }
-    }
-    
-    private var batteryIcon: String {
-        let percentage = context.state.percentage
-        if percentage <= 20 {
-            return "battery.25"
-        } else if percentage <= 50 {
-            return "battery.50"
-        } else if percentage <= 75 {
-            return "battery.75"
-        } else {
-            return "battery.100"
-        }
+        // 按需求将顶部内容统一到 Center 区域，这里不再展示任何内容
+        EmptyView()
     }
 }
 
@@ -310,206 +248,96 @@ struct ExpandedTrailingView: View {
     let context: ActivityViewContext<CarWidgetAttributes>
     
     var body: some View {
-        VStack(alignment: .trailing, spacing: 4) {
-            Text("目标里程")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .offset(x: -10)
-            
-            Text("\(String(format: "%.1f", context.attributes.targetKm)) km")
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-                .offset(x: -10)
-        }
+        // 顶部、中间信息都在 Center 展示，这里留空以最大化 Center 可用宽度
+        EmptyView()
     }
 }
 
-struct ExpandedBottomView: View {
+struct ExpandedCenterView: View {
     let context: ActivityViewContext<CarWidgetAttributes>
     
     var body: some View {
         VStack(spacing: 8) {
-            // 进度条
-            ProgressView(value: Float(context.state.percentage), total: 100)
-                .progressViewStyle(LinearProgressViewStyle(tint: batteryColor))
-                .scaleEffect(y: 1.5)
-            
-            // 详细信息
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("初始: \(String(format: "%.1f", context.attributes.initialKm)) km")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Text("已充: \(String(format: "%.1f", context.state.chargedKwh)) kWh")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("目标: \(String(format: "%.1f", context.attributes.targetKwh)) kWh")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
+            // 顶部：电量图标 + 进度条 + 充电进度百分比
+            HStack(spacing: 10) {
+                Image(systemName: batteryIcon(for: context.state.chargeProgress))
+                    .foregroundColor(progressColor(for: context.state.chargeProgress))
+                    .font(.body)
+                ProgressView(value: Float(context.state.chargeProgress), total: 100)
+                    .progressViewStyle(LinearProgressViewStyle(tint: progressColor(for: context.state.chargeProgress)))
+                    .scaleEffect(y: 1.4)
+                Text("\(context.state.chargeProgress)%")
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .foregroundColor(progressColor(for: context.state.chargeProgress))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             
-            // 消息
+            // 中间（第一行）：起始里程 / 起始SOC / 目标里程
+            HStack {
+                Text("起始里程: \(context.attributes.startKm)km")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer()
+                Text("起始SOC: \(context.attributes.initialSoc)%")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer()
+                Text("目标里程: \(context.attributes.endKm)km")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            
+            // 中间（第二行）：当前SOC / 当前里程（加大字号）
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("当前SOC")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text("\(context.state.currentSoc)%")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("当前里程")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text("\(context.state.currentKm)km")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            
+            // 下方：充电消息
             if let message = context.state.message, !message.isEmpty {
                 Text(message)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-        }
-    }
-    
-    private var batteryColor: Color {
-        let percentage = context.state.percentage
-        if percentage <= 20 {
-            return .red
-        } else if percentage <= 50 {
-            return .orange
-        } else if percentage <= 75 {
-            return .yellow
-        } else {
-            return .green
         }
     }
 }
 
-// Preview for Live Activity
-struct CarWidgetLiveActivity_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            // 充电中状态预览
-            VStack(spacing: 12) {
-                HStack {
-                    Text("充电中")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.green)
-                        .cornerRadius(6)
-                    
-                    Spacer()
-                    
-                    Text("65%")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.yellow)
-                }
-                
-                HStack(spacing: 8) {
-                    Image(systemName: "battery.75")
-                        .foregroundColor(.yellow)
-                        .font(.title3)
-                    
-                    ProgressView(value: 0.65)
-                        .progressViewStyle(LinearProgressViewStyle(tint: .yellow))
-                        .scaleEffect(y: 2)
-                }
-                
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("初始: 100.0 km")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text("目标: 150.0 km")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("已充: 8.5 kWh")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text("目标: 35.0 kWh")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Text("充电进行中，请耐心等待")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .previewDisplayName("充电中")
-            
-            // 充电完成状态预览
-            VStack(spacing: 12) {
-                HStack {
-                    Text("已完成")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.green)
-                        .cornerRadius(6)
-                    
-                    Spacer()
-                    
-                    Text("100%")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.green)
-                }
-                
-                HStack(spacing: 8) {
-                    Image(systemName: "battery.100")
-                        .foregroundColor(.green)
-                        .font(.title3)
-                    
-                    ProgressView(value: 1.0)
-                        .progressViewStyle(LinearProgressViewStyle(tint: .green))
-                        .scaleEffect(y: 2)
-                }
-                
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("初始: 100.0 km")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text("目标: 150.0 km")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("已充: 15.0 kWh")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text("目标: 35.0 kWh")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Text("充电已完成")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(12)
-            .previewDisplayName("充电完成")
-        }
-    }
-}
 #endif

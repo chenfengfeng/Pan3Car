@@ -17,11 +17,11 @@ import SwiftyJSON
 
 struct CarModel: Codable {
     // MARK: - 位置信息
-    let latitude: String                 // 纬度
-    let longitude: String                // 经度
+    let latitude: Double                 // 纬度
+    let longitude: Double                // 经度
     
     // MARK: - 电池信息
-    let soc: String                      // 电池电量百分比
+    let soc: Int                         // 电池电量百分比
     let quickChgLeftTime: Int            // 快充剩余时间
     let slowChgLeftTime: Int             // 慢充剩余时间
     let chgStatus: Int                   // 充电状态
@@ -69,11 +69,13 @@ struct CarModel: Codable {
     
     init(json: JSON) {
         // 位置信息
-        self.latitude = json["latitude"].stringValue
-        self.longitude = json["longtitude"].stringValue
+        self.latitude = json["latitude"].doubleValue
+        self.longitude = json["longtitude"].doubleValue
         
         // 电池信息
-        self.soc = json["soc"].stringValue
+        self.soc = json["soc"].intValue
+        self.acOnMile = json["acOnMile"].intValue
+        self.acOffMile = json["acOffMile"].intValue
         self.quickChgLeftTime = json["quickChgLeftTime"].intValue
         self.slowChgLeftTime = json["slowChgLeftTime"].intValue
         self.chgStatus = json["chgStatus"].intValue
@@ -108,8 +110,6 @@ struct CarModel: Codable {
         self.quickcoolACStatus = json["quickcoolACStatus"].int
         self.quickheatACStatus = json["quickheatACStatus"].intValue
         self.defrostStatus = json["defrostStatus"].intValue
-        self.acOnMile = json["acOnMile"].intValue
-        self.acOffMile = json["acOffMile"].intValue
         
         // 灯光系统
         self.lowlightStatus = json["lowlightStatus"].intValue
@@ -122,7 +122,8 @@ struct CarModel: Codable {
     
     /// 推测车型及电池容量（返回如："405", 41.0）
     var estimatedModelAndCapacity: (model: String, batteryCapacity: Double) {
-        guard let socValue = Double(soc), socValue > 0 else {
+        let socValue = soc.double
+        guard socValue > 0 else {
             return ("Unknown", 0.0)
         }
 
@@ -147,5 +148,73 @@ struct CarModel: Codable {
         })
 
         return (closest?.name ?? "Unknown", closest?.battery ?? 0.0)
+    }
+    
+    /// 将CarModel转换为字典形式，用于保存到App Groups
+    func toDictionary() -> [String: Any] {
+        var dictionary: [String: Any] = [
+            // 位置信息
+            "latitude": latitude,
+            "longitude": longitude,
+            
+            // 电池信息
+            "soc": soc,
+            "quickChgLeftTime": quickChgLeftTime,
+            "slowChgLeftTime": slowChgLeftTime,
+            "chgStatus": chgStatus,
+            "chgPlugStatus": chgPlugStatus,
+            "batteryHeatStatus": batteryHeatStatus,
+            
+            // 车门状态
+            "doorStsFrontLeft": doorStsFrontLeft,
+            "doorStsFrontRight": doorStsFrontRight,
+            "doorStsRearLeft": doorStsRearLeft,
+            "doorStsRearRight": doorStsRearRight,
+            "mainLockStatus": mainLockStatus,
+            "trunkLockStatus": trunkLockStatus,
+            
+            // 车窗状态
+            "lfWindowOpen": lfWindowOpen,
+            "rfWindowOpen": rfWindowOpen,
+            "lrWindowOpen": lrWindowOpen,
+            "rrWindowOpen": rrWindowOpen,
+            "topWindowOpen": topWindowOpen,
+            
+            // 轮胎信息
+            "lfTirePresure": lfTirePresure,
+            "rfTirePresure": rfTirePresure,
+            "lrTirePresure": lrTirePresure,
+            "rrTirePresure": rrTirePresure,
+            
+            // 空调系统
+            "acStatus": acStatus,
+            "temperatureInCar": temperatureInCar,
+            "quickheatACStatus": quickheatACStatus,
+            "defrostStatus": defrostStatus,
+            
+            // 灯光系统
+            "lowlightStatus": lowlightStatus,
+            "highlightStatus": highlightStatus,
+            
+            // 车辆基本信息
+            "keyStatus": keyStatus,
+            "totalMileage": totalMileage,
+            "acOnMile": acOnMile,
+            "acOffMile": acOffMile,
+            
+            // 添加时间戳用于数据新鲜度判断
+            "lastUpdated": Date().timeIntervalSince1970
+        ]
+        
+        // 安全处理可选属性，避免null值导致崩溃
+        if let doorsLockStatus = doorsLockStatus {
+            dictionary["doorsLockStatus"] = doorsLockStatus
+        }
+        
+        if let quickcoolACStatus = quickcoolACStatus {
+            dictionary["quickcoolACStatus"] = quickcoolACStatus
+        }
+        
+        return dictionary
     }
 }

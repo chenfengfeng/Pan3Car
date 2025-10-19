@@ -13,21 +13,18 @@ import ActivityKit
 struct CarWidgetAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         // 动态状态数据
-        var status: String              // 充电状态
-        var chargedKwh: Float          // 已充电量
-        var percentage: Int            // 充电百分比
-        var message: String?           // 任务消息
+        var currentKm: Int             // 当前里程
+        var currentSoc: Int            // 当前SOC
+        var chargeProgress: Int        // 充电任务完成进度百分比
+        var message: String?           // 充电消息说明
         var lastUpdateTime: Date       // 最后更新时间
     }
     
     // 固定属性
-    var taskId: Int                    // 任务ID
-    var vin: String                    // 车辆VIN
-    var createdAt: String             // 创建时间
-    var initialKm: Float              // 初始里程
-    var targetKm: Float               // 目标里程
-    var initialKwh: Float             // 初始电量
-    var targetKwh: Float              // 目标电量
+    var vin: String                   // 车辆VIN码
+    var startKm: Int                  // 初始里程
+    var endKm: Int                    // 目标里程
+    var initialSoc: Int               // 初始SOC百分比
 }
 
 #endif

@@ -1,6 +1,6 @@
 // /www/wwwroot/pan3/core/services/push.service.js
 
-import apn from 'node-apn';
+import apn from '@parse/node-apn';
 import fs from 'fs';
 
 // 从环境变量读取配置

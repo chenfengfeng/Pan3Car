@@ -70,7 +70,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     private func updateLiveActivityToken(_ token: String) {
-        NetworkManager.shared.updateLiveActivityToken(newToken: token) { result in
+        NetworkManager.shared.updateLiveActivityToken(token) { result in
             switch result {
             case .success(_):
                 print("token更新成功")
@@ -189,9 +189,84 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         print("✅ 成功获取到APNs设备Token: \(tokenString)")
         
-        // 2. 在这里，将获取到的tokenString保存起来，以备后用
+        // 2. 在这里，将获取到的tokenString保存到App Groups，以便小组件和Watch应用也能访问
         UserDefaults.standard.set(tokenString, forKey: "pushToken")
         UserDefaults.standard.synchronize()
+        if let groupDefaults = UserDefaults(suiteName: "group.com.feng.pan3") {
+            groupDefaults.set(tokenString, forKey: "pushToken")
+            groupDefaults.synchronize()
+            print("✅ 推送token已保存到App Groups: \(tokenString)")
+        } else {
+            print("❌ 无法访问App Groups，推送token保存失败")
+        }
+    }
+    
+    // MARK: - URL Scheme 处理
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        print("收到URL Scheme: \(url)")
+        
+        // 检查是否是我们的 pan3 scheme
+        guard url.scheme == "pan3" else {
+            return false
+        }
+        
+        // 解析 action 参数
+        let action = url.host ?? ""
+        print("解析到的action: \(action)")
+        
+        // 延迟处理，确保APP完全启动
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.handleWidgetAction(action)
+        }
+        
+        return true
+    }
+    
+    private func handleWidgetAction(_ action: String) {
+        // 确保用户已登录
+        guard UserManager.shared.isLoggedIn else {
+            print("用户未登录，无法处理小组件操作")
+            return
+        }
+        
+        // 获取当前的根视图控制器
+        guard let rootViewController = window?.rootViewController else {
+            print("无法获取根视图控制器")
+            return
+        }
+        
+        // 查找 HomeViewController
+        var homeViewController: HomeViewController?
+        
+        if let tabBarController = rootViewController as? UITabBarController {
+            // 如果是 TabBarController，查找其中的 HomeViewController
+            for viewController in tabBarController.viewControllers ?? [] {
+                if let navController = viewController as? UINavigationController {
+                    if let homeVC = navController.viewControllers.first as? HomeViewController {
+                        homeViewController = homeVC
+                        break
+                    }
+                } else if let homeVC = viewController as? HomeViewController {
+                    homeViewController = homeVC
+                    break
+                }
+            }
+        } else if let navController = rootViewController as? UINavigationController {
+            // 如果是 NavigationController，查找其中的 HomeViewController
+            if let homeVC = navController.viewControllers.first as? HomeViewController {
+                homeViewController = homeVC
+            }
+        } else if let homeVC = rootViewController as? HomeViewController {
+            // 直接是 HomeViewController
+            homeViewController = homeVC
+        }
+        
+        // 如果找到了 HomeViewController，处理对应的操作
+        if let homeVC = homeViewController {
+            homeVC.handleWidgetAction(action)
+        } else {
+            print("未找到 HomeViewController，无法处理小组件操作")
+        }
     }
 }
 

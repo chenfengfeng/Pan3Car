@@ -106,8 +106,16 @@ struct CarInfo: Codable, Hashable {
     
     // 通用的解析CarInfo方法
     static func parseCarInfo(from carData: [String: Any]) -> CarInfo {
-        let socString = carData["soc"] as? String ?? "0"
-        let soc = Int(socString) ?? 0
+        // 安全处理soc字段，支持Int和String类型
+        let soc: Int
+        if let socInt = carData["soc"] as? Int {
+            soc = socInt
+        } else if let socString = carData["soc"] as? String {
+            soc = Int(socString) ?? 0
+        } else {
+            soc = 0
+        }
+        
         let remainingMileage = carData["acOnMile"] as? Int ?? 0
         let mainLockStatus = carData["mainLockStatus"] as? Int ?? 0
         let acStatus = carData["acStatus"] as? Int ?? 0

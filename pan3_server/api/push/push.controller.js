@@ -5,12 +5,23 @@ import { sendApplePush, sendLiveActivityPush } from '../../core/services/push.se
 export async function handlePushRequest(req, res) {
     try {
         const pushData = req.body;
-        if (!pushData.pushToken) {
-            return res.status(400).json({ code: 400, message: '请求体中缺少必需的 pushToken' });
+        
+        // 兼容两种参数格式：pushToken 和 token
+        const pushToken = pushData.pushToken || pushData.token;
+        
+        if (!pushToken) {
+            return res.status(400).json({ code: 400, message: '请求体中缺少必需的 pushToken 或 token' });
         }
 
+        // 构造推送数据对象，确保格式正确
+        const formattedPushData = {
+            pushToken: pushToken,
+            title: pushData.title || '通知',
+            body: pushData.body || '您有新的消息'
+        };
+
         // 调用核心推送服务
-        await sendApplePush(pushData);
+        await sendApplePush(formattedPushData);
         
         // 推送成功，返回200 OK
         res.status(200).json({ code: 200, message: '推送指令已成功发送至APNs' });

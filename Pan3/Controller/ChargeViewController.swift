@@ -7,9 +7,11 @@
 
 import GRDB
 import UIKit
+import MapKit
 import QMUIKit
 import MJRefresh
 import SwifterSwift
+import CoreLocation
 
 class ChargeViewController: UIViewController {
     private lazy var spaceView: UIView = {
@@ -55,13 +57,16 @@ class ChargeViewController: UIViewController {
         mileageHeaderView.setupUI()
         mileageHeaderView.setupCarModel(false)
         
-        // 注册充电任务推送通知
-        registerChargeTaskPushNotification()
-        
-        // 主动获取最新的充电任务状态
-        checkAndUpdateRunningTaskStatus()
-        
         loadChargeList()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // 切换到该 Tab 页面时，刷新头部和下方列表（重新读取数据库）
+        mileageHeaderView.setupCarModel(false)
+        currentPage = 1
+        tableView.mj_footer?.resetNoMoreData()
+        loadChargeList(page: 1)
     }
     
     private func setupUIView() {
@@ -92,93 +97,64 @@ class ChargeViewController: UIViewController {
     private func setupRefreshControl() {
         // 设置刷新控件的偏移量，避免与大标题导航栏遮挡
         let mj_header = MJRefreshNormalHeader(refreshingBlock: {
-            // 下拉刷新：请求API获取最新数据来更新数据库
-            self.refreshDataFromAPI()
+            // 下拉刷新：请求API获取最新车辆信息 + 列表重新读取本地数据库
+            self.fetchCarInfo()
+            // 重新从第一页加载数据库列表
+            self.currentPage = 1
+            self.tableView.mj_footer?.resetNoMoreData()
+            self.loadChargeList(page: 1)
         })
         mj_header.ignoredScrollViewContentInsetTop = 20
         mj_header.lastUpdatedTimeLabel?.isHidden = true
         tableView.mj_header = mj_header
         
-        // 上拉加载更多
-        tableView.mj_footer = MJRefreshAutoNormalFooter {
-            guard self.currentPage < self.totalPages else {
-                self.tableView.mj_footer?.endRefreshingWithNoMoreData()
-                return
-            }
+        // 上拉加载更多（本地数据库分页）
+        tableView.mj_footer = MJRefreshAutoNormalFooter { [weak self] in
+            guard let self = self else { return }
             self.loadChargeList(page: self.currentPage + 1)
-        }
-    }
-    
-    /// 下拉刷新时调用API获取最新数据
-    private func refreshDataFromAPI() {
-        guard let vin = UserManager.shared.defaultVin else {
-            print("无法获取默认VIN，跳过状态检查")
-            DispatchQueue.main.async {
-                self.tableView.mj_header?.endRefreshing()
-            }
-            return
-        }
-        
-        // 同时请求充电状态和车辆信息
-        let group = DispatchGroup()
-        
-        // 请求充电状态
-        group.enter()
-        NetworkManager.shared.getChargeStatus { [weak self] result in
-            defer { group.leave() }
-            switch result {
-            case .success(let response):
-                self?.handleChargeStatusResponse(response, for: vin)
-            case .failure(let error):
-                print("获取充电状态失败: \(error)")
-                // 网络请求失败时，仍然检查本地是否有长时间未更新的任务
-                self?.checkAndUpdateStaleLocalTasks(for: vin)
-            }
-        }
-        
-        // 请求车辆信息
-        group.enter()
-        self.fetchCarInfo()
-        group.leave()
-        
-        // 所有请求完成后结束刷新
-        group.notify(queue: .main) {
-            self.tableView.mj_header?.endRefreshing()
         }
     }
     
     private func setupMonitorButton() {
         let menu = UIMenu(
-            title: "选择监听模式",
+            title: "选择通知模式",
             options: .displayInline,
             children: [
                 // 选项1: 按时间监听
                 UIAction(
-                    title: "按时间监听",
+                    title: "时间通知",
                     subtitle: "达到设定的充电时长后，将发送通知提醒",
                     image: UIImage(systemName: "timer")) { [weak self] _ in
-                        self?.handleMonitorByTime()
+                        self?.checkActiveMonitoringBeforeAction {
+                            self?.handleMonitorByTime()
+                        }
                     },
                 // 选项2: 按充电金额监听
                 UIAction(
-                    title: "按充电金额监听",
+                    title: "充电金额通知",
                     subtitle: "根据电价和目标金额计算，到达后发送通知",
                     image: UIImage(systemName: "dollarsign.circle")) { [weak self] _ in
-                        self?.handleMonitorByAmount()
+                        self?.checkActiveMonitoringBeforeAction {
+                            self?.handleMonitorByAmount()
+                        }
                     },
                 // 选项3: 按充电度数监听
                 UIAction(
-                    title: "按充电度数监听",
+                    title: "充电度数通知",
                     subtitle: "达到设定的充电度数(kWh)后，将发送通知",
                     image: UIImage(systemName: "bolt.fill")) { [weak self] _ in
-                        self?.handleMonitorByKwh()
+                        self?.checkActiveMonitoringBeforeAction {
+                            self?.handleMonitorByKwh()
+                        }
                     },
                 // 选项4: 按服务费监听
                 UIAction(
-                    title: "按服务费监听",
+                    title: "服务费通知",
                     subtitle: "达到设定的服务费总额后，将发送通知",
                     image: UIImage(systemName: "creditcard")) { [weak self] _ in
-                        self?.handleMonitorByServiceFee()
+                        self?.checkActiveMonitoringBeforeAction {
+                            self?.handleMonitorByServiceFee()
+                        }
                     }
             ]
         )
@@ -190,7 +166,7 @@ class ChargeViewController: UIViewController {
         // --- 按钮样式配置 (使用 UIButton.Configuration) ---
         // 这是 iOS 15+ 推荐的按钮样式配置方法，非常灵活。
         var config = UIButton.Configuration.filled()
-        config.title = "充电监听"
+        config.title = "充电通知"
         config.image = UIImage(systemName: "powerplug.fill")
         config.imagePadding = 8
         config.baseBackgroundColor = .systemGreen
@@ -215,16 +191,16 @@ class ChargeViewController: UIViewController {
             ) { result in
                 QMUITips.hideAllTips()
                 switch result {
-                case .success:
-                    QMUITips.showSucceed("时间监听已成功启动")
-                    // 调用统一的处理函数
-                    self.handleSuccessfulMonitoringStart(
-                        mode: "time",
-                        targetValue: targetTimestamp.string,
-                        autoStopCharge: stopAutomatically
-                    )
-                case .failure(let error):
-                    QMUITips.showError("启动失败: \(error.localizedDescription)")
+                    case .success:
+                        QMUITips.showSucceed("时间监听已成功启动")
+                        // 调用统一的处理函数
+                        self.handleSuccessfulMonitoringStart(
+                            mode: "time",
+                            targetValue: targetTimestamp.string,
+                            autoStopCharge: stopAutomatically
+                        )
+                    case .failure(let error):
+                        QMUITips.showError("启动失败: \(error.localizedDescription)")
                 }
             }
         }
@@ -252,7 +228,7 @@ class ChargeViewController: UIViewController {
             
             // 计算需要充多少度电
             let kwhToCharge = totalAmount / unitPrice
-            self.startMonitoringWithKwh(kwhToCharge)
+            self.startMonitoringWithKwh(kwhToCharge, monitoringType: "amount", originalValue: totalAmount)
         }))
         present(alert, animated: true)
     }
@@ -267,7 +243,7 @@ class ChargeViewController: UIViewController {
                 QMUITips.showError("请输入有效的度数")
                 return
             }
-            self.startMonitoringWithKwh(kwhToCharge)
+            self.startMonitoringWithKwh(kwhToCharge, monitoringType: "kwh", originalValue: kwhToCharge)
         }))
         present(alert, animated: true)
     }
@@ -286,13 +262,13 @@ class ChargeViewController: UIViewController {
             }
             // 计算需要充多少度电
             let kwhToCharge = totalFee / unitFee
-            self.startMonitoringWithKwh(kwhToCharge)
+            self.startMonitoringWithKwh(kwhToCharge, monitoringType: "serviceFee", originalValue: totalFee)
         }))
         present(alert, animated: true)
     }
     
     /// 通用辅助函数，用于将 "需要充电的度数" 转换为 "目标续航里程" 并启动监听
-    private func startMonitoringWithKwh(_ kwhToCharge: Double) {
+    private func startMonitoringWithKwh(_ kwhToCharge: Double, monitoringType: String = "kwh", originalValue: Double = 0) {
         guard let carModel = UserManager.shared.carModel else {
             QMUITips.showError("无法获取车辆信息")
             return
@@ -301,20 +277,22 @@ class ChargeViewController: UIViewController {
         // --- 使用工具类进行核心计算逻辑 ---
         
         // 1. 获取电池总容量和当前SOC
-        let batteryCapacity = BatteryCalculationUtility.getBatteryCapacity(from: carModel)
-        let currentSoc = BatteryCalculationUtility.getCurrentSoc(from: carModel)
+        let batteryCapacity = BatteryCalculationUtility.getBatteryCapacity(from: carModel)//获取数据34.5
+        let currentSoc = BatteryCalculationUtility.getCurrentSoc(from: carModel)//获取数据61
         
         // 2. 计算当前电量
-        let currentKwh = BatteryCalculationUtility.calculateCurrentKwh(soc: currentSoc, batteryCapacity: batteryCapacity)
+        let currentKwh = BatteryCalculationUtility.calculateCurrentKwh(soc: currentSoc, batteryCapacity: batteryCapacity)//获取数据21.04
         
         // 3. 计算目标电量，考虑充电损耗
-        let targetKwh = BatteryCalculationUtility.calculateTargetKwh(currentKwh: currentKwh, chargeAmount: kwhToCharge)
+        let targetKwh = BatteryCalculationUtility.calculateTargetKwh(currentKwh: currentKwh, chargeAmount: kwhToCharge)// 获取数据23.2
         
         // 4. 计算目标SOC百分比
-        let targetSoc = BatteryCalculationUtility.calculateSoc(currentKwh: targetKwh, batteryCapacity: batteryCapacity)
+        let targetSoc = BatteryCalculationUtility.calculateSoc(currentKwh: targetKwh, batteryCapacity: batteryCapacity)//获取数据67.26
         
         // 5. 根据能耗估算目标续航里程
-        let targetRange = BatteryCalculationUtility.calculateRange(soc: targetSoc, carModel: carModel)
+        let targetRange = BatteryCalculationUtility.calculateRange(soc: targetSoc, carModel: carModel)//这里出错了，这里数据有336，2度电怎么怎么可能增加这么多里程
+        
+        let currentKm = carModel.acOnMile
         
         // --- 计算结束 ---
         
@@ -325,70 +303,185 @@ class ChargeViewController: UIViewController {
         ) { result in
             QMUITips.hideAllTips()
             switch result {
-            case .success:
-                QMUITips.showSucceed("里程监听已成功启动")
-                // 调用统一的处理函数
-                self.handleSuccessfulMonitoringStart(
-                    mode: "range",
-                    targetValue: Int(targetRange).string,
-                    autoStopCharge: false, // 里程模式下，我们不自动停止充电
-                    targetKm: Double(targetRange)
-                )
-            case .failure(let error):
-                QMUITips.showError("启动失败: \(error.localizedDescription)")
+                case .success:
+                    QMUITips.showSucceed("里程监听已成功启动")
+                    // 根据监控类型生成不同的显示文本
+                    let displayText: String
+                    switch monitoringType {
+                    case "amount":
+                        displayText = "设定充电价格: \(originalValue)元 (大约可以充电\(Int(targetRange-currentKm))公里)"
+                    case "kwh":
+                        displayText = "设定充电度数: \(originalValue)kWh (大约可以充电\(Int(targetRange-currentKm))公里)"
+                    case "serviceFee":
+                        displayText = "设定电量服务费: \(originalValue)元 (大约可以充电\(Int(targetRange-currentKm))公里)"
+                    default:
+                        displayText = "\(Int(targetRange))公里"
+                    }
+                    
+                    // 调用统一的处理函数
+                    self.handleSuccessfulMonitoringStart(
+                        mode: "range",
+                        targetValue: displayText,
+                        autoStopCharge: false, // 里程模式下，我们不自动停止充电
+                        targetKm: Double(targetRange)
+                    )
+                case .failure(let error):
+                    QMUITips.showError("启动失败: \(error.localizedDescription)")
             }
         }
     }
     
     /// 处理监控任务成功启动后的本地操作
     private func handleSuccessfulMonitoringStart(mode: String, targetValue: String, autoStopCharge: Bool, targetKm: Double? = 0) {
-        guard let vin = UserManager.shared.defaultVin,
-              let carModel = UserManager.shared.carModel else {
-            QMUITips.showError("无法获取车辆信息以创建本地任务")
+        // 保存监控信息到UserDefaults
+        saveMonitoringInfo(mode: mode, targetValue: targetValue, autoStopCharge: autoStopCharge, targetKm: targetKm)
+        
+        // 启动实时活动
+        if #available(iOS 16.1, *) {
+            startLiveActivity(mode: mode, targetValue: targetValue, targetKm: targetKm)
+        }
+        
+        showAlert(title: "成功开启通知", message: targetValue)
+    }
+    
+    // MARK: - Monitoring Task Management
+    
+    /// 保存监控信息到UserDefaults
+    private func saveMonitoringInfo(mode: String, targetValue: String, autoStopCharge: Bool, targetKm: Double?) {
+        let defaults = UserDefaults.standard
+        defaults.set(mode, forKey: "activeMonitoringMode")
+        defaults.set(targetValue, forKey: "activeMonitoringTargetValue")
+        defaults.set(autoStopCharge, forKey: "activeMonitoringAutoStop")
+        
+        // 根据模式保存不同的详细信息
+        switch mode {
+        case "time":
+            // 时间模式：保存目标时间戳，转换为可读时间
+            if let timestamp = Double(targetValue) {
+                let targetDate = Date(timeIntervalSince1970: timestamp)
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd HH:mm"
+                let timeString = formatter.string(from: targetDate)
+                defaults.set(timeString, forKey: "activeMonitoringDetails")
+            }
+        case "range":
+            // 续航模式：直接使用传入的targetValue（已经包含完整信息）
+            defaults.set(targetValue, forKey: "activeMonitoringDetails")
+        default:
+            defaults.set(targetValue, forKey: "activeMonitoringDetails")
+        }
+        
+        defaults.synchronize()
+    }
+    
+    /// 检查是否有活跃的监控任务
+    /// 在执行监听操作前检查是否有活跃的监听任务
+    private func checkActiveMonitoringBeforeAction(completion: @escaping () -> Void) {
+        let defaults = UserDefaults.standard
+        
+        // 检查是否有活跃的监听任务
+        if let mode = defaults.string(forKey: "activeMonitoringMode"),
+           let details = defaults.string(forKey: "activeMonitoringDetails") {
+            // 有活跃任务，显示提醒弹窗
+            showMonitoringAlert(mode: mode, details: "当到达\(details)后通知你")
+        } else {
+            // 没有活跃任务，执行新的监听操作
+            completion()
+        }
+    }
+    
+    private func checkActiveMonitoringTask() {
+        let defaults = UserDefaults.standard
+        
+        guard let mode = defaults.string(forKey: "activeMonitoringMode"),
+              let details = defaults.string(forKey: "activeMonitoringDetails") else {
             return
         }
         
-        // --- 1. 创建本地数据库记录 ---
-        let newRecord = ChargeTaskRecord(
-            vin: vin,
-            monitoringMode: mode,
-            targetValue: targetValue,
-            autoStopCharge: autoStopCharge,
-            finalStatus: "PREPARING",
-            startTime: Date(),
-            startSoc: Int(carModel.soc),
-            startRange: carModel.acOffMile
-        )
-        
-        do {
-            try AppDatabase.dbQueue.write { db in
-                try newRecord.save(db)
-                print("新的充电任务记录已成功存入数据库")
-                print(db)
-            }
-        } catch {
-            print("存入数据库失败: \(error)")
-            QMUITips.showError("创建本地任务记录失败")
-            return // 如果数据库写入失败，就不启动实时活动
-        }
-        
-        // --- 2. 启动实时活动 ---
-        // LiveActivityManager 单例来处理实时活动的启动和更新
-        // 实时活动的 Attribute 和 ContentState 结构来传递正确的初始值
-        let newModel = ChargeTaskModel(from: newRecord, carModel: carModel)
-        let attributes = newModel.toCarWidgetAttributes()
-        let contentState = newModel.toContentState()
-        LiveActivityManager.shared.startChargeActivity(attributes: attributes, initialState: contentState)
-        
-        print("本地数据库记录已创建，下一步应启动实时活动。")
-        QMUITips.showSucceed("监听已成功启动")
-        
-        // 刷新充电列表以显示新创建的记录
-        loadChargeList()
-        
-        getTaskStatus()
+        // 显示监控状态提醒弹窗
+        showMonitoringAlert(mode: mode, details: details)
     }
     
+    /// 显示监控状态提醒弹窗
+    private func showMonitoringAlert(mode: String, details: String) {
+        let modeTitle: String
+        switch mode {
+        case "time":
+            modeTitle = "时间通知"
+        case "range":
+            modeTitle = "续航通知"
+        case "amount":
+            modeTitle = "充电金额通知"
+        case "kwh":
+            modeTitle = "充电度数通知"
+        case "serviceFee":
+            modeTitle = "服务费通知"
+        default:
+            modeTitle = "充电通知"
+        }
+        
+        let alert = UIAlertController(
+            title: modeTitle,
+            message: details,
+            preferredStyle: .alert
+        )
+        
+        // 取消通知按钮
+        let cancelAction = UIAlertAction(title: "取消通知", style: .destructive) { [weak self] _ in
+            self?.cancelActiveMonitoring(mode: mode)
+        }
+        
+        // 确定按钮
+        let confirmAction = UIAlertAction(title: "确定", style: .default) { _ in
+            // 仅关闭弹窗，不做其他操作
+        }
+        
+        alert.addAction(cancelAction)
+        alert.addAction(confirmAction)
+        
+        present(alert, animated: true)
+    }
+    
+    /// 取消活跃的监控任务
+    private func cancelActiveMonitoring(mode: String) {
+        QMUITips.showLoading("正在取消监控...", in: self.view)
+        
+        NetworkManager.shared.stopChargeMonitoring(mode: mode) { [weak self] result in
+            DispatchQueue.main.async {
+                QMUITips.hideAllTips()
+                
+                switch result {
+                case .success:
+                    QMUITips.showSucceed("监控已取消")
+                    self?.clearMonitoringInfo()
+                case .failure(let error):
+                    QMUITips.showError("取消失败: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    /// 清除监控信息
+    private func clearMonitoringInfo() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: "activeMonitoringMode")
+        defaults.removeObject(forKey: "activeMonitoringTargetValue")
+        defaults.removeObject(forKey: "activeMonitoringAutoStop")
+        defaults.removeObject(forKey: "activeMonitoringDetails")
+        
+        // 清除实时活动数据
+        defaults.removeObject(forKey: "LiveActivityData")
+        
+        defaults.synchronize()
+        
+        // 停止实时活动
+        if #available(iOS 16.1, *) {
+            LiveActivityManager.shared.endCurrentActivity()
+        }
+        
+        print("监控信息和实时活动数据已清除")
+    }
+
     // MARK: - Data Loading
     private func loadChargeList(page: Int = 1) {
         // 在后台线程执行数据库读取操作，避免阻塞UI
@@ -409,14 +502,7 @@ class ChargeViewController: UIViewController {
                         .fetchAll(db)
                 }
                 
-                // 将数据库模型转换为视图模型
-                guard let carModel = UserManager.shared.carModel else {
-                    // 如果没有车辆信息，无法进行计算，直接返回空
-                    self.handleLocalChargeListResponse([], page: page, hasMore: false)
-                    return
-                }
-                
-                let viewModels = records.map { ChargeTaskModel(from: $0, carModel: carModel) }
+                let viewModels = records.map { ChargeTaskModel(from: $0) }
                 let hasMore = viewModels.count == 20 // 如果返回的数量等于页大小，则认为还有更多数据
                 
                 // 将处理结果切换回主线程来更新UI
@@ -553,16 +639,15 @@ class ChargeViewController: UIViewController {
     func fetchCarInfo() {
         NetworkManager.shared.getInfo(completion: { [weak self] result in
             guard let self else { return }
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let json):
+            self.tableView.mj_header?.endRefreshing()
+            switch result {
+                case .success(let model):
                     // 保存车辆信息
-                    let model = CarModel(json: json)
+                    self.tableView.mj_header?.endRefreshing()
                     UserManager.shared.updateCarInfo(with: model)
                     self.mileageHeaderView.setupCarModel(false)
                 case .failure(let error):
                     QMUITips.show(withText: "获取车辆信息失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
-                }
             }
         })
     }
@@ -595,23 +680,23 @@ class ChargeViewController: UIViewController {
         var slowChargePower: Float = 0
         
         switch estimated.model {
-        case "330":
-            fastChargeTimeToFull = 0.58
-            slowChargeTimeToFull = 12
-            fastChargePower = 34.5 * 0.5 / fastChargeTimeToFull // ≈29.7
-            slowChargePower = 34.5 / slowChargeTimeToFull
-        case "405":
-            fastChargeTimeToFull = 0.5
-            slowChargeTimeToFull = 7.5
-            fastChargePower = 41 * 0.5 / fastChargeTimeToFull // ≈41
-            slowChargePower = 41 / slowChargeTimeToFull
-        case "505":
-            fastChargeTimeToFull = 0.5
-            slowChargeTimeToFull = 9
-            fastChargePower = 51.5 * 0.5 / fastChargeTimeToFull // ≈51.5
-            slowChargePower = 51.5 / slowChargeTimeToFull
-        default:
-            break
+            case "330":
+                fastChargeTimeToFull = 0.58
+                slowChargeTimeToFull = 12
+                fastChargePower = 34.5 * 0.5 / fastChargeTimeToFull // ≈29.7
+                slowChargePower = 34.5 / slowChargeTimeToFull
+            case "405":
+                fastChargeTimeToFull = 0.5
+                slowChargeTimeToFull = 7.5
+                fastChargePower = 41 * 0.5 / fastChargeTimeToFull // ≈41
+                slowChargePower = 41 / slowChargeTimeToFull
+            case "505":
+                fastChargeTimeToFull = 0.5
+                slowChargeTimeToFull = 9
+                fastChargePower = 51.5 * 0.5 / fastChargeTimeToFull // ≈51.5
+                slowChargePower = 51.5 / slowChargeTimeToFull
+            default:
+                break
         }
         
         let fastMinutesTo90 = fastChargePower > 0 ? remainingTo90KWh / Double(fastChargePower) * 60 : 0
@@ -635,308 +720,65 @@ class ChargeViewController: UIViewController {
         modal.show()
     }
     
-    // MARK: - 充电功能
+    // MARK: - Live Activity Management
     
-    /// 主动检查并更新正在运行的充电任务状态
-    private func checkAndUpdateRunningTaskStatus() {
-        guard let vin = UserManager.shared.defaultVin else {
-            print("无法获取默认VIN，跳过状态检查")
+    /// 启动实时活动
+    @available(iOS 16.1, *)
+    private func startLiveActivity(mode: String, targetValue: String, targetKm: Double?) {
+        // 获取当前车辆信息
+        guard let carInfo = UserManager.shared.carModel else {
+            print("无法获取车辆信息，无法启动实时活动")
             return
         }
         
-        NetworkManager.shared.getChargeStatus { [weak self] result in
-            switch result {
-            case .success(let response):
-                self?.handleChargeStatusResponse(response, for: vin)
-            case .failure(let error):
-                print("获取充电状态失败: \(error)")
-                // 网络请求失败时，仍然检查本地是否有长时间未更新的任务
-                self?.checkAndUpdateStaleLocalTasks(for: vin)
-            }
-        }
-    }
-    
-    /// 处理充电状态API响应
-    private func handleChargeStatusResponse(_ response: ChargeStatusResponse, for vin: String) {
-        if response.hasRunningTask {
-            // 服务器端有正在运行的任务，检查本地数据库是否同步
-            if let serverTask = response.task {
-                print("服务器端有正在运行的充电任务: \(serverTask.status)")
-                // 可以在这里同步服务器状态到本地数据库
-                syncServerTaskToLocal(serverTask, for: vin)
-            }
-        } else {
-            // 服务器端没有正在运行的任务，检查本地是否有未完成的任务需要更新
-            print("服务器端没有正在运行的充电任务，检查本地数据库")
-            updateLocalTasksWhenNoServerTask(for: vin)
-        }
-    }
-    
-    /// 当服务器端没有运行中任务时，更新本地数据库中的未完成任务
-    private func updateLocalTasksWhenNoServerTask(for vin: String) {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                try AppDatabase.dbQueue.write { db in
-                    // 查找所有未完成的任务
-                    let unfinishedTasks = try ChargeTaskRecord.filter(
-                        Column("vin") == vin &&
-                        (Column("finalStatus") == "PREPARING" || Column("finalStatus") == "CHARGING" || Column("finalStatus") == "RUNNING")
-                    ).fetchAll(db)
-                    
-                    if !unfinishedTasks.isEmpty {
-                        print("发现 \(unfinishedTasks.count) 个本地未完成任务，服务器端已无运行中任务，将其标记为完成")
-                        
-                        // 批量更新所有未完成的任务为完成状态
-                        let updateSql = """
-                            UPDATE chargeTask 
-                            SET finalStatus = 'COMPLETED', endTime = ? 
-                            WHERE vin = ? AND finalStatus IN ('PREPARING', 'CHARGING', 'RUNNING')
-                        """
-                        
-                        let updatedCount = try db.execute(sql: updateSql, arguments: [Date(), vin])
-                        print("已将 \(updatedCount) 个未完成任务标记为完成")
-                        
-                        // 在主线程刷新UI
-                        DispatchQueue.main.async {
-                            self?.loadChargeList(page: 1)
-                        }
-                    }
-                }
-            } catch {
-                print("更新本地任务状态失败: \(error)")
-            }
-        }
-    }
-    
-    /// 同步服务器任务状态到本地数据库
-    private func syncServerTaskToLocal(_ serverTask: ChargeTaskModel, for vin: String) {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                try AppDatabase.dbQueue.write { db in
-                    // 查找最新的未完成任务
-                    let sql = """
-                        SELECT * FROM chargeTask 
-                        WHERE vin = ? AND finalStatus IN ('PREPARING', 'RUNNING', 'CHARGING')
-                        ORDER BY startTime DESC 
-                        LIMIT 1
-                    """
-                    
-                    if var record = try ChargeTaskRecord.fetchOne(db, sql: sql, arguments: [vin]) {
-                        // 更新本地任务状态以匹配服务器状态
-                        record.finalStatus = serverTask.status
-                        if serverTask.status == "COMPLETED" || serverTask.status == "CANCELLED" || serverTask.status == "FAILED" {
-                            record.endTime = Date()
-                        }
-                        
-                        try record.save(db)
-                        print("已同步服务器任务状态到本地: \(serverTask.status)")
-                        
-                        // 在主线程刷新UI
-                        DispatchQueue.main.async {
-                            self?.loadChargeList(page: 1)
-                        }
-                    }
-                }
-            } catch {
-                print("同步服务器任务状态失败: \(error)")
-            }
-        }
-    }
-    
-    /// 检查并更新长时间未更新的本地任务（网络请求失败时的备用方案）
-    private func checkAndUpdateStaleLocalTasks(for vin: String) {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                try AppDatabase.dbQueue.read { db in
-                    // 查找超过30分钟未更新的准备中或充电中任务
-                    let thirtyMinutesAgo = Date().addingTimeInterval(-30 * 60)
-                    let staleTasks = try ChargeTaskRecord.filter(
-                        Column("vin") == vin &&
-                        (Column("finalStatus") == "PREPARING" || Column("finalStatus") == "CHARGING") &&
-                        Column("startTime") < thirtyMinutesAgo
-                    ).fetchAll(db)
-                    
-                    if !staleTasks.isEmpty {
-                        print("发现 \(staleTasks.count) 个可能已过期的本地任务")
-                        // 这里可以选择性地更新这些任务，或者等待下次网络请求成功时处理
-                    }
-                }
-            } catch {
-                print("检查过期任务失败: \(error)")
-            }
-        }
-    }
-    
-    // 获取充电任务状态
-    private func getTaskStatus() {
-        NetworkManager.shared.getChargeStatus { result in
-            
-        }
-    }
-    
-    // 取消充电任务
-    private func cancelCharge() {
-        // 这个方法已被新的取消逻辑替代，保留以防其他地方调用
-        let alert = UIAlertController(title: "确认取消", message: "确定要取消当前的充电任务吗？", preferredStyle: .alert)
-        
-        alert.addAction(UIAlertAction(title: "取消", style: .cancel, handler: nil))
-        alert.addAction(UIAlertAction(title: "确定", style: .destructive, handler: { _ in
-            NetworkManager.shared.stopChargeMonitoring { result in
-                DispatchQueue.main.async {
-                    switch result {
-                    case .success(_):
-                        self.getTaskStatus()
-                        LiveActivityManager.shared.cleanupAllActivities()
-                        self.showAlert(title: "取消成功", message: "充电任务已成功取消")
-                    case .failure(let error):
-                        self.showAlert(title: "取消失败", message: error.localizedDescription)
-                    }
-                }
-            }
-        }))
-        
-        present(alert, animated: true)
-    }
-    
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-    
-    // MARK: - 充电任务推送通知处理
-    
-    /// 注册充电任务推送通知
-    private func registerChargeTaskPushNotification() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleChargeTaskPushNotification(_:)),
-            name: NSNotification.Name("ChargeTaskPushReceived"),
-            object: nil
+        // 创建 CarWidgetAttributes
+        let attributes = CarWidgetAttributes(
+            vin: UserManager.shared.defaultVin ?? "",
+            startKm: carInfo.acOnMile,        // 使用当前里程作为起始里程
+            endKm: Int(targetKm ?? Double(carInfo.acOnMile)), // 目标里程，如果没有则使用当前里程
+            initialSoc: carInfo.soc          // 使用当前SOC作为初始SOC
         )
+        
+        // 创建初始状态 - 使用当前车辆数据作为初始值
+        let initialState = CarWidgetAttributes.ContentState(
+            currentKm: carInfo.acOnMile,           // 当前里程作为初始里程
+            currentSoc: carInfo.soc,              // 当前SOC作为初始SOC
+            chargeProgress: 0,                    // 充电进度从0开始
+            message: "充电监控已启动",              // 初始消息
+            lastUpdateTime: Date()                // 当前时间
+        )
+        
+        // 保存实时活动数据到 UserDefaults
+        saveLiveActivityData(mode: mode, targetValue: targetValue, targetKm: targetKm, attributes: attributes, initialState: initialState)
+        
+        // 使用 LiveActivityManager 启动实时活动
+        LiveActivityManager.shared.manageActivityForTask(attributes: attributes, state: initialState)
+        
+        print("实时活动已启动 - 模式: \(mode), 目标值: \(targetValue)")
     }
     
-    /// 处理充电任务推送通知
-    @objc private func handleChargeTaskPushNotification(_ notification: Notification) {
-        guard let userInfo = notification.userInfo,
-              let vin = userInfo["vin"] as? String,
-              let status = userInfo["status"] as? String,
-              let operationType = userInfo["operationType"] as? String,
-              let extData = userInfo["extData"] as? [String: Any] else {
-            print("充电任务推送通知数据格式错误")
-            return
-        }
+    /// 保存实时活动数据到 UserDefaults
+    private func saveLiveActivityData(mode: String, targetValue: String, targetKm: Double?, attributes: CarWidgetAttributes, initialState: CarWidgetAttributes.ContentState) {
+        let liveActivityData: [String: Any] = [
+            "mode": mode,
+            "targetValue": targetValue,
+            "targetKm": targetKm ?? 0,
+            "vin": attributes.vin,
+            "startKm": attributes.startKm,
+            "endKm": attributes.endKm,
+            "initialSoc": attributes.initialSoc,
+            "currentKm": initialState.currentKm,
+            "currentSoc": initialState.currentSoc,
+            "chargeProgress": initialState.chargeProgress,
+            "message": initialState.message,
+            "lastUpdateTime": initialState.lastUpdateTime.timeIntervalSince1970,
+            "isActive": true
+        ]
         
-        print("ChargeViewController收到充电任务推送 - VIN: \(vin), 状态: \(status), 操作类型: \(operationType)")
+        UserDefaults.standard.set(liveActivityData, forKey: "LiveActivityData")
+        UserDefaults.standard.synchronize()
         
-        // 更新本地数据库中对应VIN的充电任务状态
-        updateChargeTaskStatusInDatabase(vin: vin, status: status, extData: extData)
-        
-        // 刷新充电列表显示
-        DispatchQueue.main.async {
-            self.loadChargeList(page: 1)
-        }
-        
-        // 根据状态显示相应的提示
-        DispatchQueue.main.async {
-            switch operationType {
-            case "charge_task_completed":
-                if let reason = extData["reason"] as? String {
-                    let message = reason == "target_reached" ? "充电目标已达成" : "充电任务已完成"
-                    QMUITips.showSucceed(message, in: self.view)
-                } else {
-                    QMUITips.showSucceed("充电任务已完成", in: self.view)
-                }
-                
-            case "charge_task_failed":
-                if let reason = extData["reason"] as? String {
-                    let message: String
-                    switch reason {
-                    case "vehicle_data_error":
-                        message = "车辆数据获取失败，充电监控中断"
-                    case "timeout":
-                        message = "充电监控超时"
-                    default:
-                        message = "充电任务失败：\(reason)"
-                    }
-                    QMUITips.showError(message, in: self.view)
-                } else {
-                    QMUITips.showError("充电任务失败", in: self.view)
-                }
-                
-            case "charge_task_cancelled":
-                QMUITips.showInfo("充电任务已取消", in: self.view)
-                
-            default:
-                break
-            }
-        }
-    }
-    
-    /// 根据VIN更新数据库中的充电任务状态
-    private func updateChargeTaskStatusInDatabase(vin: String, status: String, extData: [String: Any]) {
-        do {
-            try AppDatabase.dbQueue.write { db in
-                // 查找该VIN最新的未完成任务
-                let sql = """
-                    SELECT * FROM chargeTask 
-                    WHERE vin = ? AND finalStatus IN ('PREPARING', 'RUNNING', 'CHARGING')
-                    ORDER BY startTime DESC 
-                    LIMIT 1
-                """
-                
-                var latestTaskId: Int64? = nil
-                
-                if var record = try ChargeTaskRecord.fetchOne(db, sql: sql, arguments: [vin]) {
-                    latestTaskId = record.id
-                    
-                    // 更新任务状态
-                    record.finalStatus = status
-                    record.endTime = Date()
-                    
-                    // 如果推送包含最终的车辆数据，更新相关字段
-                    if let finalSoc = extData["finalSoc"] as? Int {
-                        record.endSoc = finalSoc
-                    }
-                    if let finalRange = extData["finalRange"] as? Double {
-                        record.endRange = Int(finalRange)
-                    }
-                    if let reason = extData["reason"] as? String {
-                        record.finalMessage = reason
-                    }
-                    
-                    try record.save(db)
-                    print("已更新VIN \(vin) 的最新充电任务状态为: \(status)")
-                } else {
-                    print("未找到VIN \(vin) 的活跃充电任务")
-                }
-                
-                // 处理老数据：将除最新任务外的所有"准备中"或"充电中"状态的任务标记为"完成"
-                let updateOldTasksSql: String
-                let arguments: [DatabaseValueConvertible]
-                
-                if let taskId = latestTaskId {
-                    // 如果找到了最新任务，排除它
-                    updateOldTasksSql = """
-                        UPDATE chargeTask 
-                        SET finalStatus = 'COMPLETED', endTime = ? 
-                        WHERE vin = ? AND finalStatus IN ('PREPARING', 'CHARGING') AND id != ?
-                    """
-                    arguments = [Date(), vin, taskId]
-                } else {
-                    // 如果没有找到最新任务，更新所有老的准备中或充电中的任务
-                    updateOldTasksSql = """
-                        UPDATE chargeTask 
-                        SET finalStatus = 'COMPLETED', endTime = ? 
-                        WHERE vin = ? AND finalStatus IN ('PREPARING', 'CHARGING')
-                    """
-                    arguments = [Date(), vin]
-                }
-                
-                let updatedCount = try db.execute(sql: updateOldTasksSql, arguments: StatementArguments(arguments))
-                print("已将VIN \(vin) 的 \(updatedCount) 个老的准备中/充电中任务标记为完成")
-            }
-        } catch {
-            print("更新充电任务状态失败: \(error)")
-        }
+        print("实时活动数据已保存到 UserDefaults")
     }
 }
 
@@ -959,21 +801,15 @@ extension ChargeViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
+        // 获取选中的充电任务
         let task = chargeTasks[indexPath.row]
         
-        // 检查任务状态，如果是正在准备或充电中，显示取消选项
-        if task.status == "PREPARING" || task.status == "RUNNING" || task.status == "CHARGING" {
-            showCancelChargeConfirmation(for: task)
-        } else {
-            showTaskDetail(task)
-        }
+        showNavigationOptions(for: task)
     }
     
     // MARK: - 侧滑删除功能
     func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        let task = chargeTasks[indexPath.row]
-        // 只有已完成、已取消或失败的任务才能删除
-        return task.status == "COMPLETED" || task.status == "CANCELLED" || task.status == "FAILED"
+        return true
     }
     
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
@@ -987,115 +823,95 @@ extension ChargeViewController: UITableViewDelegate {
         return "删除"
     }
     
-    private func showCancelChargeConfirmation(for task: ChargeTaskModel) {
-        let alert = UIAlertController(
-            title: "取消充电任务", 
-            message: "确定要取消当前的充电任务吗？", 
-            preferredStyle: .alert
-        )
-        
-        alert.addAction(UIAlertAction(title: "取消", style: .cancel, handler: nil))
-        alert.addAction(UIAlertAction(title: "确定", style: .destructive, handler: { _ in
-            self.cancelChargeTask(task)
-        }))
-        
-        present(alert, animated: true)
-    }
-    
-    private func cancelChargeTask(_ task: ChargeTaskModel) {
-        NetworkManager.shared.stopChargeMonitoring { [weak self] result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let success):
-                    if success {
-                        // 更新本地数据库状态为已取消
-                        self?.updateChargeTaskInDatabase(taskId: task.id, status: "CANCELLED", endTime: Date())
-                        
-                        // 刷新充电列表
-                        self?.loadChargeList(page: 1)
-                        
-                        // 清理Live Activity
-                        LiveActivityManager.shared.cleanupAllActivities()
-                        
-                        self?.showAlert(title: "取消成功", message: "充电任务已成功取消")
-                    } else {
-                        self?.showAlert(title: "取消失败", message: "服务器返回失败状态")
-                    }
-                case .failure(let error):
-                    self?.showAlert(title: "取消失败", message: error.localizedDescription)
-                }
-            }
-        }
-    }
-    
     private func showAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "确定", style: .default))
         present(alert, animated: true)
     }
     
-    /// 更新本地数据库中的充电任务状态
-    private func updateChargeTaskInDatabase(taskId: Int, status: String, endTime: Date? = nil) {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                try AppDatabase.dbQueue.write { db in
-                    // 查找对应的任务记录
-                    if var record = try ChargeTaskRecord.fetchOne(db, key: taskId) {
-                        // 更新状态和结束时间
-                        record.finalStatus = status
-                        if let endTime = endTime {
-                            record.endTime = endTime
-                        }
-                        
-                        // 保存更新
-                        try record.save(db)
-                        print("任务 \(taskId) 状态已更新为: \(status)")
-                        
-                        // 在主线程更新UI
-                        DispatchQueue.main.async {
-                            self?.loadChargeList(page: 1) // 刷新列表显示最新状态
-                        }
-                    } else {
-                        print("未找到任务ID为 \(taskId) 的记录")
-                    }
-                }
-            } catch {
-                print("更新数据库失败: \(error)")
-                DispatchQueue.main.async {
-                    self?.showAlert(title: "数据库更新失败", message: "无法更新本地任务状态")
-                }
+    // MARK: - 导航相关方法
+    private func showNavigationOptions(for task: ChargeTaskModel) {
+        // 使用guard确保经纬度不为空
+        guard let lat = task.lat, let lon = task.lon else {
+            QMUITips.showError("该充电记录没有位置信息")
+            return
+        }
+        
+        let alert = UIAlertController(title: "选择导航方式", message: "请选择您要使用的导航应用", preferredStyle: .actionSheet)
+        
+        // 苹果地图
+        alert.addAction(UIAlertAction(title: "苹果地图", style: .default) { _ in
+            self.openAppleMaps(lat: lat, lon: lon, name: task.address ?? "充电站")
+        })
+        
+        // 高德地图
+        alert.addAction(UIAlertAction(title: "高德地图", style: .default) { _ in
+            self.openAMap(lat: lat, lon: lon, name: task.address ?? "充电站")
+        })
+        
+        // 百度地图
+        alert.addAction(UIAlertAction(title: "百度地图", style: .default) { _ in
+            self.openBaiduMap(lat: lat, lon: lon, name: task.address ?? "充电站")
+        })
+        
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+        
+        // 适配iPad
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = view
+            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
+            popover.permittedArrowDirections = []
+        }
+        
+        present(alert, animated: true)
+    }
+    
+    private func openAppleMaps(lat: Double, lon: Double, name: String) {
+        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lon)
+        let placemark = MKPlacemark(coordinate: coordinate)
+        let mapItem = MKMapItem(placemark: placemark)
+        mapItem.name = name
+        mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+    }
+    
+    private func openAMap(lat: Double, lon: Double, name: String) {
+        let urlString = "iosamap://navi?sourceApplication=Pan3&poiname=\(name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&poiid=BGVIS&lat=\(lat)&lon=\(lon)&dev=0&style=2"
+        
+        if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        } else {
+            // 如果没有安装高德地图，跳转到App Store
+            if let appStoreURL = URL(string: "https://apps.apple.com/cn/app/id461703208") {
+                UIApplication.shared.open(appStoreURL)
             }
         }
     }
     
-    private func showTaskDetail(_ task: ChargeTaskModel) {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+    private func openBaiduMap(lat: Double, lon: Double, name: String) {
+        // 将高德坐标转换为百度坐标
+        let convertedCoordinate = convertGCJ02ToBD09(lat: lat, lon: lon)
+        let urlString = "baidumap://map/direction?destination=latlng:\(convertedCoordinate.lat),\(convertedCoordinate.lon)|name:\(name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&mode=driving&src=Pan3"
         
-        var detailText = ""
-        detailText += "任务ID: \(task.id)\n"
-        detailText += "车辆VIN: \(task.vin)\n"
-        detailText += "目标里程: \(String(format: "%.1f", task.targetKm)) km\n"
-        detailText += "初始里程: \(String(format: "%.1f", task.initialKm)) km\n"
-        detailText += "起始电量: \(String(format: "%.1f", task.initialKwh)) kWh\n"
-        detailText += "目标电量: \(String(format: "%.1f", task.targetKwh)) kWh\n"
-        detailText += "已充电量: \(String(format: "%.1f", task.chargedKwh)) kWh\n"
-        detailText += "任务状态: \(task.statusText)\n"
-        detailText += "创建时间: \(task.createdAt)\n"
-        
-        if let finishTime = task.finishTime, !finishTime.isEmpty {
-            detailText += "完成时间: \(finishTime)\n"
+        if let url = URL(string: urlString), UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        } else {
+            // 如果没有安装百度地图，跳转到App Store
+            if let appStoreURL = URL(string: "https://apps.apple.com/cn/app/id452186370") {
+                UIApplication.shared.open(appStoreURL)
+            }
         }
-        
-        detailText += "充电时长: \(task.chargeDuration)\n"
-        
-        if let message = task.message, !message.isEmpty {
-            detailText += "\n备注信息:\n\(message)"
-        }
-        
-        let modal = ModalView()
-        modal.text = detailText
-        modal.show()
+    }
+    
+    // MARK: - 坐标转换方法
+    /// 将GCJ02坐标(高德坐标)转换为BD09坐标(百度坐标)
+    private func convertGCJ02ToBD09(lat: Double, lon: Double) -> (lat: Double, lon: Double) {
+        let x = lon
+        let y = lat
+        let z = sqrt(x * x + y * y) + 0.00002 * sin(y * Double.pi)
+        let theta = atan2(y, x) + 0.000003 * cos(x * Double.pi)
+        let bdLon = z * cos(theta) + 0.0065
+        let bdLat = z * sin(theta) + 0.006
+        return (lat: bdLat, lon: bdLon)
     }
     
     // MARK: - 删除充电任务
@@ -1122,7 +938,7 @@ extension ChargeViewController: UITableViewDelegate {
                 try AppDatabase.dbQueue.write { db in
                     // 从数据库中删除记录
                     try ChargeTaskRecord.deleteOne(db, key: task.id)
-                    print("充电任务记录 \(task.id) 已从数据库中删除")
+                    print("充电任务记录已从数据库中删除")
                 }
                 
                 // 在主线程更新UI

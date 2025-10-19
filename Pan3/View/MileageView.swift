@@ -90,7 +90,7 @@ class MileageView: UIView {
         guard let model = UserManager.shared.carModel else { return }
         
         if mileageUnitLabel.text == "km" {
-            currentMileageLabel.text = model.soc
+            currentMileageLabel.text = model.soc.string
             mileageUnitLabel.text = "%"
         }else{
             currentMileageLabel.text = model.acOnMile.string
@@ -119,7 +119,7 @@ class MileageView: UIView {
                 currentMileageLabel.text = "\(targetMileValue)"
             } else {
                 // 当前显示电量，更新为最新电量数据
-                currentMileageLabel.text = model.soc
+                currentMileageLabel.text = model.soc.string
             }
             batteryProgressView.progress = Float(targetSocValue)
             

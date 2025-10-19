@@ -14,7 +14,7 @@ class BatteryCalculationUtility {
     // MARK: - 常量定义
     
     /// 充电损耗系数（考虑充电过程中的能量损失）
-    static let chargingLossCoefficient: Double = 1.08
+    static let chargingLossCoefficient: Double = 0.98
     
     /// 默认能耗比（kWh/100km）- 当无法获取准确数据时使用
     static let defaultEnergyConsumption: Double = 15.0
@@ -83,7 +83,7 @@ class BatteryCalculationUtility {
     /// 根据目标SOC计算目标续航里程
     /// - Parameters:
     ///   - targetSoc: 目标SOC (0-100)
-    ///   - currentSoc: 当前SOC (0-100)
+    ///   - currentSOC: 当前SOC (0-100)
     ///   - currentRange: 当前续航里程 (km)
     /// - Returns: 目标续航里程 (km)
     static func calculateTargetRange(targetSoc: Double, currentSoc: Double, currentRange: Int) -> Int {
@@ -110,14 +110,30 @@ class BatteryCalculationUtility {
     /// - Returns: 续航里程 (km)
     static func calculateRange(soc: Double, carModel: CarModel) -> Int {
         let batteryCapacity = getBatteryCapacity(from: carModel)
-        let currentKwh = calculateCurrentKwh(soc: soc, batteryCapacity: batteryCapacity)
-        
-        // 使用车型的最大续航里程来计算每kWh的续航能力
-        let (_, estimatedCapacity) = carModel.estimatedModelAndCapacity
-        let maxRange = carModelConfigs.first { $0.value.batteryCapacity == estimatedCapacity }?.value.maxRange ?? 500
-        let kmPerKwh = Double(maxRange) / estimatedCapacity
-        
-        return Int(currentKwh * kmPerKwh)
+        let targetKwh = calculateCurrentKwh(soc: soc, batteryCapacity: batteryCapacity)
+
+        // 1) 优先：用当前车况推导 km/kWh（更贴近真实能耗）
+        let currentKwhNow = getCurrentKwh(from: carModel)
+        var kmPerKwh: Double? = nil
+        if currentKwhNow > 0, carModel.acOnMile > 0 {
+            kmPerKwh = Double(carModel.acOnMile) / currentKwhNow
+        }
+
+        // 2) 其次：使用车型配置（额定续航/电池容量）
+        if kmPerKwh == nil {
+            let (model, capacity) = carModel.estimatedModelAndCapacity
+            if let config = carModelConfigs[model] {
+                kmPerKwh = Double(config.maxRange) / config.batteryCapacity
+            } else if capacity > 0 {
+                // 3) 兜底：有容量但无车型配置时，用默认能耗换算 km/kWh
+                kmPerKwh = 100.0 / defaultEnergyConsumption // 15kWh/100km -> 6.67 km/kWh
+            } else {
+                // 4) 最后兜底：使用保守的默认 km/kWh
+                kmPerKwh = defaultKmPerKwh
+            }
+        }
+
+        return Int(targetKwh * (kmPerKwh ?? defaultKmPerKwh))
     }
     
     // MARK: - 充电时间估算
@@ -149,9 +165,9 @@ class BatteryCalculationUtility {
     
     /// 车型配置信息
     static let carModelConfigs: [String: (maxRange: Int, batteryCapacity: Double)] = [
+        "330": (maxRange: 330, batteryCapacity: 34.5),
         "405": (maxRange: 405, batteryCapacity: 41.0),
-        "510": (maxRange: 510, batteryCapacity: 51.0),
-        "610": (maxRange: 610, batteryCapacity: 61.0)
+        "505": (maxRange: 505, batteryCapacity: 51.5)
     ]
     
     /// 根据续航里程检测车型

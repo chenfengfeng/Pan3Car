@@ -246,9 +246,6 @@ class HomeViewController: UIViewController, CarDataRefreshable {
     // 添加标志位防止重复调用
     private var isAutoReloginInProgress = false
     
-    // 小组件刷新频率控制
-    private var lastWidgetRefreshTime: Date = Date(timeIntervalSince1970: 0)
-    
     // 防止无限重试的计数器
     private var autoReloginAttempts = 0
     private let maxAutoReloginAttempts = 3
@@ -274,6 +271,9 @@ class HomeViewController: UIViewController, CarDataRefreshable {
         
         // 检查是否需要显示首次使用教程
         checkAndShowFirstTimeTutorial()
+        
+        // 检查并恢复实时活动
+        getTaskStatus()
         
         DispatchQueue.main.asyncAfter(deadline: .now()+0.1, execute: {[weak self] in
             guard let self else {return}
@@ -316,7 +316,7 @@ class HomeViewController: UIViewController, CarDataRefreshable {
     }
     
     private func showTutorialAlert() {
-        let alert = UIAlertController(title: "欢迎使用Pan3Car", message: "这是您第一次使用本应用，是否需要查看使用教程？", preferredStyle: .alert)
+        let alert = UIAlertController(title: "欢迎使用胖3助手", message: "这是您第一次使用本应用，是否需要查看使用教程？", preferredStyle: .alert)
         
         let cancelAction = UIAlertAction(title: "暂不需要", style: .cancel) { _ in
             // 标记已显示过教程弹窗，下次不再显示
@@ -343,18 +343,6 @@ class HomeViewController: UIViewController, CarDataRefreshable {
     // MARK: - 刷新小组件
     /// 刷新小组件时间线，遵循最小 10 秒刷新间隔
     private func refreshWidget() {
-        // 检查刷新频率限制（10秒最小间隔）
-        let now = Date()
-        let minimumInterval: TimeInterval = 10
-        
-        if now.timeIntervalSince(lastWidgetRefreshTime) < minimumInterval {
-            print("小组件刷新频率限制，跳过本次刷新")
-            return
-        }
-        
-        // 更新最后刷新时间
-        lastWidgetRefreshTime = now
-        
         // 刷新所有小组件
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -362,20 +350,72 @@ class HomeViewController: UIViewController, CarDataRefreshable {
     // MARK: - 获取最新充电任务激活实时活动
     /// 获取当前充电任务状态并启动实时活动
     private func getTaskStatus() {
-        NetworkManager.shared.getChargeStatus { result in
-            switch result {
-            case .success(let response):
-                if response.hasRunningTask {
-                    // 当前有正在充电的任务
-                    if let task = response.task {
-                        let attributes = task.toCarWidgetAttributes()
-                        let contentState = task.toContentState()
-                        LiveActivityManager.shared.startChargeActivity(attributes: attributes, initialState: contentState)
-                    }
-                }
-            default:
-                break
+        // 检查是否有保存的实时活动数据
+        guard let liveActivityData = UserDefaults.standard.dictionary(forKey: "LiveActivityData"),
+              let isActive = liveActivityData["isActive"] as? Bool,
+              isActive else {
+            print("没有找到活跃的实时活动数据")
+            return
+        }
+        
+        // 提取保存的数据
+        guard let mode = liveActivityData["mode"] as? String,
+              let targetValue = liveActivityData["targetValue"] as? String,
+              let targetKm = liveActivityData["targetKm"] as? Double,
+              let vin = liveActivityData["vin"] as? String,
+              let startKm = liveActivityData["startKm"] as? Int,
+              let endKm = liveActivityData["endKm"] as? Int,
+              let initialSoc = liveActivityData["initialSoc"] as? Int,
+              let currentKm = liveActivityData["currentKm"] as? Int,
+              let currentSoc = liveActivityData["currentSoc"] as? Int,
+              let chargeProgress = liveActivityData["chargeProgress"] as? Double,
+              let message = liveActivityData["message"] as? String,
+              let lastUpdateTimeInterval = liveActivityData["lastUpdateTime"] as? TimeInterval else {
+            print("实时活动数据格式不正确")
+            return
+        }
+        
+        // 检查是否支持实时活动
+        if #available(iOS 16.1, *) {
+            // 重新创建 CarWidgetAttributes
+            let attributes = CarWidgetAttributes(
+                vin: vin,
+                startKm: startKm,
+                endKm: endKm,
+                initialSoc: initialSoc
+            )
+            
+            // 获取当前车辆信息来更新状态
+            if let carInfo = UserManager.shared.carModel {
+                // 创建更新后的状态
+                let updatedState = CarWidgetAttributes.ContentState(
+                    currentKm: carInfo.acOnMile,
+                    currentSoc: carInfo.soc,
+                    chargeProgress: Int(chargeProgress),
+                    message: "充电监控已恢复",
+                    lastUpdateTime: Date()
+                )
+                
+                // 重新启动实时活动
+                LiveActivityManager.shared.manageActivityForTask(attributes: attributes, state: updatedState)
+                
+                print("实时活动已恢复 - 模式: \(mode), 目标值: \(targetValue)")
+            } else {
+                // 如果没有当前车辆信息，使用保存的数据
+                let savedState = CarWidgetAttributes.ContentState(
+                    currentKm: currentKm,
+                    currentSoc: currentSoc,
+                    chargeProgress: Int(chargeProgress),
+                    message: message,
+                    lastUpdateTime: Date(timeIntervalSince1970: lastUpdateTimeInterval)
+                )
+                
+                LiveActivityManager.shared.manageActivityForTask(attributes: attributes, state: savedState)
+                
+                print("实时活动已恢复（使用保存的数据）- 模式: \(mode), 目标值: \(targetValue)")
             }
+        } else {
+            print("当前系统版本不支持实时活动")
         }
     }
 }
@@ -622,6 +662,14 @@ extension HomeViewController {
         }
         alertController.addAction(appleMapAction)
         
+        // 检查是否安装了百度地图
+        if let baiduURL = URL(string: "baidumap://"), UIApplication.shared.canOpenURL(baiduURL) {
+            let baiduAction = UIAlertAction(title: "百度地图", style: .default) { _ in
+                self.openBaiduMapNavigation(model: model)
+            }
+            alertController.addAction(baiduAction)
+        }
+        
         // 取消选项
         let cancelAction = UIAlertAction(title: "取消", style: .cancel, handler: nil)
         alertController.addAction(cancelAction)
@@ -645,13 +693,41 @@ extension HomeViewController {
     
     // MARK: - 打开苹果地图导航
     private func openAppleMapNavigation(model: CarModel) {
-        let coordinate = CLLocationCoordinate2D(latitude: model.latitude.nsString.doubleValue, longitude: model.longitude.nsString.doubleValue)
+        let coordinate = CLLocationCoordinate2D(latitude: model.latitude, longitude: model.longitude)
         let placemark = MKPlacemark(coordinate: coordinate)
         let mapItem = MKMapItem(placemark: placemark)
         mapItem.name = "我的车"
         mapItem.openInMaps(launchOptions: [
             MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving
         ])
+    }
+    
+    // MARK: - 打开百度地图导航
+    private func openBaiduMapNavigation(model: CarModel) {
+        // 将GCJ02坐标转换为BD09坐标
+        let convertedCoordinate = convertGCJ02ToBD09(lat: model.latitude, lon: model.longitude)
+        
+        let baiduURLString = "baidumap://map/direction?destination=\(convertedCoordinate.lat),\(convertedCoordinate.lon)&mode=driving&coord_type=bd09ll&src=胖3汽车"
+        
+        if let baiduURL = URL(string: baiduURLString) {
+            UIApplication.shared.open(baiduURL, options: [:]) { success in
+                if !success {
+                    // 如果打开失败，跳转到App Store
+                    if let appStoreURL = URL(string: "https://apps.apple.com/cn/app/百度地图/id452186370") {
+                        UIApplication.shared.open(appStoreURL, options: [:], completionHandler: nil)
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - GCJ02转BD09坐标转换
+    private func convertGCJ02ToBD09(lat: Double, lon: Double) -> (lat: Double, lon: Double) {
+        let z = sqrt(lon * lon + lat * lat) + 0.00002 * sin(lat * Double.pi)
+        let theta = atan2(lat, lon) + 0.000003 * cos(lon * Double.pi)
+        let bdLon = z * cos(theta) + 0.0065
+        let bdLat = z * sin(theta) + 0.006
+        return (lat: bdLat, lon: bdLon)
     }
 }
 
@@ -779,13 +855,12 @@ extension HomeViewController {
                 QMUITips.hideAllTips()
             }
             switch result {
-            case .success(let json):
+            case .success(let model):
                 print("[HomeViewController] 车辆信息获取成功")
                 // 成功获取数据，重置重试计数器
                 self.autoReloginAttempts = 0
                 
                 // 保存车辆信息
-                let model = CarModel(json: json)
                 UserManager.shared.updateCarInfo(with: model)
                 self.setupCarData()
                 
@@ -901,6 +976,45 @@ extension HomeViewController {
         }
     }
     
+    // MARK: - 小组件跳转处理
+    /// 处理从小组件跳转到APP的操作
+    func handleWidgetAction(_ action: String) {
+        print("HomeViewController 收到小组件操作: \(action)")
+        
+        // 确保用户已登录且有车辆数据
+        guard UserManager.shared.isLoggedIn,
+              let _ = UserManager.shared.carModel else {
+            print("用户未登录或无车辆数据，无法处理小组件操作")
+            return
+        }
+        
+        // 根据不同的action调用对应的控制方法（使用小组件专用方法，绕过调试模式检查）
+        switch action {
+        case "lock":
+            // 调用车锁控制
+            controlButtonsStackView.widgetLockButtonTapped()
+            print("执行车锁操作")
+            
+        case "ac":
+            // 调用空调控制
+            controlButtonsStackView.widgetAcButtonTapped()
+            print("执行空调操作")
+            
+        case "window":
+            // 调用车窗控制
+            controlButtonsStackView.widgetWindowButtonTapped()
+            print("执行车窗操作")
+            
+        case "call":
+            // 调用寻车控制
+            controlButtonsStackView.widgetCallButtonTapped()
+            print("执行寻车操作")
+            
+        default:
+            print("未知的小组件操作: \(action)")
+        }
+    }
+    
     // MARK: - 更新车辆状态信息
     private func updateCarStatusInfo(with model: CarModel) {
         // 车辆信息
@@ -922,14 +1036,7 @@ extension HomeViewController {
     
     // MARK: - 更新地图位置
     private func updateMapLocation(with model: CarModel) {
-        // 检查经纬度是否有效
-        guard let lat = Double(model.latitude), let lng = Double(model.longitude),
-              lat != 0, lng != 0 else {
-            carAddress.text = "位置信息不可用"
-            return
-        }
-        
-        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        let coordinate = CLLocationCoordinate2D(latitude: model.latitude, longitude: model.longitude)
         
         // 设置地图区域（最大缩放等级）
         let region = MKCoordinateRegion(center: coordinate, latitudinalMeters: 100, longitudinalMeters: 100)
@@ -946,7 +1053,7 @@ extension HomeViewController {
         
         // 反向地理编码获取地址
         let geocoder = CLGeocoder()
-        let location = CLLocation(latitude: lat, longitude: lng)
+        let location = CLLocation(latitude: model.latitude, longitude: model.longitude)
         geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
             DispatchQueue.main.async {
                 if let placemark = placemarks?.first {

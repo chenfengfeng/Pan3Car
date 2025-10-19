@@ -263,6 +263,27 @@ class ControllButtonView: UIStackView {
         actionCall()
     }
     
+    // MARK: - 小组件专用方法（无调试模式检查）
+    /// 小组件专用车锁控制方法
+    func widgetLockButtonTapped() {
+        actionLock()
+    }
+    
+    /// 小组件专用空调控制方法
+    func widgetAcButtonTapped() {
+        actionAC()
+    }
+    
+    /// 小组件专用车窗控制方法
+    func widgetWindowButtonTapped() {
+        actionWindow()
+    }
+    
+    /// 小组件专用寻车控制方法
+    func widgetCallButtonTapped() {
+        actionCall()
+    }
+    
     // MARK: - 二次确认相关方法
     private func isConfirmationEnabled() -> Bool {
         return UserDefaults.standard.bool(forKey: "confirmation_enabled")

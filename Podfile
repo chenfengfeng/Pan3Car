@@ -16,6 +16,10 @@ target 'Pan3' do
   pod 'LookinServer', :configurations => ['Debug']
 end
 
+target 'Pan3PushService' do
+  pod 'SwiftyJSON'
+end
+
 post_install do |installer|
   installer.generated_projects.each do |project|
     project.targets.each do |target|

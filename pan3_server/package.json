@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "express": "^5.1.0",
-    "node-apn": "^3.0.0"
+    "node-schedule": "^2.1.1",
+    "@parse/node-apn": "^6.5.0"
   }
 }

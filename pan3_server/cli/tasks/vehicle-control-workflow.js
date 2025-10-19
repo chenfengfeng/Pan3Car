@@ -84,10 +84,10 @@ async function runBackgroundTask(vin, timaToken, pushToken, operationType, opera
         switch (operationType) {
             case 'LOCK':
                 // operation '1' 是锁门, '2' 是解锁
-                if (operation === '1' && vehicleData.mainLockStatus !== 0) { /* 非0是锁门状态 */
+                if (operation === '1' && vehicleData.mainLockStatus === 0) { /* 0是锁门状态 */
                     isSuccess = true;
                     successMessage = '车辆已成功上锁';
-                } else if (operation === '2' && vehicleData.mainLockStatus === 0) { /* 0是解锁状态 */
+                } else if (operation === '2' && vehicleData.mainLockStatus !== 0) { /* 非0是解锁状态 */
                     isSuccess = true;
                     successMessage = '车辆已成功解锁';
                 }
