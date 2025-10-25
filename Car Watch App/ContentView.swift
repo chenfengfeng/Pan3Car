@@ -17,7 +17,6 @@ struct ContentView: View {
     // 车辆数据模型
     @State private var carModel: SharedCarModel?
     @State private var isLoading = false
-    @State private var lastUpdateTime = Date()
     
     // 第三页详细信息的状态变量
     @State private var currentLocation = "获取位置中..."
@@ -27,7 +26,9 @@ struct ContentView: View {
     @State private var showWindowConfirm = false // 车窗二次确认弹窗
     @State private var showHornConfirm = false // 鸣笛二次确认弹窗
     
-    // WatchConnectivity管理器已删除
+    // WatchConnectivity管理器
+    @EnvironmentObject var watchConnectivityManager: WatchConnectivityManager
+    @State private var lastUpdateTime: Date?
     
     var body: some View {
         GeometryReader { geo in
@@ -92,6 +93,9 @@ struct ContentView: View {
         }
         .edgesIgnoringSafeArea(.all) // watchOS全屏设置
         .onAppear {
+            loadCarData()
+        }
+        .onChange(of: watchConnectivityManager.lastUpdateTime) { _ in
             loadCarData()
         }
 
@@ -222,10 +226,6 @@ struct ContentView: View {
 //                                    print("空调控制按钮被点击，状态已切换")
 //                                }
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
-                                    if var model = carModel {
-                                        model.acStatus = model.acStatus == 0 ? 1 : 0
-                                        carModel = model
-                                    }
                                 }
                             }
                             Button("取消", role: .cancel) {}
@@ -262,13 +262,6 @@ struct ContentView: View {
                                 //     print("车窗控制按钮被点击，状态已切换")
                                 // }
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
-                                    if var model = carModel {
-                                        model.lfWindowOpen = model.lfWindowOpen == 0 ? 1 : 0
-                                        model.rfWindowOpen = model.rfWindowOpen == 0 ? 1 : 0
-                                        model.lrWindowOpen = model.lrWindowOpen == 0 ? 1 : 0
-                                        model.rrWindowOpen = model.rrWindowOpen == 0 ? 1 : 0
-                                        carModel = model
-                                    }
                                 }
                             }
                             Button("取消", role: .cancel) {}
@@ -532,10 +525,9 @@ struct ContentView: View {
     
     /// 加载车辆数据
     private func loadCarData() {
-        // 网络相关代码已删除
-        // 使用默认数据或占位数据
-//        carModel = SharedCarModel()
-//        updateUIFromCarModel(carModel)
+        carModel = watchConnectivityManager.loadSharedCarModelFromAppGroups()
+        lastUpdateTime = watchConnectivityManager.getLastUpdateTime()
+        print("[Watch Debug] 从App Groups加载车辆数据: \(carModel != nil ? "成功" : "失败")")
     }
     
     /// 刷新车辆数据（异步版本）
@@ -590,8 +582,7 @@ struct ContentView: View {
     
     /// SOC百分比
     private var socPercentage: Int {
-        guard let soc = carModel?.soc, let socValue = Int(soc) else { return 0 }
-        return socValue
+        return carModel?.soc ?? 0
     }
     
     /// 状态文本

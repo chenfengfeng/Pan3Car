@@ -11,7 +11,8 @@ import WidgetKit
 @main
 struct CarWidgetBundle: WidgetBundle {
     var body: some Widget {
-        CarWidgetLiveActivity()
+        ChargeLiveActivity()
+        TripLiveActivity()
         
         // iOS 16兼容的只读小组件
         CarWidgetLegacy()

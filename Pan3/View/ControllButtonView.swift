@@ -354,6 +354,8 @@ class ControllButtonView: UIStackView {
                 guard let self = self else { return }
                 
                 UserDefaults.standard.set(temperature, forKey: "PresetTemperature")
+                // 同时保存到App Groups，供小组件和Watch应用使用
+                UserDefaults(suiteName: "group.com.feng.pan3")?.set(temperature, forKey: "PresetTemperature")
                 self.blockTemperatureChange?(temperature)
                 
                 let action = { self.performAirConditionerAction(operation: 2, temperature: temperature, time: time, actionText: actionText) } // 2 代表开启
@@ -392,10 +394,13 @@ class ControllButtonView: UIStackView {
     
     // MARK: - 控制车窗
     func actionWindow() {
-        guard let vc = qmui_viewController else {return}
-        
         guard let model = UserManager.shared.carModel else {
-            QMUITips.show(withText: "车辆信息不可用", in: vc.view, hideAfterDelay: 2.0)
+            // 尝试获取视图控制器，如果获取不到（如小组件触发），使用全局提示方法
+            if let vc = qmui_viewController {
+                QMUITips.show(withText: "车辆信息不可用", in: vc.view, hideAfterDelay: 2.0)
+            } else {
+                QMUITips.showError("车辆信息不可用")
+            }
             return
         }
         
@@ -436,17 +441,20 @@ class ControllButtonView: UIStackView {
     }
     
     func actionCall() {
-        guard let vc = qmui_viewController else {return}
-        
         let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
-        QMUITips.showLoading("鸣笛寻车指令发送中...", in: vc.view)
+        
+        // 尝试获取视图控制器，如果获取不到（如小组件触发），使用全局提示方法
+        if let keyWindow = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) {
+            QMUITips.showLoading("鸣笛寻车指令发送中...", in: keyWindow)
+        }
+        
         NetworkManager.shared.syncVehicle(
             operationType: "FIND_VEHICLE",
             pushToken: pushToken) { result in
                 QMUITips.hideAllTips()
                 switch result {
                 case .success(_):
-                    QMUITips.show(withText: "鸣笛指令发送成功")
+                    QMUITips.showSucceed("鸣笛指令发送成功")
                 default:
                     break
                 }
@@ -460,21 +468,23 @@ class ControllButtonView: UIStackView {
         failureText: String,
         controlAction: @escaping (@escaping (Result<Bool, Error>) -> Void) -> Void
     ) {
-        guard let vc = qmui_viewController else {return}
-        
-        QMUITips.showLoading(loadingText, in: vc.view)
-        
-        controlAction { result in
-            DispatchQueue.main.async {
-                QMUITips.hideAllTips()
-                
-                switch result {
-                case .success(_):
-                    QMUITips.show(withText: successText)
-                    // 直接请求模式：操作成功后等待推送更新数据
+        // 尝试获取视图控制器，如果获取不到（如小组件触发），使用全局提示方法
+        if let keyWindow = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) {
+            // 正常情况：在指定视图上显示提示
+            QMUITips.showLoading(loadingText, in: keyWindow)
+            
+            controlAction { result in
+                DispatchQueue.main.async {
+                    QMUITips.hideAllTips()
                     
-                case .failure(let error):
-                    QMUITips.show(withText: "\(failureText): \(error.localizedDescription)", in: vc.view, hideAfterDelay: 2.0)
+                    switch result {
+                    case .success(_):
+                        QMUITips.show(withText: successText)
+                        // 直接请求模式：操作成功后等待推送更新数据
+                        
+                    case .failure(let error):
+                        QMUITips.show(withText: "\(failureText): \(error.localizedDescription)", in: keyWindow, hideAfterDelay: 2.0)
+                    }
                 }
             }
         }

@@ -9,9 +9,14 @@ import SwiftUI
 
 @main
 struct Car_Watch_AppApp: App {
+    
+    // 初始化WatchConnectivityManager
+    let watchConnectivityManager = WatchConnectivityManager.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(watchConnectivityManager)
         }
     }
 }

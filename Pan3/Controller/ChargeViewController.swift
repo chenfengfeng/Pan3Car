@@ -57,6 +57,7 @@ class ChargeViewController: UIViewController {
         mileageHeaderView.setupUI()
         mileageHeaderView.setupCarModel(false)
         
+        // 加载本地数据库数据
         loadChargeList()
     }
     
@@ -295,7 +296,6 @@ class ChargeViewController: UIViewController {
         let currentKm = carModel.acOnMile
         
         // --- 计算结束 ---
-        
         QMUITips.showLoading("正在启动里程监听...", in: self.view)
         NetworkManager.shared.startChargeMonitoring(
             mode: "range",
@@ -337,11 +337,14 @@ class ChargeViewController: UIViewController {
         saveMonitoringInfo(mode: mode, targetValue: targetValue, autoStopCharge: autoStopCharge, targetKm: targetKm)
         
         // 启动实时活动
-        if #available(iOS 16.1, *) {
+        if mode == "range" {
             startLiveActivity(mode: mode, targetValue: targetValue, targetKm: targetKm)
+            showAlert(title: "成功开启里程通知", message: targetValue)
         }
-        
-        showAlert(title: "成功开启通知", message: targetValue)
+        if mode == "time" {
+            let date = Date(timeIntervalSince1970: targetValue.double() ?? 0)
+            showAlert(title: "成功开启时间通知", message: "当到达"+date.string(withFormat: "MM月dd日 HH:mm")+"后通知你")
+        }
     }
     
     // MARK: - Monitoring Task Management
@@ -444,6 +447,7 @@ class ChargeViewController: UIViewController {
     
     /// 取消活跃的监控任务
     private func cancelActiveMonitoring(mode: String) {
+        clearMonitoringInfo()
         QMUITips.showLoading("正在取消监控...", in: self.view)
         
         NetworkManager.shared.stopChargeMonitoring(mode: mode) { [weak self] result in
@@ -475,11 +479,7 @@ class ChargeViewController: UIViewController {
         defaults.synchronize()
         
         // 停止实时活动
-        if #available(iOS 16.1, *) {
-            LiveActivityManager.shared.endCurrentActivity()
-        }
-        
-        print("监控信息和实时活动数据已清除")
+        LiveActivityManager.shared.endCurrentActivity()
     }
 
     // MARK: - Data Loading
@@ -731,8 +731,8 @@ class ChargeViewController: UIViewController {
             return
         }
         
-        // 创建 CarWidgetAttributes
-        let attributes = CarWidgetAttributes(
+        // 创建 ChargeAttributes
+        let attributes = ChargeAttributes(
             vin: UserManager.shared.defaultVin ?? "",
             startKm: carInfo.acOnMile,        // 使用当前里程作为起始里程
             endKm: Int(targetKm ?? Double(carInfo.acOnMile)), // 目标里程，如果没有则使用当前里程
@@ -740,12 +740,11 @@ class ChargeViewController: UIViewController {
         )
         
         // 创建初始状态 - 使用当前车辆数据作为初始值
-        let initialState = CarWidgetAttributes.ContentState(
+        let initialState = ChargeAttributes.ContentState(
             currentKm: carInfo.acOnMile,           // 当前里程作为初始里程
             currentSoc: carInfo.soc,              // 当前SOC作为初始SOC
             chargeProgress: 0,                    // 充电进度从0开始
-            message: "充电监控已启动",              // 初始消息
-            lastUpdateTime: Date()                // 当前时间
+            message: "充电监控已启动"              // 初始消息
         )
         
         // 保存实时活动数据到 UserDefaults
@@ -758,7 +757,7 @@ class ChargeViewController: UIViewController {
     }
     
     /// 保存实时活动数据到 UserDefaults
-    private func saveLiveActivityData(mode: String, targetValue: String, targetKm: Double?, attributes: CarWidgetAttributes, initialState: CarWidgetAttributes.ContentState) {
+    private func saveLiveActivityData(mode: String, targetValue: String, targetKm: Double?, attributes: ChargeAttributes, initialState: ChargeAttributes.ContentState) {
         let liveActivityData: [String: Any] = [
             "mode": mode,
             "targetValue": targetValue,
@@ -770,8 +769,7 @@ class ChargeViewController: UIViewController {
             "currentKm": initialState.currentKm,
             "currentSoc": initialState.currentSoc,
             "chargeProgress": initialState.chargeProgress,
-            "message": initialState.message,
-            "lastUpdateTime": initialState.lastUpdateTime.timeIntervalSince1970,
+            "message": initialState.message ?? "",
             "isActive": true
         ]
         
@@ -981,8 +979,12 @@ class SetTimeMonitorViewController: UIViewController {
         picker.datePickerMode = .dateAndTime
         picker.preferredDatePickerStyle = .wheels
         picker.minimumDate = Date()
-        picker.maximumDate = Calendar.current.date(byAdding: .hour, value: 24, to: Date())
+        picker.maximumDate = Calendar.current.date(byAdding: .hour, value: 36, to: Date())
         picker.minuteInterval = 5
+        // 默认时间选择在当前时间基础上+5分钟
+        if let defaultDate = Calendar.current.date(byAdding: .minute, value: 5, to: Date()) {
+            picker.date = defaultDate
+        }
         return picker
     }()
     
@@ -1027,9 +1029,9 @@ class SetTimeMonitorViewController: UIViewController {
         subtitleForTitle.textColor = .secondaryLabel
         
         let titleStack = UIStackView(arrangedSubviews: [titleLabel, subtitleForTitle])
+        titleStack.alignment = .center
         titleStack.axis = .vertical
         titleStack.spacing = 4
-        titleStack.alignment = .center
         
         // --- 开关和它的描述标签 ---
         let switchLabel = UILabel()
@@ -1048,9 +1050,9 @@ class SetTimeMonitorViewController: UIViewController {
         subtitleLabel.numberOfLines = 0
         
         let switchControlStack = UIStackView(arrangedSubviews: [switchStack, subtitleLabel])
+        switchControlStack.alignment = .fill
         switchControlStack.axis = .vertical
         switchControlStack.spacing = 4
-        switchControlStack.alignment = .fill
         
         // --- 确定和取消按钮 ---
         let confirmButton = UIButton(type: .system)
@@ -1067,9 +1069,9 @@ class SetTimeMonitorViewController: UIViewController {
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
         
         let buttonStack = UIStackView(arrangedSubviews: [cancelButton, confirmButton])
+        buttonStack.distribution = .fillEqually
         buttonStack.axis = .horizontal
         buttonStack.spacing = 12
-        buttonStack.distribution = .fillEqually
         
         // --- 主堆栈视图 ---
         let mainStack = UIStackView(arrangedSubviews: [titleStack, datePicker, switchControlStack, buttonStack])

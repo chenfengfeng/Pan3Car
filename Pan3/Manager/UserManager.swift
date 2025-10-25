@@ -35,7 +35,7 @@ class UserManager {
     }
     
     // MARK: - 车辆信息（从认证响应中获取）
-    var carModel: CarModel? {
+    var carModel: SharedCarModel? {
         return authResponse?.data.info
     }
     
@@ -149,7 +149,7 @@ class UserManager {
     
     // MARK: - 更新车辆信息
     /// 更新车辆信息（从服务器获取最新数据后调用）
-    func updateCarInfo(with newCarModel: CarModel) {
+    func updateCarInfo(with newCarModel: SharedCarModel) {
         guard var currentAuth = authResponse else { return }
         
         // 更新认证响应中的车辆信息
@@ -175,13 +175,16 @@ class UserManager {
             token: timaToken,
             vin: defaultVin
         )
+        
+        // 发送SharedCarModel数据到Watch
+        WatchConnectivityManager.shared.sendSharedCarModelToWatch(newCarModel)
     }
     
     /// 更新车辆信息 - 重载方法，接受推送数据字典参数
     func updateCarInfo(from pushData: [String: Any]) {
         // 从推送数据创建新的CarModel
         let json = JSON(pushData)
-        let newCarModel = CarModel(json: json)
+        let newCarModel = SharedCarModel(json: json)
         
         // 调用原有的更新方法
         updateCarInfo(with: newCarModel)
@@ -193,7 +196,7 @@ class UserManager {
     }
     
     /// 将CarModel数据保存到App Groups供小组件使用
-    private func saveCarModelToAppGroups(_ carModel: CarModel) {
+    private func saveCarModelToAppGroups(_ carModel: SharedCarModel) {
         guard let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3") else {
             print("[UserManager] 无法访问App Groups")
             return
@@ -204,6 +207,29 @@ class UserManager {
         userDefaults.set(carModelDict, forKey: "CarModelData")
         
         print("[UserManager] 已保存完整CarModel数据到App Groups")
+    }
+    
+    /// 从App Groups读取CarModel数据
+    /// 用于APP冷启动时恢复最新的车辆数据
+    func loadCarModelFromAppGroups() -> SharedCarModel? {
+        guard let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3") else {
+            print("[UserManager] 无法访问App Groups")
+            return nil
+        }
+        
+        guard let carModelDict = userDefaults.object(forKey: "CarModelData") as? [String: Any] else {
+            print("[UserManager] 未找到App Groups中的CarModel数据")
+            return nil
+        }
+        
+        // 使用新的便利构造器从字典创建CarModel
+        guard let carModel = SharedCarModel(dictionary: carModelDict) else {
+            print("[UserManager] 从App Groups数据创建CarModel失败")
+            return nil
+        }
+        
+        print("[UserManager] 成功从App Groups加载CarModel数据")
+        return carModel
     }
     
     /// 设置本地修改标记，供小组件检测最近的数据更新

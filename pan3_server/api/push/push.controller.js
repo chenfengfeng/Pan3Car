@@ -1,6 +1,6 @@
 // /www/wwwroot/pan3/api/push/push.controller.js
 
-import { sendApplePush, sendLiveActivityPush } from '../../core/services/push.service.js';
+import { sendApplePush, sendLiveActivityPush, sendCarDataPush } from '../../core/services/push.service.js';
 
 export async function handlePushRequest(req, res) {
     try {
@@ -29,6 +29,37 @@ export async function handlePushRequest(req, res) {
     } catch (e) {
         console.error('推送接口异常:', e.message);
         res.status(500).json({ code: 500, message: `Push API error: ${e.message}` });
+    }
+}
+
+/**
+ * 处理车辆数据推送请求的控制器
+ */
+export async function handleCarDataPush(req, res) {
+    try {
+        const carPushData = req.body;
+        
+        if (!carPushData.pushToken || !carPushData.car_data) {
+            return res.status(400).json({ 
+                code: 400, 
+                message: '请求体中缺少必需的 pushToken 或 car_data' 
+            });
+        }
+
+        // 调用车辆数据推送服务
+        await sendCarDataPush(carPushData);
+        
+        res.status(200).json({ 
+            code: 200, 
+            message: '车辆数据推送已成功发送' 
+        });
+
+    } catch (e) {
+        console.error('车辆数据推送接口异常:', e.message);
+        res.status(500).json({ 
+            code: 500, 
+            message: `Car Data Push API error: ${e.message}` 
+        });
     }
 }
 

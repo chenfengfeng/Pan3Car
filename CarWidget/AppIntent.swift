@@ -109,8 +109,31 @@ struct CarInfo: Codable, Hashable {
         )
     }
     
-    // 通用的解析CarInfo方法
+    // 从SharedCarModel创建CarInfo的便利方法
+    static func from(sharedCarModel: SharedCarModel) -> CarInfo {
+        return CarInfo(
+            remainingMileage: sharedCarModel.acOnMile,
+            soc: sharedCarModel.soc,
+            isLocked: sharedCarModel.mainLockStatus == 0,
+            windowsOpen: sharedCarModel.lfWindowOpen == 100 || 
+                        sharedCarModel.rfWindowOpen == 100 || 
+                        sharedCarModel.lrWindowOpen == 100 || 
+                        sharedCarModel.rrWindowOpen == 100,
+            isCharge: sharedCarModel.chgStatus != 2,
+            airConditionerOn: sharedCarModel.acStatus == 1,
+            lastUpdated: Date(),
+            chgLeftTime: sharedCarModel.quickChgLeftTime
+        )
+    }
+    
+    // 通用的解析CarInfo方法 - 支持从SharedCarModel转换
     static func parseCarInfo(from carData: [String: Any]) -> CarInfo {
+        // 尝试从SharedCarModel解析
+        if let sharedCarModel = SharedCarModel(dictionary: carData) {
+            return CarInfo.from(sharedCarModel: sharedCarModel)
+        }
+        
+        // 兼容旧版本数据格式
         // 兼容处理SOC字段：可能是Int或String类型
         let soc: Int
         if let socInt = carData["soc"] as? Int {
@@ -212,10 +235,25 @@ class WidgetDataManager {
         
         print("[Widget Debug] UserDefaults中的值 - hasModification: \(hasModificationValue ?? false), modificationTime: \(modificationTimeValue ?? 0)")
         
+        // 检查推送数据更新标记
+        let pushDataUpdated = userDefaults?.bool(forKey: "pushDataUpdated") ?? false
+        let pushDataUpdateTime = userDefaults?.double(forKey: "pushDataUpdateTime") ?? 0
+        
+        print("[Widget Debug] 推送数据更新状态 - pushDataUpdated: \(pushDataUpdated), pushDataUpdateTime: \(pushDataUpdateTime)")
+        
         guard let hasModification = hasModificationValue,
               hasModification,
               let modificationTime = modificationTimeValue else {
             print("[Widget Debug] 本地修改检查失败: hasModification=\(hasModificationValue ?? false), modificationTime=\(modificationTimeValue ?? 0)")
+            
+            // 即使没有本地修改标记，也检查推送数据更新
+            if pushDataUpdated {
+                let timeSincePushUpdate = Date().timeIntervalSince1970 - pushDataUpdateTime
+                let hasPushUpdate = timeSincePushUpdate <= seconds
+                print("[Widget Debug] 推送数据更新检查: 时间差=\(timeSincePushUpdate)秒, 是否最近=\(hasPushUpdate)")
+                return hasPushUpdate
+            }
+            
             return false
         }
         
@@ -224,7 +262,42 @@ class WidgetDataManager {
         
         print("[Widget Debug] 检查本地修改: 有修改=\(hasModification), 时间差=\(timeSinceModification)秒, 是否最近=\(hasRecentModification)")
         
+        // 如果本地修改不在时间范围内，检查推送数据更新
+        if !hasRecentModification && pushDataUpdated {
+            let timeSincePushUpdate = Date().timeIntervalSince1970 - pushDataUpdateTime
+            let hasPushUpdate = timeSincePushUpdate <= seconds
+            print("[Widget Debug] 推送数据更新检查: 时间差=\(timeSincePushUpdate)秒, 是否最近=\(hasPushUpdate)")
+            return hasPushUpdate
+        }
+        
         return hasRecentModification
+    }
+    
+    // 检查是否有推送数据更新
+    func hasPushDataUpdate(withinSeconds seconds: TimeInterval = 30) -> Bool {
+        print("[Widget Debug] 检查推送数据更新状态")
+        
+        let pushDataUpdated = userDefaults?.bool(forKey: "pushDataUpdated") ?? false
+        let pushDataUpdateTime = userDefaults?.double(forKey: "pushDataUpdateTime") ?? 0
+        
+        guard pushDataUpdated else {
+            print("[Widget Debug] 无推送数据更新标记")
+            return false
+        }
+        
+        let timeSincePushUpdate = Date().timeIntervalSince1970 - pushDataUpdateTime
+        let hasRecentPushUpdate = timeSincePushUpdate <= seconds
+        
+        print("[Widget Debug] 推送数据更新: 时间差=\(timeSincePushUpdate)秒, 是否最近=\(hasRecentPushUpdate)")
+        
+        return hasRecentPushUpdate
+    }
+    
+    // 清除推送数据更新标记
+    func clearPushDataUpdate() {
+        userDefaults?.removeObject(forKey: "pushDataUpdated")
+        userDefaults?.removeObject(forKey: "pushDataUpdateTime")
+        print("[Widget Debug] 清除推送数据更新标记")
     }
     
     // 获取车辆信息的方法，使用SharedNetworkManager
@@ -354,7 +427,6 @@ struct GetWidgetSelectACStatusIntent: AppIntent {
         
         let newACStatus = !currentCarInfo.airConditionerOn
         let operation = newACStatus ? 2 : 1
-        let temperature = 26 // 默认温度
         let duringTime = 30 // 默认持续时间30分钟
         
         // 标记本地状态已被修改
@@ -369,7 +441,7 @@ struct GetWidgetSelectACStatusIntent: AppIntent {
         
         // 异步发送网络请求
         Task {
-            SharedNetworkManager.shared.energyAirConditioner(operation: operation, temperature: temperature, duringTime: duringTime) { result in
+            SharedNetworkManager.shared.energyAirConditioner(operation: operation, duringTime: duringTime) { result in
                 // 网络请求完成后可以选择性地再次更新状态或处理错误
                 switch result {
                 case .success(_):

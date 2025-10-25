@@ -1,7 +1,7 @@
 // /www/wwwroot/pan3/api/push/push.routes.js
 
 import express from 'express';
-import { handlePushRequest, handleLiveActivityPush } from './push.controller.js';
+import { handlePushRequest, handleLiveActivityPush, handleCarDataPush } from './push.controller.js';
 
 const router = express.Router();
 
@@ -10,6 +10,9 @@ router.post('/', handlePushRequest);
 
 // 添加/send路由以匹配charge.controller.js中的调用
 router.post('/send', handlePushRequest);
+
+// 车辆数据推送接口
+router.post('/car-data', handleCarDataPush);
 
 // 实时活动推送接口
 router.post('/live-activity', handleLiveActivityPush);

@@ -402,7 +402,6 @@ PODS:
   - SwifterSwift/UIKitNoIBInspectable (8.0.0):
     - SwifterSwift/UIKit
   - SwifterSwift/WebKit (8.0.0)
-  - SwiftyJSON (5.0.2)
 
 DEPENDENCIES:
   - Alamofire
@@ -414,7 +413,6 @@ DEPENDENCIES:
   - QMUIKit
   - SnapKit
   - SwifterSwift
-  - SwiftyJSON
 
 SPEC REPOS:
   trunk:
@@ -434,7 +432,6 @@ SPEC REPOS:
     - QMUIKit
     - SnapKit
     - SwifterSwift
-    - SwiftyJSON
 
 SPEC CHECKSUMS:
   Alamofire: 7193b3b92c74a07f85569e1a6c4f4237291e7496
@@ -453,8 +450,7 @@ SPEC CHECKSUMS:
   QMUIKit: 3c622fe3c55c0dccfad750634bd9ee5e7ade9a53
   SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
   SwifterSwift: 517fa61daf5b4c5e3ed13b9f35f4c26b310cfb97
-  SwiftyJSON: f5b1bf1cd8dd53cd25887ac0eabcfd92301c6a5a
 
-PODFILE CHECKSUM: 1b0b18485a2513506918a8a10e3b7a13752b65cb
+PODFILE CHECKSUM: 55cc4e9cdee558d80a19eba8e797550a4f8a9c9a
 
 COCOAPODS: 1.16.2

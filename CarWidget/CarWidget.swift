@@ -35,17 +35,44 @@ struct Provider: AppIntentTimelineProvider {
         print("[Widget Debug] 认证信息检查 - defaultVin: \(defaultVin != nil ? "存在" : "不存在"), timaToken: \(timaToken != nil ? "存在" : "不存在")")
         
         // 没有缓存数据，显示错误状态
-        var entry: SimpleEntry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "无法获取车辆数据")
+        var entry: SimpleEntry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "开启您的胖3之旅")
         
         // 如果没有认证信息，显示错误状态
         if timaToken == nil || defaultVin == nil {
             print("[Widget Debug] 认证信息缺失，显示错误状态")
             entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "开启您的胖3之旅")
         } else {
-            print("[Widget Debug] 认证信息存在，检查本地修改状态")
-            // 检查是否有最近的本地修改
-            if WidgetDataManager.shared.hasRecentLocalModification(withinSeconds: 10) {
-                print("[Widget Debug] 检测到最近的本地修改，跳过网络请求，使用本地缓存数据")
+            print("[Widget Debug] 认证信息存在，检查数据更新状态")
+            
+            // 优先检查推送数据更新
+            let hasPushUpdate = WidgetDataManager.shared.hasPushDataUpdate(withinSeconds: 30)
+            let hasRecentModification = WidgetDataManager.shared.hasRecentLocalModification(withinSeconds: 10)
+            
+            print("[Widget Debug] 数据状态检查 - 推送更新: \(hasPushUpdate), 本地修改: \(hasRecentModification)")
+            
+            if hasPushUpdate {
+                print("[Widget Debug] 检测到推送数据更新，使用推送更新的缓存数据")
+                // 推送数据更新，直接使用缓存数据
+                let carInfo = WidgetDataManager.shared.getCachedCarInfo()
+                if let carInfo = carInfo {
+                    entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: carInfo)
+                    // 清除推送数据更新标记，避免重复使用
+                    WidgetDataManager.shared.clearPushDataUpdate()
+                } else {
+                    print("[Widget Debug] 推送数据缓存为空，尝试网络请求")
+                    // 缓存为空，尝试网络请求
+                    do {
+                        if let carInfo = try await getLatestCarInfo() {
+                            WidgetDataManager.shared.updateCarInfo(carInfo)
+                            entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: carInfo)
+                        }
+                    } catch {
+                        print("[Widget Debug] 网络请求失败: \(error.localizedDescription)")
+                        entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "无法获取车辆数据")
+                    }
+                }
+            } else if hasRecentModification {
+                print("[Widget Debug] 检测到最近的本地修改，使用本地缓存数据")
                 // 使用本地缓存数据，避免覆盖本地修改
                 let carInfo = WidgetDataManager.shared.getCachedCarInfo()
                 if let carInfo = carInfo {
@@ -54,7 +81,7 @@ struct Provider: AppIntentTimelineProvider {
                     entry = SimpleEntry(date: currentDate, configuration: configuration, carInfo: nil, errorMessage: "无法获取车辆数据")
                 }
             } else {
-                print("[Widget Debug] 没有检测到最近的本地修改，尝试获取最新车辆信息")
+                print("[Widget Debug] 没有检测到最近的数据更新，尝试获取最新车辆信息")
                 // 尝试获取最新车辆信息
                 do {
                     if let carInfo = try await getLatestCarInfo() {

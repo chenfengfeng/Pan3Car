@@ -7,12 +7,12 @@ import path from 'path'; // <-- 引入Node.js内置的路径处理模块
 const TASKS_FILE_PATH = path.join(process.cwd(), 'charge_tasks.json');
 
 /**
- * 获取车辆信息的接口
+ * 获取车辆信息的接口 - 纯查询功能，不主动推送
  */
 export async function getVehicleInfo(req, res) {
     try {
         const timaToken = req.headers.timatoken;
-        const { vin } = req.body;
+        const { vin } = req.body; // 移除pushToken参数，保持接口纯净
         if (!vin || !timaToken) {
             return res.status(400).json({ code: 400, message: 'Missing required parameters' });
         }
@@ -154,7 +154,7 @@ export async function controlVehicle(req, res) {
 
         // --- 步骤二: 启动后台CLI任务
         if (pushToken && pushToken !== "") {
-            console.log(`[CLI] - VIN: ${vin} - Starting background task...`);
+            console.log(`[CLI] - VIN: ${vin} - 开始后台任务...`);
             
             // 将脚本文件名更新为您修改后的名字
             const scriptPath = path.join(process.cwd(), 'cli', 'tasks', 'vehicle-control-workflow.js');
@@ -162,9 +162,17 @@ export async function controlVehicle(req, res) {
             const scriptArgs = [vin, timaToken, pushToken, operationType, operation];
 
             execFile('node', [scriptPath, ...scriptArgs], (error, stdout, stderr) => {
-                if (error) { console.error(`[CLI] - VIN: ${vin} - Error:`, error); return; }
-                console.log(`[CLI] - VIN: ${vin} - STDOUT:\n`, stdout);
-                if (stderr) { console.error(`[CLI] - VIN: ${vin} - STDERR:\n`, stderr); }
+                if (error) { 
+                    console.error(`[CLI] - VIN: ${vin} - Error:`, error); 
+                    return; 
+                }
+                if (stdout) {
+                    console.log(`[CLI] - VIN: ${vin} - STDOUT:\n${stdout}`);
+                }
+                if (stderr) { 
+                    console.error(`[CLI] - VIN: ${vin} - STDERR:\n${stderr}`); 
+                }
+                console.log(`[CLI] - VIN: ${vin} - 子进程已完成`);
             });
 
             return res.status(200).json({ 

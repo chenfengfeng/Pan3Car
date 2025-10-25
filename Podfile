@@ -7,17 +7,12 @@ target 'Pan3' do
   pod 'SwifterSwift'
   pod 'Kingfisher'
   pod 'GRDB.swift'
-  pod 'SwiftyJSON'
   pod 'Alamofire'
   pod 'MJRefresh'
   pod 'SnapKit'
   pod 'QMUIKit'
   #debug
   pod 'LookinServer', :configurations => ['Debug']
-end
-
-target 'Pan3PushService' do
-  pod 'SwiftyJSON'
 end
 
 post_install do |installer|

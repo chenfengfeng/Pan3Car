@@ -69,6 +69,44 @@ class WatchConnectivityManager: NSObject, ObservableObject {
         print("[WatchConnectivity] 成功发送车辆信息到Watch")
     }
     
+    /// 发送SharedCarModel到Watch（使用Application Context，适合最新状态覆盖）
+    func sendSharedCarModelToWatch(_ sharedCarModel: SharedCarModel) {
+        guard WCSession.default.activationState == .activated else {
+            print("[WatchConnectivity] Watch会话未激活，无法发送SharedCarModel")
+            return
+        }
+        
+        // 将SharedCarModel转换为字典
+        let carModelDict = sharedCarModel.toDictionary()
+        var context = carModelDict
+        context["timestamp"] = Date().timeIntervalSince1970
+        context["type"] = "sharedCarModel"
+        
+        do {
+            try WCSession.default.updateApplicationContext(context)
+            print("[WatchConnectivity] 成功发送SharedCarModel到Watch")
+        } catch {
+            print("[WatchConnectivity] 发送SharedCarModel失败: \(error)")
+        }
+    }
+    
+    /// 发送SharedCarModel到Watch（使用User Info，确保可靠传输）
+    func transferSharedCarModelToWatch(_ sharedCarModel: SharedCarModel) {
+        guard WCSession.default.activationState == .activated else {
+            print("[WatchConnectivity] Watch会话未激活，无法传输SharedCarModel")
+            return
+        }
+        
+        // 将SharedCarModel转换为字典
+        let carModelDict = sharedCarModel.toDictionary()
+        var userInfo = carModelDict
+        userInfo["timestamp"] = Date().timeIntervalSince1970
+        userInfo["type"] = "sharedCarModel"
+        
+        WCSession.default.transferUserInfo(userInfo)
+        print("[WatchConnectivity] 成功传输SharedCarModel到Watch")
+    }
+    
     /// 清除Watch端的认证数据
     func clearWatchAuthData() {
         let context: [String: Any] = [

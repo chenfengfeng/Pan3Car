@@ -51,38 +51,51 @@ class NotificationService: UNNotificationServiceExtension {
         }
         
         print("[NotificationService] 成功提取车辆数据: \(carData)")
+//        let mainLockStatus: Int = (carData["mainLockStatus"] ?? 100) as! Int
+//        content.body = "车锁状态 \(mainLockStatus == 0 ? "已锁定" : "已解锁")"
         
         // 2. 保存数据到 App Groups
         saveCarDataToAppGroups(carData: carData)
         
         // 3. 刷新小组件
-        refreshWidgets()
+        refreshWidgets(content: content)
         
         // 4. 发送数据到手表
-        sendDataToWatch(carData: carData)
+//        sendDataToWatch(carData: carData)
         
         // 5. 可选：修改通知内容
-        enhanceNotificationContent(content: content, carData: carData)
+//        enhanceNotificationContent(content: content)
     }
     
     // MARK: - 提取推送数据
     private func extractCarDataFromPush(request: UNNotificationRequest) -> [String: Any]? {
         let userInfo = request.content.userInfo
         
-        // 方式1：检查是否有直接的 carData 字段
+        // 方式1：检查是否有 car_data 字段（后端新格式）
+        if let carData = userInfo["car_data"] as? [String: Any] {
+            print("[NotificationService] 找到 car_data 字段")
+            return carData
+        }
+        
+        // 方式2：检查是否有直接的 carData 字段（兼容旧格式）
         if let carData = userInfo["carData"] as? [String: Any] {
             print("[NotificationService] 找到 carData 字段")
             return carData
         }
         
-        // 方式2：检查是否有 aps 字段中的自定义数据
-        if let aps = userInfo["aps"] as? [String: Any],
-           let carData = aps["carData"] as? [String: Any] {
-            print("[NotificationService] 在 aps 中找到 carData 字段")
-            return carData
+        // 方式3：检查是否有 aps 字段中的自定义数据
+        if let aps = userInfo["aps"] as? [String: Any] {
+            if let carData = aps["car_data"] as? [String: Any] {
+                print("[NotificationService] 在 aps 中找到 car_data 字段")
+                return carData
+            }
+            if let carData = aps["carData"] as? [String: Any] {
+                print("[NotificationService] 在 aps 中找到 carData 字段")
+                return carData
+            }
         }
         
-        // 方式3：检查根级别的车辆状态字段
+        // 方式4：检查根级别的车辆状态字段
         let potentialCarFields = ["soc", "acOnMile", "mainLockStatus", "acStatus", "chgStatus"]
         let hasCarFields = potentialCarFields.contains { userInfo[$0] != nil }
         
@@ -102,30 +115,57 @@ class NotificationService: UNNotificationServiceExtension {
             return
         }
         
-        // 使用与 UserManager 相同的逻辑保存数据
-        // 创建 CarModel 并转换为字典格式
-        let json = JSON(carData)
-        let carModel = CarModel(json: json)
-        let carModelDict = carModel.toDictionary()
+        print("[NotificationService] 开始保存车辆数据到 App Groups...")
         
-        // 保存完整的 CarModel 数据
+        // 使用与 UserManager 相同的逻辑保存数据
+        // 创建 SharedCarModel 并转换为字典格式
+        let json = JSON(carData)
+        let sharedCarModel = SharedCarModel(json: json)
+        let carModelDict = sharedCarModel.toDictionary()
+        
+        // 保存完整的 SharedCarModel 数据
         userDefaults.set(carModelDict, forKey: "CarModelData")
         
         // 设置本地修改标记，供小组件检测
+        let currentTime = Date().timeIntervalSince1970
         userDefaults.set(true, forKey: "widgetLocalModification")
-        userDefaults.set(Date().timeIntervalSince1970, forKey: "widgetLocalModificationTime")
+        userDefaults.set(currentTime, forKey: "widgetLocalModificationTime")
         
-        // 强制同步
-        userDefaults.synchronize()
+        // 添加推送数据更新标记，用于强制刷新
+        userDefaults.set(true, forKey: "pushDataUpdated")
+        userDefaults.set(currentTime, forKey: "pushDataUpdateTime")
         
-        print("[NotificationService] 已保存车辆数据到 App Groups")
+        // 强制同步并验证数据写入
+        let syncSuccess = userDefaults.synchronize()
+        print("[NotificationService] 数据同步结果: \(syncSuccess)")
+        
+        // 验证数据是否正确保存
+        if let savedData = userDefaults.object(forKey: "CarModelData") as? [String: Any] {
+            print("[NotificationService] 数据保存验证成功，SOC: \(savedData["soc"] ?? "未知")")
+        } else {
+            print("[NotificationService] 警告：数据保存验证失败")
+        }
+        
+        print("[NotificationService] 车辆数据保存完成，时间戳: \(currentTime)")
     }
     
     // MARK: - 刷新小组件
-    private func refreshWidgets() {
+    private func refreshWidgets(content: UNMutableNotificationContent) {
         print("[NotificationService] 开始刷新小组件...")
-        WidgetCenter.shared.reloadAllTimelines()
-        print("[NotificationService] 小组件刷新请求已发送")
+        
+        // 添加短暂延迟确保数据完全写入
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            print("[NotificationService] 执行小组件刷新...")
+            WidgetCenter.shared.reloadAllTimelines()
+            print("[NotificationService] 小组件刷新请求已发送")
+            
+            // 添加重试机制
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                print("[NotificationService] 执行小组件刷新重试...")
+                WidgetCenter.shared.reloadAllTimelines()
+                print("[NotificationService] 小组件刷新重试完成")
+            }
+        }
     }
     
     // MARK: - 发送数据到手表
@@ -164,86 +204,13 @@ class NotificationService: UNNotificationServiceExtension {
     }
     
     // MARK: - 增强通知内容
-    private func enhanceNotificationContent(content: UNMutableNotificationContent, carData: [String: Any]) {
-        // 解析关键车辆信息
-        let soc = carData["soc"] as? Int ?? 0
-        let isCharging = (carData["chgStatus"] as? Int ?? 2) != 2
-        let isLocked = (carData["mainLockStatus"] as? Int ?? 1) == 0
-        let acStatus = (carData["acStatus"] as? Int ?? 0) == 1
+    private func enhanceNotificationContent(content: UNMutableNotificationContent) {
+        // 调试标识
+        content.title = "[NotificationService] 标题模式"
         
-        // 构建状态描述
-        var statusParts: [String] = []
-        
-        if isCharging {
-            statusParts.append("充电中")
-        }
-        
-        if !isLocked {
-            statusParts.append("未锁车")
-        }
-        
-        if acStatus {
-            statusParts.append("空调开启")
-        }
-        
-        // 更新通知内容
-        if !statusParts.isEmpty {
-            let statusText = statusParts.joined(separator: " • ")
-            content.body = "电量 \(soc)% • \(statusText)"
-        } else {
-            content.body = "电量 \(soc)%"
-        }
-        
-        // 添加副标题
-        content.subtitle = "车辆状态已更新"
-        
-        print("[NotificationService] 已增强通知内容: \(content.body)")
+        print("[NotificationService] 已增强通知内容 - 标题: \(content.title), 内容: \(content.body)")
     }
 }
 
-// MARK: - CarModel 扩展（临时定义，用于数据转换）
-// 注意：这里需要与主应用中的 CarModel 保持一致
-private struct CarModel {
-    let soc: Int
-    let acOnMile: Int
-    let mainLockStatus: Int
-    let acStatus: Int
-    let chgStatus: Int
-    let quickChgLeftTime: Int
-    let temperatureInCar: Int
-    let lfWindowOpen: Int
-    let rfWindowOpen: Int
-    let lrWindowOpen: Int
-    let rrWindowOpen: Int
-    
-    init(json: JSON) {
-        self.soc = json["soc"].intValue
-        self.acOnMile = json["acOnMile"].intValue
-        self.mainLockStatus = json["mainLockStatus"].intValue
-        self.acStatus = json["acStatus"].intValue
-        self.chgStatus = json["chgStatus"].intValue
-        self.quickChgLeftTime = json["quickChgLeftTime"].intValue
-        self.temperatureInCar = json["temperatureInCar"].intValue
-        self.lfWindowOpen = json["lfWindowOpen"].intValue
-        self.rfWindowOpen = json["rfWindowOpen"].intValue
-        self.lrWindowOpen = json["lrWindowOpen"].intValue
-        self.rrWindowOpen = json["rrWindowOpen"].intValue
-    }
-    
-    func toDictionary() -> [String: Any] {
-        return [
-            "soc": soc,
-            "acOnMile": acOnMile,
-            "mainLockStatus": mainLockStatus,
-            "acStatus": acStatus,
-            "chgStatus": chgStatus,
-            "quickChgLeftTime": quickChgLeftTime,
-            "temperatureInCar": temperatureInCar,
-            "lfWindowOpen": lfWindowOpen,
-            "rfWindowOpen": rfWindowOpen,
-            "lrWindowOpen": lrWindowOpen,
-            "rrWindowOpen": rrWindowOpen,
-            "lastUpdated": Date().timeIntervalSince1970
-        ]
-    }
-}
+// MARK: - 使用共享的 SharedCarModel
+// 直接使用 Shared 目录中的 SharedCarModel，无需重复定义

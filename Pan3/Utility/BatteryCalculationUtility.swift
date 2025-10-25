@@ -108,7 +108,7 @@ class BatteryCalculationUtility {
     ///   - soc: 电池电量百分比 (0-100)
     ///   - carModel: 车型信息
     /// - Returns: 续航里程 (km)
-    static func calculateRange(soc: Double, carModel: CarModel) -> Int {
+    static func calculateRange(soc: Double, carModel: SharedCarModel) -> Int {
         let batteryCapacity = getBatteryCapacity(from: carModel)
         let targetKwh = calculateCurrentKwh(soc: soc, batteryCapacity: batteryCapacity)
 
@@ -213,21 +213,21 @@ class BatteryCalculationUtility {
     /// 从CarModel获取电池容量
     /// - Parameter carModel: 车辆模型
     /// - Returns: 电池容量 (kWh)
-    static func getBatteryCapacity(from carModel: CarModel) -> Double {
+    static func getBatteryCapacity(from carModel: SharedCarModel) -> Double {
         return carModel.estimatedModelAndCapacity.batteryCapacity
     }
     
     /// 从CarModel获取当前SOC
     /// - Parameter carModel: 车辆模型
     /// - Returns: 当前SOC (0-100)
-    static func getCurrentSoc(from carModel: CarModel) -> Double {
+    static func getCurrentSoc(from carModel: SharedCarModel) -> Double {
         return Double(carModel.soc) ?? 0.0
     }
     
     /// 从CarModel计算当前电量
     /// - Parameter carModel: 车辆模型
     /// - Returns: 当前电量 (kWh)
-    static func getCurrentKwh(from carModel: CarModel) -> Double {
+    static func getCurrentKwh(from carModel: SharedCarModel) -> Double {
         let soc = getCurrentSoc(from: carModel)
         let capacity = getBatteryCapacity(from: carModel)
         return calculateCurrentKwh(soc: soc, batteryCapacity: capacity)
@@ -250,7 +250,7 @@ class BatteryCalculationUtility {
 
 // MARK: - CarModel Extension
 
-extension CarModel {
+extension SharedCarModel {
     /// 获取当前电量 (kWh)
     var currentKwh: Double {
         return BatteryCalculationUtility.getCurrentKwh(from: self)

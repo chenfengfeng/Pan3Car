@@ -6,16 +6,24 @@
 //
 
 import Foundation
+import SwiftyJSON
+import CoreLocation
 
+/**
+ 3个型号的电池容量(kWh)
+ 330: 34.5
+ 405: 41
+ 505: 51.5
+ */
 /// 共享车辆数据模型，支持多Target复用（主应用、小组件、Watch等）
 /// 使用纯Foundation框架，不依赖第三方库
 struct SharedCarModel: Codable {
     // MARK: - 位置信息
-    let latitude: String                 // 纬度
-    let longitude: String                // 经度
+    let latitude: Double                 // 纬度
+    let longitude: Double                // 经度
     
     // MARK: - 电池信息
-    let soc: String                      // 电池电量百分比
+    let soc: Int                         // 电池电量百分比
     let quickChgLeftTime: Int            // 快充剩余时间
     let slowChgLeftTime: Int             // 慢充剩余时间
     let chgStatus: Int                   // 充电状态
@@ -32,10 +40,10 @@ struct SharedCarModel: Codable {
     let doorsLockStatus: Int?            // 车门锁状态
     
     // MARK: - 车窗状态
-    var lfWindowOpen: Int                // 左前车窗开启状态
-    var rfWindowOpen: Int                // 右前车窗开启状态
-    var lrWindowOpen: Int                // 左后车窗开启状态
-    var rrWindowOpen: Int                // 右后车窗开启状态
+    let lfWindowOpen: Int                // 左前车窗开启状态
+    let rfWindowOpen: Int                // 右前车窗开启状态
+    let lrWindowOpen: Int                // 左后车窗开启状态
+    let rrWindowOpen: Int                // 右后车窗开启状态
     let topWindowOpen: Int               // 天窗开启状态
     
     // MARK: - 轮胎信息
@@ -45,7 +53,7 @@ struct SharedCarModel: Codable {
     let rrTirePresure: Int               // 右后轮胎压力
     
     // MARK: - 空调系统
-    var acStatus: Int                    // 空调状态
+    let acStatus: Int                    // 空调状态
     let temperatureInCar: Int            // 车内温度
     let quickcoolACStatus: Int?          // 快速制冷空调状态
     let quickheatACStatus: Int           // 快速制热空调状态
@@ -55,69 +63,76 @@ struct SharedCarModel: Codable {
     let lowlightStatus: Int              // 近光灯状态
     let highlightStatus: Int             // 远光灯状态
     
-    // MARK: - 其他信息
+    // MARK: - 车辆基本信息
     let keyStatus: Int                   // 钥匙状态
     let totalMileage: String             // 总里程
     let acOnMile: Int                    // 空调开启里程
     let acOffMile: Int                   // 空调关闭里程
     
-    /// 从字典初始化（用于解析网络请求返回的数据）
-    init(from dictionary: [String: Any]) {
+    init(json: JSON) {
         // 位置信息
-        self.latitude = dictionary["latitude"] as? String ?? "0"
-        self.longitude = dictionary["longtitude"] as? String ?? "0" // 注意API返回的是longtitude而不是longitude
+        self.latitude = json["latitude"].doubleValue
+        self.longitude = json["longtitude"].doubleValue
         
         // 电池信息
-        self.soc = dictionary["soc"] as? String ?? "0"
-        self.quickChgLeftTime = dictionary["quickChgLeftTime"] as? Int ?? 0
-        self.slowChgLeftTime = dictionary["slowChgLeftTime"] as? Int ?? 0
-        self.chgStatus = dictionary["chgStatus"] as? Int ?? 0
-        self.chgPlugStatus = dictionary["chgPlugStatus"] as? Int ?? 0
-        self.batteryHeatStatus = dictionary["batteryHeatStatus"] as? Int ?? 0
+        self.soc = json["soc"].intValue
+        self.acOnMile = json["acOnMile"].intValue
+        self.acOffMile = json["acOffMile"].intValue
+        self.quickChgLeftTime = json["quickChgLeftTime"].intValue
+        self.slowChgLeftTime = json["slowChgLeftTime"].intValue
+        self.chgStatus = json["chgStatus"].intValue
+        self.chgPlugStatus = json["chgPlugStatus"].intValue
+        self.batteryHeatStatus = json["batteryHeatStatus"].intValue
         
         // 车门状态
-        self.doorStsFrontLeft = dictionary["doorStsFrontLeft"] as? Int ?? 0
-        self.doorStsFrontRight = dictionary["doorStsFrontRight"] as? Int ?? 0
-        self.doorStsRearLeft = dictionary["doorStsRearLeft"] as? Int ?? 0
-        self.doorStsRearRight = dictionary["doorStsRearRight"] as? Int ?? 0
-        self.mainLockStatus = dictionary["mainLockStatus"] as? Int ?? 0
-        self.trunkLockStatus = dictionary["trunkLockStatus"] as? Int ?? 0
-        self.doorsLockStatus = dictionary["doorsLockStatus"] as? Int
+        self.doorStsFrontLeft = json["doorStsFrontLeft"].intValue
+        self.doorStsFrontRight = json["doorStsFrontRight"].intValue
+        self.doorStsRearLeft = json["doorStsRearLeft"].intValue
+        self.doorStsRearRight = json["doorStsRearRight"].intValue
+        self.mainLockStatus = json["mainLockStatus"].intValue
+        self.trunkLockStatus = json["trunkLockStatus"].intValue
+        self.doorsLockStatus = json["doorsLockStatus"].int
         
         // 车窗状态
-        self.lfWindowOpen = dictionary["lfWindowOpen"] as? Int ?? 0
-        self.rfWindowOpen = dictionary["rfWindowOpen"] as? Int ?? 0
-        self.lrWindowOpen = dictionary["lrWindowOpen"] as? Int ?? 0
-        self.rrWindowOpen = dictionary["rrWindowOpen"] as? Int ?? 0
-        self.topWindowOpen = dictionary["topWindowOpen"] as? Int ?? 0
+        self.lfWindowOpen = json["lfWindowOpen"].intValue
+        self.rfWindowOpen = json["rfWindowOpen"].intValue
+        self.lrWindowOpen = json["lrWindowOpen"].intValue
+        self.rrWindowOpen = json["rrWindowOpen"].intValue
+        self.topWindowOpen = json["topWindowOpen"].intValue
         
         // 轮胎信息
-        self.lfTirePresure = dictionary["lfTirePresure"] as? Int ?? 0
-        self.rfTirePresure = dictionary["rfTirePresure"] as? Int ?? 0
-        self.lrTirePresure = dictionary["lrTirePresure"] as? Int ?? 0
-        self.rrTirePresure = dictionary["rrTirePresure"] as? Int ?? 0
+        self.lfTirePresure = json["lfTirePresure"].intValue
+        self.rfTirePresure = json["rfTirePresure"].intValue
+        self.lrTirePresure = json["lrTirePresure"].intValue
+        self.rrTirePresure = json["rrTirePresure"].intValue
         
         // 空调系统
-        self.acStatus = dictionary["acStatus"] as? Int ?? 0
-        self.temperatureInCar = dictionary["temperatureInCar"] as? Int ?? 20
-        self.quickcoolACStatus = dictionary["quickcoolACStatus"] as? Int
-        self.quickheatACStatus = dictionary["quickheatACStatus"] as? Int ?? 0
-        self.defrostStatus = dictionary["defrostStatus"] as? Int ?? 0
-        self.acOnMile = dictionary["acOnMile"] as? Int ?? 0
-        self.acOffMile = dictionary["acOffMile"] as? Int ?? 0
+        self.acStatus = json["acStatus"].intValue
+        self.temperatureInCar = json["temperatureInCar"].intValue
+        self.quickcoolACStatus = json["quickcoolACStatus"].int
+        self.quickheatACStatus = json["quickheatACStatus"].intValue
+        self.defrostStatus = json["defrostStatus"].intValue
         
         // 灯光系统
-        self.lowlightStatus = dictionary["lowlightStatus"] as? Int ?? 0
-        self.highlightStatus = dictionary["highlightStatus"] as? Int ?? 0
+        self.lowlightStatus = json["lowlightStatus"].intValue
+        self.highlightStatus = json["highlightStatus"].intValue
         
-        // 其他信息
-        self.keyStatus = dictionary["keyStatus"] as? Int ?? 0
-        self.totalMileage = dictionary["totalMileage"] as? String ?? "0"
+        // 车辆基本信息
+        self.keyStatus = json["keyStatus"].intValue
+        self.totalMileage = json["totalMileage"].stringValue
+    }
+    
+    /// 从字典数据初始化CarModel的便利构造器
+    /// 使用SwiftyJSON将字典转换为JSON对象，然后调用现有的init(json:)方法
+    init?(dictionary: [String: Any]) {
+        let json = JSON(dictionary)
+        self.init(json: json)
     }
     
     /// 推测车型及电池容量（返回如："405", 41.0）
     var estimatedModelAndCapacity: (model: String, batteryCapacity: Double) {
-        guard let socValue = Double(soc), socValue > 0 else {
+        let socValue = Double(soc)
+        guard socValue > 0 else {
             return ("Unknown", 0.0)
         }
 
@@ -144,60 +159,92 @@ struct SharedCarModel: Codable {
         return (closest?.name ?? "Unknown", closest?.battery ?? 0.0)
     }
     
-    /// 获取格式化的车内温度
-    var formattedTemperature: String {
-        return "\(temperatureInCar)°"
+    /// 车辆坐标位置
+    var coordinate: CLLocationCoordinate2D {
+        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
     
-    /// 获取车锁状态描述
+    /// 车锁状态描述
     var lockStatusDescription: String {
-        if mainLockStatus == 0 {
-            return "已锁定"
-        }
-        return "已解锁"
+        return mainLockStatus == 0 ? "已锁车" : "已解锁"
     }
     
-    /// 获取空调状态描述
-    var airConditionerStatusDescription: String {
-        if acStatus == 1 {
-            return "已关闭"
-        }
-        return "已开启"
-    }
-    
-    /// 获取充电状态描述
-    var chargingStatusDescription: String {
-        if chgStatus == 2 {
-            return "未充电"
-        }
-        return "充电中"
-    }
-    
-    /// 获取车窗开启状态数组（按顺序：左前、右前、左后、右后）
+    /// 车窗状态数组
     var windowStates: [Bool] {
         return [
-            lfWindowOpen > 0,
-            rfWindowOpen > 0,
-            lrWindowOpen > 0,
-            rrWindowOpen > 0
+            lfWindowOpen != 0,  // 左前车窗
+            rfWindowOpen != 0,  // 右前车窗
+            lrWindowOpen != 0,  // 左后车窗
+            rrWindowOpen != 0,  // 右后车窗
+            topWindowOpen != 0  // 天窗
         ]
     }
     
-    /// 获取车门开启状态数组（按顺序：左前、右前、左后、右后、后备箱）
-    var doorStates: [Bool] {
-        return [
-            doorStsFrontLeft > 0,
-            doorStsFrontRight > 0,
-            doorStsRearLeft > 0,
-            doorStsRearRight > 0,
-            trunkLockStatus > 0
+    /// 将CarModel转换为字典形式，用于保存到App Groups
+    func toDictionary() -> [String: Any] {
+        var dictionary: [String: Any] = [
+            // 位置信息
+            "latitude": latitude,
+            "longitude": longitude,
+            
+            // 电池信息
+            "soc": soc,
+            "quickChgLeftTime": quickChgLeftTime,
+            "slowChgLeftTime": slowChgLeftTime,
+            "chgStatus": chgStatus,
+            "chgPlugStatus": chgPlugStatus,
+            "batteryHeatStatus": batteryHeatStatus,
+            
+            // 车门状态
+            "doorStsFrontLeft": doorStsFrontLeft,
+            "doorStsFrontRight": doorStsFrontRight,
+            "doorStsRearLeft": doorStsRearLeft,
+            "doorStsRearRight": doorStsRearRight,
+            "mainLockStatus": mainLockStatus,
+            "trunkLockStatus": trunkLockStatus,
+            
+            // 车窗状态
+            "lfWindowOpen": lfWindowOpen,
+            "rfWindowOpen": rfWindowOpen,
+            "lrWindowOpen": lrWindowOpen,
+            "rrWindowOpen": rrWindowOpen,
+            "topWindowOpen": topWindowOpen,
+            
+            // 轮胎信息
+            "lfTirePresure": lfTirePresure,
+            "rfTirePresure": rfTirePresure,
+            "lrTirePresure": lrTirePresure,
+            "rrTirePresure": rrTirePresure,
+            
+            // 空调系统
+            "acStatus": acStatus,
+            "temperatureInCar": temperatureInCar,
+            "quickheatACStatus": quickheatACStatus,
+            "defrostStatus": defrostStatus,
+            
+            // 灯光系统
+            "lowlightStatus": lowlightStatus,
+            "highlightStatus": highlightStatus,
+            
+            // 车辆基本信息
+            "keyStatus": keyStatus,
+            "totalMileage": totalMileage,
+            "acOnMile": acOnMile,
+            "acOffMile": acOffMile,
+            
+            // 添加时间戳用于数据新鲜度判断
+            "lastUpdated": Date().timeIntervalSince1970
         ]
-    }
-    
-    /// 获取当前位置坐标
-    var coordinate: (latitude: Double, longitude: Double) {
-        let lat = Double(latitude) ?? 0.0
-        let lng = Double(longitude) ?? 0.0
-        return (lat, lng)
+        
+        // 安全处理可选属性，避免null值导致崩溃
+        if let doorsLockStatus = doorsLockStatus {
+            dictionary["doorsLockStatus"] = doorsLockStatus
+        }
+        
+        if let quickcoolACStatus = quickcoolACStatus {
+            dictionary["quickcoolACStatus"] = quickcoolACStatus
+        }
+        
+        return dictionary
     }
 }

@@ -22,12 +22,30 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         
+        // 检查是否是通过推送通知启动的APP
+        if let remoteNotification = launchOptions?[.remoteNotification] as? [AnyHashable: Any] {
+            print("APP通过推送通知启动，处理推送数据...")
+            // 延迟处理推送通知，确保APP完全初始化
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.handlePushNotificationUpdate(userInfo: remoteNotification)
+            }
+        }
+        
         // 检查用户登录状态
         if UserManager.shared.isLoggedIn {
             // 已登录，跳转到主界面
             let mainStoryboard = UIStoryboard(name: "Main", bundle: nil)
             let mainViewController = mainStoryboard.instantiateInitialViewController()
             window?.rootViewController = mainViewController
+            
+            // 从App Groups加载最新的车辆数据（如果存在）
+            // 这确保了通过小组件启动APP时能获取到最新的车辆状态
+            if let savedCarModel = UserManager.shared.loadCarModelFromAppGroups() {
+                UserManager.shared.updateCarInfo(with: savedCarModel)
+                print("[AppDelegate] 已从App Groups恢复车辆数据")
+            } else {
+                print("[AppDelegate] 未找到App Groups中的车辆数据")
+            }
         } else {
             // 未登录，显示登录界面
             let loginViewController = LoginViewController()
@@ -83,51 +101,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // MARK: - 充电任务推送处理
     
     /// 处理充电任务相关的推送通知
-    private func handleChargeTaskPushNotification(extData: [String: Any], operationType: String) {
+    private func handleChargeTaskPushNotification(operationType: String) {
         print("处理充电任务推送通知 - 操作类型: \(operationType)")
-        print("推送ext数据: \(extData)")
         
-        guard let vin = extData["vin"] as? String,
-              let status = extData["status"] as? String else {
-            print("充电任务推送数据格式错误，缺少必要字段")
-            return
-        }
-        
-        // 发送通知给ChargeViewController处理数据库更新
-        let userInfo: [String: Any] = [
-            "vin": vin,
-            "status": status,
-            "operationType": operationType,
-            "extData": extData
-        ]
-        
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(
-                name: NSNotification.Name("ChargeTaskPushReceived"),
-                object: nil,
-                userInfo: userInfo
-            )
-        }
-        
-        // 根据操作类型处理不同的逻辑
-        switch operationType {
-        case "charge_task_completed":
-            print("充电任务完成 - VIN: \(vin)")
-            // 清理相关的Live Activity
-            LiveActivityManager.shared.cleanupActivitiesForVin(vin)
+        if operationType == "time_task_ended" || operationType == "range_task_ended" {
+            let defaults = UserDefaults.standard
+            defaults.removeObject(forKey: "activeMonitoringMode")
+            defaults.removeObject(forKey: "activeMonitoringTargetValue")
+            defaults.removeObject(forKey: "activeMonitoringAutoStop")
+            defaults.removeObject(forKey: "activeMonitoringDetails")
             
-        case "charge_task_failed":
-            print("充电任务失败 - VIN: \(vin)")
-            // 清理相关的Live Activity
-            LiveActivityManager.shared.cleanupActivitiesForVin(vin)
+            // 清除实时活动数据
+            defaults.removeObject(forKey: "LiveActivityData")
             
-        case "charge_task_cancelled":
-            print("充电任务取消 - VIN: \(vin)")
-            // 清理相关的Live Activity
-            LiveActivityManager.shared.cleanupActivitiesForVin(vin)
+            defaults.synchronize()
             
-        default:
-            print("未知的充电任务操作类型: \(operationType)")
+            // 停止实时活动
+            LiveActivityManager.shared.endCurrentActivity()
         }
     }
     
@@ -145,16 +135,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
         
         // 检查是否包含充电任务相关的ext信息
-        if let extData = pushData["ext"] as? [String: Any],
-           let operationType = pushData["operation_type"] as? String {
-            handleChargeTaskPushNotification(extData: extData, operationType: operationType)
+        if let operationType = pushData["operation_type"] as? String {
+            handleChargeTaskPushNotification(operationType: operationType)
         }
         
-        // 更新UserManager中的车辆信息
-        UserManager.shared.updateCarInfo(from: pushData)
-        
-        // 刷新小组件
-        WidgetCenter.shared.reloadAllTimelines()
+        if let car_data = pushData["car_data"] as? [String: Any] {
+            // 更新UserManager中的车辆信息
+            UserManager.shared.updateCarInfo(from: car_data)
+            // 刷新小组件
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
     
     /// 处理推送数据更新 - 后台版本
@@ -169,16 +159,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
         
         // 检查是否包含充电任务相关的ext信息
-        if let extData = pushData["ext"] as? [String: Any],
-           let operationType = pushData["operationType"] as? String {
-            handleChargeTaskPushNotification(extData: extData, operationType: operationType)
+        if let operationType = pushData["operation_type"] as? String {
+            handleChargeTaskPushNotification(operationType: operationType)
         }
         
-        // 更新UserManager中的车辆信息
-        UserManager.shared.updateCarInfo(from: pushData)
-        
-        // 刷新小组件
-        WidgetCenter.shared.reloadAllTimelines()
+        if let car_data = pushData["car_data"] as? [String: Any] {
+            // 更新UserManager中的车辆信息
+            UserManager.shared.updateCarInfo(from: car_data)
+            // 刷新小组件
+            WidgetCenter.shared.reloadAllTimelines()
+        }
         
         completion(.newData)
     }
@@ -310,6 +300,19 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         handlePushNotificationUpdate(userInfo: notification.request.content.userInfo)
         
         completionHandler([.banner, .sound])
+    }
+    
+    // 当用户点击推送通知时调用（APP被杀死或在后台时）
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              didReceive response: UNNotificationResponse,
+                              withCompletionHandler completionHandler: @escaping () -> Void) {
+        
+        print("用户点击了推送通知: \(response.notification.request.content.userInfo)")
+        
+        // 处理推送数据更新
+        handlePushNotificationUpdate(userInfo: response.notification.request.content.userInfo)
+        
+        completionHandler()
     }
     
     /**

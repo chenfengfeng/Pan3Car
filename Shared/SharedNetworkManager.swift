@@ -58,6 +58,17 @@ class SharedNetworkManager {
         #endif
     }
     
+    private var presetTemperature: Int {
+        #if os(watchOS)
+        // 在Watch应用中，从WatchConnectivityManager获取预设温度
+        // 如果Watch端没有实现温度同步，使用默认值26度
+        return 26
+        #else
+        // 在iPhone应用中，从App Groups获取预设温度，如果没有设置则使用默认值26度
+        return UserDefaults(suiteName: "group.com.feng.pan3")?.integer(forKey: "PresetTemperature") ?? 26
+        #endif
+    }
+    
     // MARK: - 车辆控制方法（使用energy端点）
     
     /// 车锁控制
@@ -106,7 +117,7 @@ class SharedNetworkManager {
     }
     
     /// 空调控制
-    func energyAirConditioner(operation: Int, temperature: Int, duringTime: Int, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+    func energyAirConditioner(operation: Int, temperature: Int? = nil, duringTime: Int, completion: @escaping (Result<[String: Any], Error>) -> Void) {
         guard let vin = defaultVin,
               let timaToken = timaToken else {
             let error = NSError(domain: "AirConditionerError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
@@ -116,14 +127,19 @@ class SharedNetworkManager {
         
         let url = "\(baseURL)/car/sync"
         
+        // 如果没有传入温度参数，使用预设温度
+        let actualTemperature = temperature ?? presetTemperature
+        
         let parameters: [String: Any] = [
             "vin": vin,
             "operation": operation, // 2表示开启，1表示关闭
             "operationType": "INTELLIGENT_AIRCONDITIONER",
-            "temperature": temperature,
+            "temperature": actualTemperature,
             "duringTime": duringTime,
             "pushToken": pushToken ?? ""
         ]
+        
+        print("[Shared Debug] 空调控制 - 操作: \(operation), 温度: \(actualTemperature)°C (预设温度: \(presetTemperature)°C)")
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
     }

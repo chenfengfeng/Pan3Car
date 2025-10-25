@@ -369,16 +369,15 @@ class HomeViewController: UIViewController, CarDataRefreshable {
               let currentKm = liveActivityData["currentKm"] as? Int,
               let currentSoc = liveActivityData["currentSoc"] as? Int,
               let chargeProgress = liveActivityData["chargeProgress"] as? Double,
-              let message = liveActivityData["message"] as? String,
-              let lastUpdateTimeInterval = liveActivityData["lastUpdateTime"] as? TimeInterval else {
+              let message = liveActivityData["message"] as? String else {
             print("实时活动数据格式不正确")
             return
         }
         
         // 检查是否支持实时活动
         if #available(iOS 16.1, *) {
-            // 重新创建 CarWidgetAttributes
-            let attributes = CarWidgetAttributes(
+            // 重新创建 ChargeAttributes
+            let attributes = ChargeAttributes(
                 vin: vin,
                 startKm: startKm,
                 endKm: endKm,
@@ -388,12 +387,11 @@ class HomeViewController: UIViewController, CarDataRefreshable {
             // 获取当前车辆信息来更新状态
             if let carInfo = UserManager.shared.carModel {
                 // 创建更新后的状态
-                let updatedState = CarWidgetAttributes.ContentState(
+                let updatedState = ChargeAttributes.ContentState(
                     currentKm: carInfo.acOnMile,
                     currentSoc: carInfo.soc,
                     chargeProgress: Int(chargeProgress),
-                    message: "充电监控已恢复",
-                    lastUpdateTime: Date()
+                    message: "充电监控已恢复"
                 )
                 
                 // 重新启动实时活动
@@ -402,12 +400,11 @@ class HomeViewController: UIViewController, CarDataRefreshable {
                 print("实时活动已恢复 - 模式: \(mode), 目标值: \(targetValue)")
             } else {
                 // 如果没有当前车辆信息，使用保存的数据
-                let savedState = CarWidgetAttributes.ContentState(
+                let savedState = ChargeAttributes.ContentState(
                     currentKm: currentKm,
                     currentSoc: currentSoc,
                     chargeProgress: Int(chargeProgress),
-                    message: message,
-                    lastUpdateTime: Date(timeIntervalSince1970: lastUpdateTimeInterval)
+                    message: message
                 )
                 
                 LiveActivityManager.shared.manageActivityForTask(attributes: attributes, state: savedState)
@@ -684,7 +681,7 @@ extension HomeViewController {
     }
     
     // MARK: - 打开高德地图查看位置
-    private func openAmapNavigation(model: CarModel) {
+    private func openAmapNavigation(model: SharedCarModel) {
         let amapURLString = "iosamap://viewMap?sourceApplication=胖3汽车&backScheme=pan3&lat=\(model.latitude)&lon=\(model.longitude)&poiname=我的车&dev=0"
         if let amapURL = URL(string: amapURLString) {
             UIApplication.shared.open(amapURL, options: [:], completionHandler: nil)
@@ -692,7 +689,7 @@ extension HomeViewController {
     }
     
     // MARK: - 打开苹果地图导航
-    private func openAppleMapNavigation(model: CarModel) {
+    private func openAppleMapNavigation(model: SharedCarModel) {
         let coordinate = CLLocationCoordinate2D(latitude: model.latitude, longitude: model.longitude)
         let placemark = MKPlacemark(coordinate: coordinate)
         let mapItem = MKMapItem(placemark: placemark)
@@ -703,7 +700,7 @@ extension HomeViewController {
     }
     
     // MARK: - 打开百度地图导航
-    private func openBaiduMapNavigation(model: CarModel) {
+    private func openBaiduMapNavigation(model: SharedCarModel) {
         // 将GCJ02坐标转换为BD09坐标
         let convertedCoordinate = convertGCJ02ToBD09(lat: model.latitude, lon: model.longitude)
         
@@ -1016,7 +1013,7 @@ extension HomeViewController {
     }
     
     // MARK: - 更新车辆状态信息
-    private func updateCarStatusInfo(with model: CarModel) {
+    private func updateCarStatusInfo(with model: SharedCarModel) {
         // 车辆信息
         windowStatusView.updateWindowStatusInfo()
         doorStatusView.updateDoorStatusInfo()
@@ -1035,7 +1032,7 @@ extension HomeViewController {
     }
     
     // MARK: - 更新地图位置
-    private func updateMapLocation(with model: CarModel) {
+    private func updateMapLocation(with model: SharedCarModel) {
         let coordinate = CLLocationCoordinate2D(latitude: model.latitude, longitude: model.longitude)
         
         // 设置地图区域（最大缩放等级）

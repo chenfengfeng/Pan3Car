@@ -61,7 +61,6 @@ struct CarWidgetAttributes: ActivityAttributes {
         let chargedKwh: Double
         let percentage: Double
         let message: String?
-        let lastUpdateTime: Date
     }
 }
 ```

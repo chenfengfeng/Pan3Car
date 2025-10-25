@@ -23,13 +23,13 @@ struct AuthResponseModel: Codable {
 struct AuthDataModel: Codable {
     let vin: String                      // 车架号
     let token: String                    // 认证令牌
-    var info: CarModel                   // 车辆详细信息（可变）
+    var info: SharedCarModel                   // 车辆详细信息（可变）
     let user: AuthUserModel              // 用户信息
     
     init(json: JSON) {
         self.vin = json["vin"].stringValue
         self.token = json["token"].stringValue
-        self.info = CarModel(json: json["info"])
+        self.info = SharedCarModel(json: json["info"])
         self.user = AuthUserModel(json: json["user"])
     }
 }

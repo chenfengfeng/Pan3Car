@@ -40,9 +40,32 @@ struct RectangularProvider: TimelineProvider {
             return
         }
         
-        // 检查是否有最近的本地修改
-        if WidgetDataManager.shared.hasRecentLocalModification(withinSeconds: 10) {
-            print("[Rectangular Widget Debug] 检测到最近的本地修改，跳过网络请求，使用本地缓存数据")
+        // 优先检查推送数据更新
+        let hasPushUpdate = WidgetDataManager.shared.hasPushDataUpdate(withinSeconds: 30)
+        let hasRecentModification = WidgetDataManager.shared.hasRecentLocalModification(withinSeconds: 10)
+        
+        print("[Rectangular Widget Debug] 数据状态检查 - 推送更新: \(hasPushUpdate), 本地修改: \(hasRecentModification)")
+        
+        if hasPushUpdate {
+            print("[Rectangular Widget Debug] 检测到推送数据更新，使用推送更新的缓存数据")
+            // 推送数据更新，直接使用缓存数据
+            let carInfo = WidgetDataManager.shared.getCachedCarInfo()
+            let entry: RectangularSimpleEntry
+            if let carInfo = carInfo {
+                entry = RectangularSimpleEntry(date: currentDate, carInfo: carInfo)
+                // 清除推送数据更新标记，避免重复使用
+                WidgetDataManager.shared.clearPushDataUpdate()
+            } else {
+                entry = RectangularSimpleEntry(date: currentDate, carInfo: nil, errorMessage: "无法获取车辆数据")
+            }
+            
+            // 设置下次更新时间为15分钟后
+            let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
+            let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+            completion(timeline)
+            return
+        } else if hasRecentModification {
+            print("[Rectangular Widget Debug] 检测到最近的本地修改，使用本地缓存数据")
             // 使用本地缓存数据，避免覆盖本地修改
             let carInfo = WidgetDataManager.shared.getCachedCarInfo()
             let entry: RectangularSimpleEntry

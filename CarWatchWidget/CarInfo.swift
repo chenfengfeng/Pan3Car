@@ -104,8 +104,31 @@ struct CarInfo: Codable, Hashable {
         )
     }
     
-    // 通用的解析CarInfo方法
+    // 从SharedCarModel创建CarInfo的便利方法
+    static func from(sharedCarModel: SharedCarModel) -> CarInfo {
+        return CarInfo(
+            remainingMileage: sharedCarModel.acOnMile,
+            soc: sharedCarModel.soc,
+            isLocked: sharedCarModel.mainLockStatus == 0,
+            windowsOpen: sharedCarModel.lfWindowOpen == 100 || 
+                        sharedCarModel.rfWindowOpen == 100 || 
+                        sharedCarModel.lrWindowOpen == 100 || 
+                        sharedCarModel.rrWindowOpen == 100,
+            isCharge: sharedCarModel.chgStatus != 2,
+            airConditionerOn: sharedCarModel.acStatus == 1,
+            lastUpdated: Date(),
+            chgLeftTime: sharedCarModel.quickChgLeftTime
+        )
+    }
+    
+    // 通用的解析CarInfo方法 - 支持从SharedCarModel转换
     static func parseCarInfo(from carData: [String: Any]) -> CarInfo {
+        // 尝试从SharedCarModel解析
+        if let sharedCarModel = SharedCarModel(dictionary: carData) {
+            return CarInfo.from(sharedCarModel: sharedCarModel)
+        }
+        
+        // 兼容旧版本数据格式
         // 安全处理soc字段，支持Int和String类型
         let soc: Int
         if let socInt = carData["soc"] as? Int {

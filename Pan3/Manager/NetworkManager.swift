@@ -132,7 +132,7 @@ class NetworkManager {
     
     // MARK: - 车辆信息接口
     // 获取车辆详细信息
-    func getInfo(completion: @escaping (Result<CarModel, Error>) -> Void) {
+    func getInfo(completion: @escaping (Result<SharedCarModel, Error>) -> Void) {
         // 内部获取必要参数
         guard let vin = UserManager.shared.defaultVin,
               let timaToken = UserManager.shared.timaToken else {
@@ -164,7 +164,7 @@ class NetworkManager {
                     let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
                     let json = JSON(jsonObject)
                     if !json["data"].dictionaryValue.isEmpty {
-                        let model = CarModel(json: json["data"])
+                        let model = SharedCarModel(json: json["data"])
                         // 根据充电状态，维护本地充电记录
                         // chgStatus == 2 表示“未在充电”，其他值视为“正在充电”
                         do {
@@ -383,6 +383,7 @@ class NetworkManager {
                         completion(.failure(error))
                     }
                 } catch {
+                    print(String(data: data, encoding: .utf8) ?? "")
                     completion(.failure(error))
                 }
             case .failure(let error):

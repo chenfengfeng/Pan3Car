@@ -7,8 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0464314A2EAB6D1100303D55 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 046431492EAB6D1100303D55 /* SwiftyJSON */; };
+		0464314D2EAB6E1400303D55 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 0464314C2EAB6E1400303D55 /* SwiftyJSON */; };
+		0464314F2EAB6EB000303D55 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 0464314E2EAB6EB000303D55 /* SwiftyJSON */; };
+		046431512EAB6EB700303D55 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 046431502EAB6EB700303D55 /* SwiftyJSON */; };
+		046431532EAB6EBE00303D55 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 046431522EAB6EBE00303D55 /* SwiftyJSON */; };
+		046431552EAB6EC300303D55 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 046431542EAB6EC300303D55 /* SwiftyJSON */; };
 		04ABFFEE2EA4D536009F5063 /* Pan3PushService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 04ABFFE72EA4D536009F5063 /* Pan3PushService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		73725FD36DE3D3898FCCC87F /* Pods_Pan3PushService.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5D843170B9277784C9B05701 /* Pods_Pan3PushService.framework */; };
 		A6C03AD60AB66B1E8B69F0DE /* Pods_Pan3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1B597635421C2477B544AAE /* Pods_Pan3.framework */; };
 		B2757A4D2E4DE25F00F03D8D /* Car Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B2757A432E4DE25E00F03D8D /* Car Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B28A417C2E5B4FFD002B5AB2 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172512E1A767A00922A0C /* WidgetKit.framework */; };
@@ -101,13 +106,9 @@
 		04ABFFE72EA4D536009F5063 /* Pan3PushService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = Pan3PushService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		052578319DD6D8A75C37593E /* Pods-Pan3.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Pan3.release.xcconfig"; path = "Target Support Files/Pods-Pan3/Pods-Pan3.release.xcconfig"; sourceTree = "<group>"; };
 		333EE2A540A61A4EEF08B29E /* Pods-Pan3.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Pan3.debug.xcconfig"; path = "Target Support Files/Pods-Pan3/Pods-Pan3.debug.xcconfig"; sourceTree = "<group>"; };
-		5D843170B9277784C9B05701 /* Pods_Pan3PushService.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Pan3PushService.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		5EC98871DA96A3D778FF6CEC /* Pods-Pan3PushService.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Pan3PushService.release.xcconfig"; path = "Target Support Files/Pods-Pan3PushService/Pods-Pan3PushService.release.xcconfig"; sourceTree = "<group>"; };
-		A414F95C776D33F4693BAAED /* Pods-Pan3PushService.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Pan3PushService.debug.xcconfig"; path = "Target Support Files/Pods-Pan3PushService/Pods-Pan3PushService.debug.xcconfig"; sourceTree = "<group>"; };
 		B21E2C582E150823000FF4C8 /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
 		B2757A432E4DE25E00F03D8D /* Car Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Car Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B28A417B2E5B4FFD002B5AB2 /* CarWatchWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CarWatchWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		B28A41902E5B52C0002B5AB2 /* CarWatchWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CarWatchWidgetExtension.entitlements; sourceTree = "<group>"; };
 		B2C867392E0F9C45009A8FD6 /* Pan3.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pan3.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CarWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2D172512E1A767A00922A0C /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -123,6 +124,37 @@
 			);
 			target = 04ABFFE62EA4D536009F5063 /* Pan3PushService */;
 		};
+		04FF93CB2EAB69B400D024E9 /* Exceptions for "Shared" folder in "Car Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				SharedCarModel.swift,
+			);
+			target = B2757A422E4DE25E00F03D8D /* Car Watch App */;
+		};
+		04FF93CC2EAB69B400D024E9 /* Exceptions for "Shared" folder in "CarWatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				SharedCarModel.swift,
+			);
+			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
+		};
+		04FF93CD2EAB69B400D024E9 /* Exceptions for "Shared" folder in "Pan3PushService" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				SharedCarModel.swift,
+			);
+			target = 04ABFFE62EA4D536009F5063 /* Pan3PushService */;
+		};
+		B239EB752EACC6F0004FB92A /* Exceptions for "CarWidget" folder in "Pan3" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				LiveActivities/ChargeAttributes.swift,
+				LiveActivities/ChargeLiveActivity.swift,
+				LiveActivities/TripAttributes.swift,
+				LiveActivities/TripLiveActivity.swift,
+			);
+			target = B2C867382E0F9C45009A8FD6 /* Pan3 */;
+		};
 		B27B072F2E764E0100590DC8 /* Exceptions for "Shared" folder in "Pan3" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -137,20 +169,6 @@
 			);
 			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
 		};
-		B2BD59772E6F2B46009F3339 /* Exceptions for "Shared" folder in "Car Watch App" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				SharedCarModel.swift,
-			);
-			target = B2757A422E4DE25E00F03D8D /* Car Watch App */;
-		};
-		B2BD59782E6F2B46009F3339 /* Exceptions for "Shared" folder in "CarWatchWidgetExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				SharedCarModel.swift,
-			);
-			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
-		};
 		B2D172662E1A767C00922A0C /* Exceptions for "CarWidget" folder in "CarWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -161,7 +179,6 @@
 				CarWidgetBundle.swift = (ios, );
 				CarWidgetControl.swift = (ios, );
 				CarWidgetLegacy.swift = (ios, );
-				CarWidgetLiveActivity.swift = (ios, );
 				CarWidgetRectangular.swift = (ios, );
 			};
 			target = B2D1724F2E1A767A00922A0C /* CarWidgetExtension */;
@@ -195,8 +212,9 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B27B072F2E764E0100590DC8 /* Exceptions for "Shared" folder in "Pan3" target */,
-				B2BD59772E6F2B46009F3339 /* Exceptions for "Shared" folder in "Car Watch App" target */,
-				B2BD59782E6F2B46009F3339 /* Exceptions for "Shared" folder in "CarWatchWidgetExtension" target */,
+				04FF93CB2EAB69B400D024E9 /* Exceptions for "Shared" folder in "Car Watch App" target */,
+				04FF93CC2EAB69B400D024E9 /* Exceptions for "Shared" folder in "CarWatchWidgetExtension" target */,
+				04FF93CD2EAB69B400D024E9 /* Exceptions for "Shared" folder in "Pan3PushService" target */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -217,6 +235,7 @@
 		B2D172552E1A767A00922A0C /* CarWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				B239EB752EACC6F0004FB92A /* Exceptions for "CarWidget" folder in "Pan3" target */,
 				B2D172662E1A767C00922A0C /* Exceptions for "CarWidget" folder in "CarWidgetExtension" target */,
 			);
 			path = CarWidget;
@@ -238,7 +257,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				73725FD36DE3D3898FCCC87F /* Pods_Pan3PushService.framework in Frameworks */,
+				046431552EAB6EC300303D55 /* SwiftyJSON in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -246,6 +265,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0464314F2EAB6EB000303D55 /* SwiftyJSON in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -253,6 +273,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				046431532EAB6EBE00303D55 /* SwiftyJSON in Frameworks */,
 				B28A417D2E5B4FFD002B5AB2 /* SwiftUI.framework in Frameworks */,
 				B28A417C2E5B4FFD002B5AB2 /* WidgetKit.framework in Frameworks */,
 			);
@@ -262,6 +283,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0464314D2EAB6E1400303D55 /* SwiftyJSON in Frameworks */,
+				0464314A2EAB6D1100303D55 /* SwiftyJSON in Frameworks */,
 				A6C03AD60AB66B1E8B69F0DE /* Pods_Pan3.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -270,6 +293,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				046431512EAB6EB700303D55 /* SwiftyJSON in Frameworks */,
 				B2D172542E1A767A00922A0C /* SwiftUI.framework in Frameworks */,
 				B2D172522E1A767A00922A0C /* WidgetKit.framework in Frameworks */,
 			);
@@ -285,7 +309,6 @@
 				B21E2C582E150823000FF4C8 /* Intents.framework */,
 				B2D172512E1A767A00922A0C /* WidgetKit.framework */,
 				B2D172532E1A767A00922A0C /* SwiftUI.framework */,
-				5D843170B9277784C9B05701 /* Pods_Pan3PushService.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -293,10 +316,9 @@
 		B2C867302E0F9C45009A8FD6 = {
 			isa = PBXGroup;
 			children = (
-				B28A41902E5B52C0002B5AB2 /* CarWatchWidgetExtension.entitlements */,
 				B2F7CE772E34C0EA00570201 /* Pan3 */,
-				B2D172552E1A767A00922A0C /* CarWidget */,
 				B23E80982E51808C004E1C25 /* Shared */,
+				B2D172552E1A767A00922A0C /* CarWidget */,
 				B2757A442E4DE25E00F03D8D /* Car Watch App */,
 				B28A417E2E5B4FFD002B5AB2 /* CarWatchWidget */,
 				04ABFFE82EA4D536009F5063 /* Pan3PushService */,
@@ -323,8 +345,6 @@
 			children = (
 				333EE2A540A61A4EEF08B29E /* Pods-Pan3.debug.xcconfig */,
 				052578319DD6D8A75C37593E /* Pods-Pan3.release.xcconfig */,
-				A414F95C776D33F4693BAAED /* Pods-Pan3PushService.debug.xcconfig */,
-				5EC98871DA96A3D778FF6CEC /* Pods-Pan3PushService.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -336,7 +356,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 04ABFFEF2EA4D536009F5063 /* Build configuration list for PBXNativeTarget "Pan3PushService" */;
 			buildPhases = (
-				48C5ADE1F5FAED9A6DE9BA9D /* [CP] Check Pods Manifest.lock */,
 				04ABFFE32EA4D536009F5063 /* Sources */,
 				04ABFFE42EA4D536009F5063 /* Frameworks */,
 				04ABFFE52EA4D536009F5063 /* Resources */,
@@ -483,6 +502,9 @@
 			);
 			mainGroup = B2C867302E0F9C45009A8FD6;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0464314B2EAB6E1400303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B2C8673A2E0F9C45009A8FD6 /* Products */;
 			projectDirPath = "";
@@ -552,28 +574,6 @@
 			);
 			outputPaths = (
 				"$(DERIVED_FILE_DIR)/Pods-Pan3-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		48C5ADE1F5FAED9A6DE9BA9D /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-Pan3PushService-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -667,7 +667,6 @@
 /* Begin XCBuildConfiguration section */
 		04ABFFF02EA4D536009F5063 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A414F95C776D33F4693BAAED /* Pods-Pan3PushService.debug.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Pan3PushService/Pan3PushService.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -698,7 +697,6 @@
 		};
 		04ABFFF12EA4D536009F5063 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5EC98871DA96A3D778FF6CEC /* Pods-Pan3PushService.release.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Pan3PushService/Pan3PushService.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -792,11 +790,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = CarWatchWidgetExtension.entitlements;
+				CODE_SIGN_ENTITLEMENTS = CarWatchWidget/CarWatchWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
-				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CarWatchWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CarWatchWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -823,11 +820,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = CarWatchWidgetExtension.entitlements;
+				CODE_SIGN_ENTITLEMENTS = CarWatchWidget/CarWatchWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
-				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CarWatchWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CarWatchWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -1064,7 +1060,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
-				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CarWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CarWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -1098,7 +1093,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
-				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CarWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CarWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -1181,6 +1175,58 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		046431482EAB6D1100303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SwiftyJSON/SwiftyJSON.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.2;
+			};
+		};
+		0464314B2EAB6E1400303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SwiftyJSON/SwiftyJSON.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		046431492EAB6D1100303D55 /* SwiftyJSON */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 046431482EAB6D1100303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
+			productName = SwiftyJSON;
+		};
+		0464314C2EAB6E1400303D55 /* SwiftyJSON */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0464314B2EAB6E1400303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
+			productName = SwiftyJSON;
+		};
+		0464314E2EAB6EB000303D55 /* SwiftyJSON */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0464314B2EAB6E1400303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
+			productName = SwiftyJSON;
+		};
+		046431502EAB6EB700303D55 /* SwiftyJSON */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0464314B2EAB6E1400303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
+			productName = SwiftyJSON;
+		};
+		046431522EAB6EBE00303D55 /* SwiftyJSON */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0464314B2EAB6E1400303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
+			productName = SwiftyJSON;
+		};
+		046431542EAB6EC300303D55 /* SwiftyJSON */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0464314B2EAB6E1400303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
+			productName = SwiftyJSON;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B2C867312E0F9C45009A8FD6 /* Project object */;
 }

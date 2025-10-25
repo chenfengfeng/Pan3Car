@@ -20,11 +20,11 @@ class LiveActivityManager {
     private init() {}
     
     // 当前活跃的充电任务实时活动
-    private var currentActivity: Activity<CarWidgetAttributes>?
+    private var currentActivity: Activity<ChargeAttributes>?
     
     // MARK: - 启动实时活动
     /// 启动实时活动
-    func startChargeActivity(attributes: CarWidgetAttributes, initialState: CarWidgetAttributes.ContentState) {
+    func startChargeActivity(attributes: ChargeAttributes, initialState: ChargeAttributes.ContentState) {
         // 检查实时活动权限
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
             print("实时活动未启用")
@@ -39,7 +39,7 @@ class LiveActivityManager {
         
         do {
             // 启动实时活动
-            let activity = try Activity<CarWidgetAttributes>.request(
+            let activity = try Activity<ChargeAttributes>.request(
                 attributes: attributes,
                 content: .init(state: initialState, staleDate: nil),
                 pushType: .token
@@ -62,7 +62,7 @@ class LiveActivityManager {
     
     // MARK: - 更新实时活动
     /// 更新实时活动
-    func updateChargeActivity(with state: CarWidgetAttributes.ContentState) {
+    func updateChargeActivity(with state: ChargeAttributes.ContentState) {
         guard let activity = currentActivity else {
             print("没有活跃的实时活动")
             return
@@ -122,7 +122,7 @@ class LiveActivityManager {
 extension LiveActivityManager {
     
     // 根据充电任务状态自动管理实时活动
-    func manageActivityForTask(attributes: CarWidgetAttributes, state: CarWidgetAttributes.ContentState) {
+    func manageActivityForTask(attributes: ChargeAttributes, state: ChargeAttributes.ContentState) {
         // 基于充电进度判断充电状态
         switch state.chargeProgress {
         case 0..<100:
@@ -159,7 +159,7 @@ extension LiveActivityManager {
     // 清理所有实时活动（应用启动时调用）
     func cleanupAllActivities() {
         Task {
-            for activity in Activity<CarWidgetAttributes>.activities {
+            for activity in Activity<ChargeAttributes>.activities {
                 await activity.end(nil, dismissalPolicy: .immediate)
             }
         }
@@ -169,7 +169,7 @@ extension LiveActivityManager {
     // 根据VIN清理相关的实时活动
     func cleanupActivitiesForVin(_ vin: String) {
         Task {
-            for activity in Activity<CarWidgetAttributes>.activities {
+            for activity in Activity<ChargeAttributes>.activities {
                 // 检查活动的VIN是否匹配
                 if activity.attributes.vin == vin {
                     await activity.end(nil, dismissalPolicy: .immediate)

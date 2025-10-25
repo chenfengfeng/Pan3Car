@@ -165,11 +165,10 @@ struct GetSelectACStatusIntent: AppIntent {
     
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let operation = action == .turnOn ? 2 : 1
-        let temperature = 26 // 默认温度
-        let duringTime = 30 // 默认持续时间10分钟
+        let duringTime = 30 // 默认持续时间30分钟
         
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<IntentResultContainer<Never, Never, Never, IntentDialog>, Error>) in
-            SharedNetworkManager.shared.energyAirConditioner(operation: operation, temperature: temperature, duringTime: duringTime) { result in
+            SharedNetworkManager.shared.energyAirConditioner(operation: operation, duringTime: duringTime) { result in
                 switch result {
                 case .success(_):
                     let actionText = action == .turnOn ? "开启空调" : "关闭空调"
