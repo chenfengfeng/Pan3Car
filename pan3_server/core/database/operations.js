@@ -345,6 +345,7 @@ export function getPendingDrives(limit = 10) {
     const stmt = db.prepare(`
         SELECT * FROM drives 
         WHERE summary_status = 'pending' 
+        AND end_time IS NOT NULL
         ORDER BY end_time ASC 
         LIMIT ?
     `);
@@ -361,6 +362,7 @@ export function getPendingCharges(limit = 10) {
     const stmt = db.prepare(`
         SELECT * FROM charges 
         WHERE summary_status = 'pending' 
+        AND end_time IS NOT NULL
         ORDER BY end_time ASC 
         LIMIT ?
     `);

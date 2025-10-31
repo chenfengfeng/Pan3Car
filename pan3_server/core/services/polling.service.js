@@ -220,6 +220,18 @@ async function pollSingleVehicle(vehicle) {
                 // 开始行驶
                 console.log(`[Polling Service] ${vin} 开始行驶`);
                 
+                // 如果已经有未结束的行程，先结束它
+                if (current_drive_id) {
+                    updateDrive(current_drive_id, {
+                        end_time: new Date(currentTimestamp).toISOString(),
+                        end_lat: currentLat,
+                        end_lon: currentLon,
+                        end_soc: currentSoc,
+                        end_range_km: currentRangeKm
+                    });
+                    console.log(`[Polling Service] ${vin} 结束旧行程（开始新行程）`);
+                }
+                
                 newDriveId = createDrive({
                     vin,
                     start_time: new Date(currentTimestamp).toISOString(),
@@ -230,7 +242,7 @@ async function pollSingleVehicle(vehicle) {
                 });
                 
             } else if (currentKeyStatus === '2' && currentMainLockStatus === '0' && 
-                       last_keyStatus === '1' && current_drive_id) {
+                       current_drive_id) {
                 // 结束行驶
                 console.log(`[Polling Service] ${vin} 结束行驶，摘要计算已加入队列`);
                 
