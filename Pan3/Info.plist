@@ -18,6 +18,7 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>iosamap</string>
+		<string>baidumap</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

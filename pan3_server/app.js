@@ -9,6 +9,9 @@ import pushRoutes from './api/push/push.routes.js'; // 导入推送路由
 import carRoutes from './api/car/car.routes.js'; // 导入车辆路由
 import chargeRoutes from './api/charge/charge.routes.js'; // 导入充电路由
 import { restoreTimeTasks, restoreRangeTasks } from './api/charge/charge.controller.js'; // 导入时间任务和range监控恢复函数
+import { initDatabase } from './core/database/init.js'; // 导入数据库初始化函数
+import { startPollingService } from './core/services/polling.service.js'; // 导入轮询服务
+import { startSummaryService } from './core/services/summary.service.js'; // 导入摘要服务
 
 const app = express();
 const PORT = process.env.PORT || 3333;
@@ -32,6 +35,30 @@ app.listen(PORT, () => {
   
   // 仅主实例执行任务恢复，避免多进程/集群重复恢复
    if (isPrimaryInstance) {
+     // 初始化数据库
+     console.log('正在初始化数据库...');
+     try {
+       initDatabase();
+     } catch (error) {
+       console.error('数据库初始化失败:', error);
+     }
+     
+     // 启动轮询服务
+     console.log('正在启动轮询服务...');
+     try {
+       startPollingService();
+     } catch (error) {
+       console.error('轮询服务启动失败:', error);
+     }
+     
+     // 启动摘要服务
+     console.log('正在启动摘要服务...');
+     try {
+       startSummaryService();
+     } catch (error) {
+       console.error('摘要服务启动失败:', error);
+     }
+     
      // 服务启动后恢复时间任务
      console.log('正在恢复时间任务...');
      try {

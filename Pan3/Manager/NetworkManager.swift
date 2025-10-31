@@ -5,7 +5,6 @@
 //  Created by Feng on 2025/6/28.
 //
 
-import GRDB
 import UIKit
 import Alamofire
 import SwiftyJSON
@@ -165,57 +164,6 @@ class NetworkManager {
                     let json = JSON(jsonObject)
                     if !json["data"].dictionaryValue.isEmpty {
                         let model = SharedCarModel(json: json["data"])
-                        // 根据充电状态，维护本地充电记录
-                        // chgStatus == 2 表示“未在充电”，其他值视为“正在充电”
-                        do {
-                            try AppDatabase.dbQueue.write { db in
-                                // 查询最新一条充电记录
-                                let latestSQL = "SELECT * FROM chargeTask ORDER BY startTime DESC LIMIT 1"
-                                let latestRecord = try ChargeTaskRecord.fetchOne(db, sql: latestSQL)
-
-                                if model.chgStatus == 2 {
-                                    // 未在充电：若存在未完成记录，则写入结束数据
-                                    if var record = latestRecord, record.endTime == nil {
-                                        record.endTime = Date()
-                                        // 将当前车辆数据写入结束值
-                                        record.endSoc = model.soc
-                                        record.endKm = model.acOnMile
-                                        try record.update(db)
-                                    }
-                                } else {
-                                    // 正在充电：若不存在记录或最新记录已结束，则插入一条新的记录
-                                    if latestRecord == nil || latestRecord?.endTime != nil {
-                                        // 从model获取GPS坐标
-                                        let lat = Double(model.latitude)
-                                        let lon = Double(model.longitude)
-                                        
-                                        var newRecord = ChargeTaskRecord(
-                                            startTime: Date(),
-                                            startSoc: model.soc,
-                                            startKm: model.acOnMile,
-                                            lat: lat,
-                                            lon: lon
-                                        )
-                                        try newRecord.save(db)
-                                        
-                                        // 异步进行GPS逆编码获取地址
-                                        self.reverseGeocodeLocation(latitude: lat, longitude: lon) { address in
-                                            // 更新记录的地址信息
-                                            try? AppDatabase.dbQueue.write { db in
-                                                if var savedRecord = try ChargeTaskRecord.fetchOne(db, sql: "SELECT * FROM chargeTask ORDER BY id DESC LIMIT 1") {
-                                                    savedRecord.address = address
-                                                    try savedRecord.update(db)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } catch {
-                            // 本地数据库维护失败不影响车辆信息返回，只打印日志
-                            print("维护本地充电记录失败: \(error)")
-                        }
-                        
                         // 更新UserManager中的车辆信息
                         UserManager.shared.updateCarInfo(with: model)
                         
@@ -393,7 +341,7 @@ class NetworkManager {
     }
     
     /// 更新实时活动的推送Token
-    func updateLiveActivityToken(_ token: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+    func updateLiveActivityToken(_ token: String, type: String, completion: @escaping (Result<Bool, Error>) -> Void) {
         guard let vin = UserManager.shared.defaultVin,
               let timaToken = UserManager.shared.timaToken else {
             let error = NSError(domain: "UpdateTokenError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
@@ -406,6 +354,7 @@ class NetworkManager {
         
         let parameters: [String: Any] = [
             "vin": vin,
+            "activityType": type,
             "activityToken": token
         ]
         

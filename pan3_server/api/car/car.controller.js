@@ -1,10 +1,8 @@
 // /www/wwwroot/pan3/api/car/car.controller.js
 
 import { makeRequest, baseApiUrl } from '../../core/utils/request.js';
-import { execFile } from 'child_process'; // <-- 引入Node.js内置的子进程模块
-import path from 'path'; // <-- 引入Node.js内置的路径处理模块
-
-const TASKS_FILE_PATH = path.join(process.cwd(), 'charge_tasks.json');
+import { setVehicleActive } from '../../core/database/operations.js';
+import { execFile } from 'child_process';
 
 /**
  * 获取车辆信息的接口 - 纯查询功能，不主动推送
@@ -152,6 +150,16 @@ export async function controlVehicle(req, res) {
         
         console.log(`[Quick Check] - VIN: ${vin} - SUCCESS. Command accepted by upstream.`);
 
+        // --- 步骤1.5：如果是解锁操作，设置车辆为 active 状态
+        if (operationType === 'LOCK' && operation === '2') {
+            try {
+                setVehicleActive(vin);
+                console.log(`[Control] ${vin} 用户解锁，设置为 active 状态`);
+            } catch (dbError) {
+                console.error('[Control] 设置 active 状态失败:', dbError);
+            }
+        }
+
         // --- 步骤二: 启动后台CLI任务
         if (pushToken && pushToken !== "") {
             console.log(`[CLI] - VIN: ${vin} - 开始后台任务...`);
@@ -187,4 +195,21 @@ export async function controlVehicle(req, res) {
         console.error('控制车辆接口异常:', e.message);
         res.status(500).json({ code: 500, message: `Function error: ${e.message}` });
     }
+}
+
+/**
+ * 启动行程轮询接口
+ * 
+ * 注意：此接口已废弃，行程记录已迁移到 SQLite 数据库
+ * 轮询服务会自动检测车辆状态并创建行程记录
+ */
+export async function startTripPolling(req, res) {
+    return res.status(410).json({ 
+        code: 410, 
+        message: '此接口已废弃，行程记录已由中央轮询服务自动管理',
+        data: {
+            note: '行程记录已存储在 SQLite 数据库的 drives 表中',
+            deprecated: true
+        }
+    });
 }

@@ -7,7 +7,6 @@
 
 import UIKit
 import SnapKit
-import QMUIKit
 
 class TripRecordCell: UITableViewCell {
     

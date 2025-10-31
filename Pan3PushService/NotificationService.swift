@@ -5,10 +5,11 @@
 //  Created by Mac on 2025/10/19.
 //
 
-import UserNotifications
 import WidgetKit
-import WatchConnectivity
 import SwiftyJSON
+import ActivityKit
+import UserNotifications
+import WatchConnectivity
 
 class NotificationService: UNNotificationServiceExtension {
 
@@ -126,6 +127,12 @@ class NotificationService: UNNotificationServiceExtension {
         // 保存完整的 SharedCarModel 数据
         userDefaults.set(carModelDict, forKey: "CarModelData")
         
+        // 检测解锁汽车条件并启动实时活动
+        if sharedCarModel.keyStatus == 2 && sharedCarModel.mainLockStatus == 1 {
+            print("[NotificationService] 检测到解锁汽车并且车辆还没启动，启动实时活动")
+            startTripLiveActivity(sharedCarModel: sharedCarModel)
+        }
+        
         // 设置本地修改标记，供小组件检测
         let currentTime = Date().timeIntervalSince1970
         userDefaults.set(true, forKey: "widgetLocalModification")
@@ -210,7 +217,64 @@ class NotificationService: UNNotificationServiceExtension {
         
         print("[NotificationService] 已增强通知内容 - 标题: \(content.title), 内容: \(content.body)")
     }
+    
+    // MARK: - 启动行程实时活动
+    @available(iOS 16.1, *)
+    private func startTripLiveActivity(sharedCarModel: SharedCarModel) {
+        // 创建 TripAttributes
+        let attributes = TripAttributes(
+            departureTime: Date(),
+            totalMileageAtStart: Double(sharedCarModel.totalMileage) ?? 0.0
+        )
+        
+        // 创建初始状态
+        let initialState = TripAttributes.ContentState(
+            actualMileage: 0,
+            consumedMileage: 0,
+            isDriving: false
+        )
+        
+        print("[NotificationService] 启动行程实时活动 - 总里程: \(sharedCarModel.totalMileage)")
+        
+        // 使用 LiveActivityManager 启动行程实时活动
+        LiveActivityManager.shared.startTripActivity(
+            attributes: attributes,
+            initialState: initialState
+        )
+        
+        // 保存行程实时活动数据到App Groups
+        saveTripLiveActivityData(
+            attributes: attributes,
+            initialState: initialState
+        )
+    }
+    
+    // MARK: - 保存行程实时活动数据到App Groups
+    func saveTripLiveActivityData(
+        attributes: TripAttributes,
+        initialState: TripAttributes.ContentState
+    ) {
+        guard let groupDefaults = UserDefaults(suiteName: "group.com.feng.pan3") else {
+            print("无法访问App Groups")
+            return
+        }
+        
+        let tripData: [String: Any] = [
+            "attributes": [
+                "departureTime": attributes.departureTime.timeIntervalSince1970,
+                "totalMileageAtStart": attributes.totalMileageAtStart
+            ],
+            "initialState": [
+                "actualMileage": initialState.actualMileage,
+                "consumedMileage": initialState.consumedMileage,
+                "isDriving": initialState.isDriving
+            ],
+            "createdAt": Date().timeIntervalSince1970
+        ]
+        
+        groupDefaults.set(tripData, forKey: "TripLiveActivityData")
+        groupDefaults.synchronize()
+        
+        print("行程实时活动数据已保存到App Groups")
+    }
 }
-
-// MARK: - 使用共享的 SharedCarModel
-// 直接使用 Shared 目录中的 SharedCarModel，无需重复定义

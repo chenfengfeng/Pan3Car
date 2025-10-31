@@ -1,6 +1,7 @@
 // /www/wwwroot/pan3/api/auth/auth.controller.js
 
 import { makeRequest, baseApiUrl } from '../../core/utils/request.js';
+import { upsertVehicle, updateVehiclePushToken } from '../../core/database/operations.js';
 
 /**
  * 用户登录处理函数
@@ -77,6 +78,14 @@ export async function login(req, res) {
       }
     };
 
+    // 4. 插入或更新车辆到数据库，启动轮询
+    try {
+      upsertVehicle(defaultVehicle.vin, timaToken);
+      console.log(`[Auth] 车辆 ${defaultVehicle.vin} 已加入轮询队列`);
+    } catch (dbError) {
+      console.error('[Auth] 插入车辆到数据库失败:', dbError);
+    }
+
     return res.status(200).json(finalResponseData);
 
   } catch (e) {
@@ -109,6 +118,8 @@ export async function logout(req, res) {
 
     // 3. 根据返回结果，构造响应
     if (logoutResponse.code === 0) {
+      // 不再删除车辆记录，只返回成功（数据继续保留）
+      console.log('[Auth] 用户退出登录成功，车辆数据继续保留');
       return res.status(200).json({ code: 200, message: '退出登录成功' });
     } else {
       const errorMsg = logoutResponse.msg || '退出登录失败';
@@ -116,6 +127,48 @@ export async function logout(req, res) {
     }
   } catch (e) {
     console.error('退出登录函数执行异常:', e.message);
+    return res.status(500).json({ code: 500, message: e.message });
+  }
+}
+
+/**
+ * 更新推送 Token
+ * @param {object} req - Express的请求对象
+ * @param {object} res - Express的响应对象
+ */
+export async function updatePushToken(req, res) {
+  try {
+    const timaToken = req.headers.timatoken;
+    const { vin, pushToken } = req.body;
+
+    // 参数验证
+    if (!vin || !pushToken) {
+      return res.status(400).json({ 
+        code: 400, 
+        message: '缺少必要参数: vin, pushToken' 
+      });
+    }
+
+    // 更新推送 Token
+    try {
+      updateVehiclePushToken(vin, pushToken);
+      console.log(`[Auth] 车辆 ${vin} 推送 Token 已更新`);
+      
+      return res.status(200).json({ 
+        code: 200, 
+        message: '推送 Token 更新成功',
+        data: { vin }
+      });
+    } catch (dbError) {
+      console.error('[Auth] 更新推送 Token 失败:', dbError);
+      return res.status(500).json({ 
+        code: 500, 
+        message: '更新推送 Token 失败' 
+      });
+    }
+
+  } catch (e) {
+    console.error('更新推送 Token 异常:', e.message);
     return res.status(500).json({ code: 500, message: e.message });
   }
 }

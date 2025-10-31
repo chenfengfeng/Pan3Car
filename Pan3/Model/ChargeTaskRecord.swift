@@ -1,53 +1,168 @@
-//
-//  ChargeTaskRecord.swift
-//  Pan3
-//
-//  Created by Mac on 2025/10/10.
-//
+import Foundation
+import CoreData
 
-import GRDB
-
-struct ChargeTaskRecord: Codable, FetchableRecord, MutablePersistableRecord {
-    var id: Int64?  // 可选类型，新记录时为nil，插入后自动分配
-    var startTime: Date
-    var endTime: Date?
-    var startSoc: Int
-    var endSoc: Int?
-    var startKm: Int
-    var endKm: Int?
+/// 充电任务记录 - Core Data实体类
+/// 对应Core Data模型中的ChargeRecord实体
+@objc(ChargeTaskRecord)
+public class ChargeTaskRecord: NSManagedObject {
     
-    // GPS相关字段
-    var lat: Double?      // 纬度
-    var lon: Double?      // 经度
-    var address: String?  // 地址
-
-    // 定义表名
-    static var databaseTableName = "chargeTask"
+    // MARK: - Core Data Properties
     
-    // 便利初始化方法，用于创建新记录（ID由数据库自动分配）
-    init(startTime: Date, 
-         endTime: Date? = nil,
-         startSoc: Int,
-         endSoc: Int? = nil,
-         startKm: Int,
-         endKm: Int? = nil,
-         lat: Double? = nil,
-         lon: Double? = nil,
-         address: String? = nil) {
-        self.id = nil  // 新记录ID为nil，插入时数据库自动分配
+    @NSManaged public var startTime: Date
+    @NSManaged public var endTime: Date?
+    @NSManaged public var startSoc: Int16
+    @NSManaged public var endSoc: Int16
+    @NSManaged public var startKm: Int64
+    @NSManaged public var endKm: Int64
+    @NSManaged public var lat: Double
+    @NSManaged public var lon: Double
+    @NSManaged public var address: String?
+    @NSManaged public var recordID: String?
+    
+    // MARK: - Computed Properties
+    
+    /// 充电时长（基于开始/结束时间）
+    var chargeDuration: String {
+        guard let endTime = endTime else { return "--" }
+        let duration = endTime.timeIntervalSince(startTime)
+        let hours = Int(duration) / 3600
+        let minutes = (Int(duration) % 3600) / 60
+        if hours > 0 {
+            return "\(hours)小时\(minutes)分钟"
+        } else {
+            return "\(minutes)分钟"
+        }
+    }
+    
+    /// 是否为未完成的充电记录
+    var isUnfinished: Bool {
+        return endTime == nil
+    }
+    
+    /// SOC增量
+    var socGain: Int16 {
+        guard endTime != nil else { return 0 }
+        return endSoc - startSoc
+    }
+    
+    /// 里程增量
+    var kmGain: Int64 {
+        guard endTime != nil else { return 0 }
+        return endKm - startKm
+    }
+    
+    // MARK: - 兼容旧UI的计算属性
+    
+    /// 字符串形式的开始时间（用于Cell展示）
+    var createdAt: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM-dd HH:mm:ss"
+        return formatter.string(from: startTime)
+    }
+    
+    /// 字符串形式的结束时间（用于Cell展示）
+    var finishTime: String? {
+        guard let end = endTime else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter.string(from: end)
+    }
+    
+    // MARK: - Convenience Initializers
+    
+    /// 创建新的充电记录
+    convenience init(context: NSManagedObjectContext,
+                    startTime: Date,
+                    startSoc: Int16,
+                    startKm: Int64,
+                    lat: Double = 0.0,
+                    lon: Double = 0.0,
+                    address: String? = nil) {
+        self.init(context: context)
+        
         self.startTime = startTime
-        self.endTime = endTime
         self.startSoc = startSoc
-        self.endSoc = endSoc
         self.startKm = startKm
-        self.endKm = endKm
         self.lat = lat
         self.lon = lon
         self.address = address
+        
+        // 设置默认值
+        self.endSoc = 0
+        self.endKm = 0
     }
     
-    // GRDB要求：插入成功后更新自增ID
-    mutating func didInsert(_ inserted: InsertionSuccess) {
-        id = inserted.rowID
+    // MARK: - Update Methods
+    
+    /// 更新充电结束信息
+    func updateEndInfo(endTime: Date, endSoc: Int16, endKm: Int64) {
+        self.endTime = endTime
+        self.endSoc = endSoc
+        self.endKm = endKm
+    }
+    
+    /// 更新地址信息
+    func updateAddress(_ address: String) {
+        self.address = address
+    }
+    
+    /// 更新位置信息
+    func updateLocation(lat: Double, lon: Double) {
+        self.lat = lat
+        self.lon = lon
+    }
+}
+
+// MARK: - Core Data Fetch Request
+
+extension ChargeTaskRecord {
+    
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<ChargeTaskRecord> {
+        return NSFetchRequest<ChargeTaskRecord>(entityName: "ChargeRecord")
+    }
+    
+    /// 获取所有充电记录的请求，按开始时间降序排列
+    @nonobjc public class func fetchAllRequest() -> NSFetchRequest<ChargeTaskRecord> {
+        let request = fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
+        return request
+    }
+    
+    /// 获取未完成充电记录的请求
+    @nonobjc public class func fetchUnfinishedRequest() -> NSFetchRequest<ChargeTaskRecord> {
+        let request = fetchRequest()
+        request.predicate = NSPredicate(format: "endTime == nil")
+        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
+        return request
+    }
+}
+
+// MARK: - ChargeTaskModel Conversion
+
+extension ChargeTaskRecord {
+    
+    /// 转换为ChargeTaskModel（用于兼容现有UI代码）
+    func toChargeTaskModel() -> ChargeTaskModel {
+        return ChargeTaskModel(
+            id: Int(startTime.timeIntervalSince1970), // 使用时间戳作为临时ID
+            vin: "", // ChargeTaskModel需要但ChargeTaskRecord不存储的字段
+            startKm: Int(startKm),
+            endKm: Int(endKm),
+            status: endTime != nil ? "completed" : "charging",
+            message: "",
+            createdAt: ISO8601DateFormatter().string(from: startTime),
+            finishTime: endTime != nil ? ISO8601DateFormatter().string(from: endTime!) : nil,
+            lat: lat,
+            lon: lon,
+            address: address
+        )
+    }
+}
+
+// MARK: - Identifiable
+
+extension ChargeTaskRecord: Identifiable {
+    public var id: NSManagedObjectID {
+        return objectID
     }
 }

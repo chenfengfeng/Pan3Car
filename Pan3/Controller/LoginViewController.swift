@@ -6,10 +6,9 @@
 //
 
 import UIKit
-import QMUIKit
-import SafariServices
 import SnapKit
 import Alamofire
+import SafariServices
 
 class LoginViewController: UIViewController, QMUITextFieldDelegate {
     // UI元素

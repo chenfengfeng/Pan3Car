@@ -1,6 +1,4 @@
 // /www/wwwroot/pan3/api/charge/charge.controller.js
-import fs from 'fs';
-import path from 'path';
 import schedule from 'node-schedule';
 import { VehicleDataCircuitBreaker } from '../../core/utils/circuit-breaker.js';
 import { 
@@ -9,12 +7,14 @@ import {
     sendLiveActivityPushInternal,
     stopChargingInternal 
 } from '../../core/services/internal.service.js';
-
-
-// 新架构：基于文件夹的VIN独立存储
-const TASKS_DIR = path.join(process.cwd(), 'tasks');
-const RANGE_TASKS_DIR = path.join(TASKS_DIR, 'range');
-const TIME_TASKS_DIR = path.join(TASKS_DIR, 'time');
+import {
+    createChargeTask,
+    getChargeTaskByVin,
+    getChargeTasksByMode,
+    updateChargeTaskActivityToken,
+    deleteChargeTaskByVin,
+    getPendingTimeChargeTasks
+} from '../../core/database/operations.js';
 
 // 存储time模式的scheduled jobs，用于管理和取消
 const scheduledJobs = new Map(); // key: vin, value: job对象
@@ -63,13 +63,13 @@ export async function startMonitoring(req, res) {
             
             // 调度任务
             const job = schedule.scheduleJob(targetDate, async () => {
-                // 从文件中读取任务数据以获取最新的token信息
-                const taskData = loadVinTimeTasks(vin);
+                // 从数据库中读取任务数据以获取最新的token信息
+                const taskData = getChargeTaskByVin(vin);
                 
                 // 发送推送通知
-                if (taskData && taskData.token && taskData.token.pushToken) {
+                if (taskData && taskData.push_token) {
                     await sendPushNotification(
-                        taskData.token.pushToken, 
+                        taskData.push_token, 
                         '充电监控提醒', 
                         '已到达设定时间，请检查充电状态',
                         'time_task_ended'
@@ -77,9 +77,9 @@ export async function startMonitoring(req, res) {
                 }
 
                 // 如果需要自动停止充电，调用停止充电API
-                if (taskData && taskData.autoStopCharge && taskData.token && taskData.token.timaToken) {
+                if (taskData && taskData.auto_stop_charge && taskData.tima_token) {
                     try {
-                        await stopChargeAPI(vin, taskData.token.timaToken);
+                        await stopChargeAPI(vin, taskData.tima_token);
                     } catch (error) {
                         console.error(`[Time Mode] 自动停止充电失败，VIN: ${vin}`, error);
                     }
@@ -88,25 +88,34 @@ export async function startMonitoring(req, res) {
                 // 任务完成后从scheduledJobs中移除
                 scheduledJobs.delete(vin);
                 
-                // 删除已完成的时间任务文件
-                deleteVinTimeTasks(vin);
+                // 删除已完成的时间任务
+                deleteChargeTaskByVin(vin);
             });
 
             if (job) {
                 // 将job存储到Map中，用于后续管理
                 scheduledJobs.set(vin, job);
                 
-                // 将时间任务信息保存到VIN独立文件
-                const timeTaskData = {
-                    targetTimestamp: parseInt(targetTimestamp),
-                    autoStopCharge: autoStopCharge || false,
-                    token: {
-                        timaToken: timaToken,
-                        pushToken: pushToken || ''
-                    },
-                    createdAt: Date.now()
-                };
-                saveVinTimeTasks(vin, timeTaskData);
+                // 保存时间任务到数据库
+                try {
+                    createChargeTask({
+                        vin,
+                        mode: 'time',
+                        tima_token: timaToken,
+                        push_token: pushToken || '',
+                        target_timestamp: parseInt(targetTimestamp),
+                        auto_stop_charge: autoStopCharge ? 1 : 0,
+                        created_at: new Date().toISOString()
+                    });
+                } catch (dbError) {
+                    console.error('[Time Mode] 保存任务到数据库失败:', dbError);
+                    job.cancel();
+                    scheduledJobs.delete(vin);
+                    return res.status(500).json({ 
+                        code: 500, 
+                        message: '保存任务失败' 
+                    });
+                }
                 
                 return res.json({ 
                     code: 200, 
@@ -125,7 +134,7 @@ export async function startMonitoring(req, res) {
             }
 
         } else if (monitoringMode === 'range') {
-            // Range模式：创建任务数据并使用node-schedule管理监控
+            // Range模式：创建任务数据并使用轮询监控
             if (!targetRange) {
                 return res.status(400).json({ 
                     code: 400, 
@@ -134,7 +143,7 @@ export async function startMonitoring(req, res) {
             }
 
             // 检查是否已存在该VIN的任务
-            const existingTask = loadVinRangeTasks(vin);
+            const existingTask = getChargeTaskByVin(vin);
             if (existingTask) {
                 return res.status(409).json({ 
                     code: 409, 
@@ -145,25 +154,23 @@ export async function startMonitoring(req, res) {
             // 获取当前车辆数据作为初始数据
             const vehicleData = await getVehicleData(vin, timaToken);
             
-            // 创建任务数据
-            const taskData = {
-                startTime: Math.floor(Date.now() / 1000), // 当前时间戳
-                initialSoc: vehicleData.soc || 0,
-                initialKm: vehicleData.acOnMile || 0,
-                targetMile: targetRange,
-                token: {
-                    timaToken: timaToken,
-                    pushToken: pushToken || ''
-                }
-            };
-
-            // 保存新任务到VIN独立文件
-            saveVinRangeTasks(vin, taskData);
+            // 保存新任务到数据库
+            const taskId = createChargeTask({
+                vin,
+                mode: 'range',
+                tima_token: timaToken,
+                push_token: pushToken || '',
+                target_mile: targetRange,
+                initial_km: vehicleData.acOnMile || 0,
+                initial_soc: vehicleData.soc || 0,
+                start_time: Math.floor(Date.now() / 1000),
+                created_at: new Date().toISOString()
+            });
 
             // 检查是否需要启动轮询监控
-            const allRangeVins = getAllRangeVins();
-            if (allRangeVins.length === 1) {
-                // 这是第一个任务，启动node-schedule轮询监控
+            const allRangeTasks = getChargeTasksByMode('range');
+            if (allRangeTasks.length === 1) {
+                // 这是第一个任务，启动轮询监控
                 startRangeMonitoring();
             }
 
@@ -173,9 +180,10 @@ export async function startMonitoring(req, res) {
                 data: { 
                     vin, 
                     mode: 'range', 
-                    initialKm: taskData.initialKm,
-                    targetMile: taskData.targetMile,
-                    initialSoc: taskData.initialSoc
+                    initialKm: vehicleData.acOnMile || 0,
+                    targetMile: targetRange,
+                    initialSoc: vehicleData.soc || 0,
+                    taskId
                 }
             });
 
@@ -221,19 +229,19 @@ export async function stopMonitoring(req, res) {
             job.cancel();
             scheduledJobs.delete(vin);
             
-            // 在删除任务文件前，先获取任务数据以发送推送通知
-            const taskData = loadVinTimeTasks(vin);
-            if (taskData && taskData.token && taskData.token.pushToken) {
+            // 获取任务数据以发送推送通知
+            const taskData = getChargeTaskByVin(vin);
+            if (taskData && taskData.push_token) {
                 await sendPushNotification(
-                    taskData.token.pushToken, 
+                    taskData.push_token, 
                     '时间监控任务已停止', 
                     '您的时间监控任务已手动停止。',
                     'time_task_ended'
                 );
             }
             
-            // 删除时间任务文件
-            deleteVinTimeTasks(vin);
+            // 删除时间任务
+            deleteChargeTaskByVin(vin);
             
             return res.json({ 
                 code: 200, 
@@ -242,8 +250,8 @@ export async function stopMonitoring(req, res) {
             });
 
         } else if (monitoringMode === 'range') {
-            // Range模式：删除对应VIN的任务文件
-            const task = loadVinRangeTasks(vin);
+            // Range模式：删除对应VIN的任务
+            const task = getChargeTaskByVin(vin);
             
             if (!task) {
                 return res.status(404).json({ 
@@ -253,28 +261,28 @@ export async function stopMonitoring(req, res) {
             }
 
             // 发送停止通知
-            if (task.token && task.token.pushToken) {
+            if (task.push_token) {
                 await sendPushNotification(
-                    task.token.pushToken, 
+                    task.push_token, 
                     '充电任务已停止', 
                     '您的充电监控已手动停止。',
                     'range_task_ended'
                 );
             }
 
-            // 删除该VIN的任务文件
-            deleteVinRangeTasks(vin);
+            // 删除该VIN的任务
+            deleteChargeTaskByVin(vin);
 
             console.log(`[Range Mode] 已删除续航监控任务，VIN: ${vin}`);
 
             // 检查剩余任务数量，如果为0则停止轮询监控
-            const remainingVins = getAllRangeVins();
-            if (remainingVins.length === 0) {
+            const remainingTasks = getChargeTasksByMode('range');
+            if (remainingTasks.length === 0) {
                 console.log(`[Range Mode] 所有任务已完成，停止轮询监控`);
                 // 异步停止监控，不阻塞HTTP响应
                 setImmediate(() => stopRangeMonitoring());
             } else {
-                console.log(`[Range Mode] 剩余任务数量: ${remainingVins.length}，继续轮询监控`);
+                console.log(`[Range Mode] 剩余任务数量: ${remainingTasks.length}，继续轮询监控`);
             }
 
             return res.json({ 
@@ -304,44 +312,22 @@ export async function stopMonitoring(req, res) {
  * 更新正在运行任务的实时活动Token
  */
 export async function updateLiveActivityToken(req, res) {
-    const { vin, activityToken, monitoringMode } = req.body;
+    const { vin, activityToken } = req.body;
 
     if (!vin || !activityToken) {
         return res.status(400).json({ code: 400, message: '关键参数缺失：vin 或 activityToken' });
     }
 
-    // 根据监控模式查找对应的任务
-    let task = null;
-    
-    // 如果指定了监控模式，优先使用指定的模式
-    if (monitoringMode === 'range') {
-        task = loadVinRangeTasks(vin);
-    } else if (monitoringMode === 'time') {
-        task = loadVinTimeTasks(vin);
-    } else {
-        // 如果没有指定模式，尝试从两种模式中查找
-        task = loadVinRangeTasks(vin) || loadVinTimeTasks(vin);
-    }
+    // 从数据库查找任务
+    const task = getChargeTaskByVin(vin);
 
     if (!task) {
         return res.status(404).json({ code: 404, message: '未找到对应的充电任务' });
     }
 
     // 更新 activityToken
-    task.token.activityToken = activityToken;
-
-    // 根据任务类型保存到对应的文件
     try {
-        if (task.targetMile !== undefined) {
-            // Range 模式任务
-            saveVinRangeTasks(vin, task);
-        } else if (task.targetTimestamp !== undefined) {
-            // Time 模式任务
-            saveVinTimeTasks(vin, task);
-        } else {
-            return res.status(400).json({ code: 400, message: '无法确定任务类型' });
-        }
-
+        updateChargeTaskActivityToken(vin, activityToken);
         res.json({ code: 200, message: 'Live Activity Token 更新成功' });
     } catch (error) {
         console.error(`[updateLiveActivityToken] 更新失败，VIN: ${vin}`, error);
@@ -422,18 +408,20 @@ async function startRangeMonitoring() {
         isMonitoringExecuting = true;
         
         try {
-            // 获取所有需要监控的VIN列表
-            const taskVins = getAllRangeVins();
+            // 获取所有需要监控的任务列表
+            const tasks = getChargeTasksByMode('range');
             
             // 检查是否还有任务需要监控
-            if (taskVins.length === 0) {
+            if (tasks.length === 0) {
                 console.log('[Range Monitor] 没有任务需要监控，停止轮询');
                 stopRangeMonitoring();
                 return;
             }
             
             // 并发处理每个车辆的数据获取
-            const monitoringPromises = taskVins.map(async (vin) => {
+            const monitoringPromises = tasks.map(async (task) => {
+                const vin = task.vin;
+                
                 try {
                     // 再次检查停止信号
                     if (shouldStopMonitoring) {
@@ -441,25 +429,14 @@ async function startRangeMonitoring() {
                         return;
                     }
                     
-                    // 加载该VIN的任务数据
-                    const task = loadVinRangeTasks(vin);
-                    
-                    if (!task) {
-                        console.warn(`[Range Monitor] 警告：VIN ${vin} 的任务数据不存在，跳过`);
-                        return;
-                    }
-                    
                     // 获取最新车辆数据
-                    const vehicleData = await getVehicleData(vin, task.token.timaToken);
-                    
-                    // 更新任务中的最新车辆数据
-                    task.latestVehicleData = vehicleData;
+                    const vehicleData = await getVehicleData(vin, task.tima_token);
                     
                     // 推送实时活动数据更新
                     await updateLiveActivity(vin, task, vehicleData);
                     
                     // 检查任务完成条件：达到目标里程 或 充电状态为停止(chgStatus=2)
-                    const reachedTargetMile = vehicleData.acOnMile >= task.targetMile;
+                    const reachedTargetMile = vehicleData.acOnMile >= task.target_mile;
                     const chargingStopped = vehicleData.chgStatus === 2;
                     
                     if (reachedTargetMile || chargingStopped) {
@@ -467,8 +444,8 @@ async function startRangeMonitoring() {
                         let notificationMessage = '';
                         
                         if (reachedTargetMile) {
-                            completionReason = `达到目标里程 ${task.targetMile}km，当前里程 ${vehicleData.acOnMile}km`;
-                            notificationMessage = `车辆已达到目标里程 ${task.targetMile}km，当前里程 ${vehicleData.acOnMile}km`;
+                            completionReason = `达到目标里程 ${task.target_mile}km，当前里程 ${vehicleData.acOnMile}km`;
+                            notificationMessage = `车辆已达到目标里程 ${task.target_mile}km，当前里程 ${vehicleData.acOnMile}km`;
                         } else if (chargingStopped) {
                             completionReason = `充电已停止(chgStatus=${vehicleData.chgStatus})，当前里程 ${vehicleData.acOnMile}km`;
                             notificationMessage = `充电已停止，当前里程 ${vehicleData.acOnMile}km`;
@@ -477,23 +454,18 @@ async function startRangeMonitoring() {
                         console.log(`[Range Monitor] 任务完成！VIN: ${vin}, 原因: ${completionReason}`);
                         
                         // 发送完成通知
-                        if (task.token.pushToken) {
+                        if (task.push_token) {
                             await sendPushNotification(
-                                task.token.pushToken,
+                                task.push_token,
                                 '充电监控完成',
                                 notificationMessage,
                                 'range_task_ended'
                             );
                         }
                         
-                        // 删除已完成的任务文件
-                        deleteVinRangeTasks(vin);
+                        // 删除已完成的任务
+                        deleteChargeTaskByVin(vin);
                         console.log(`[Range Monitor] 任务清理完成，VIN: ${vin}`);
-                    } else {
-                        // 只有在没有停止信号时才保存任务数据
-                        if (!shouldStopMonitoring) {
-                            saveVinRangeTasks(vin, task);
-                        }
                     }
                     
                 } catch (vehicleError) {
@@ -553,13 +525,13 @@ function stopRangeMonitoring() {
  */
 async function updateLiveActivity(vin, task, vehicleData) {
     try {
-        if (!task.token.activityToken) {
+        if (!task.activity_token) {
             return; // 没有活动token，跳过更新
         }
 
         // 按推送服务约定构造 contentState
-        const targetMile = Number(task.targetMile) || 0;
-        const initialKm = Number(task.initialKm) || 0;
+        const targetMile = Number(task.target_mile) || 0;
+        const initialKm = Number(task.initial_km) || 0;
         const currentKm = Number(vehicleData?.acOnMile) || 0;
         const currentSoc = Number(vehicleData?.soc) || 0;
         
@@ -578,7 +550,7 @@ async function updateLiveActivity(vin, task, vehicleData) {
         });
 
         const liveActivityData = {
-            liveActivityPushToken: task.token.activityToken,
+            liveActivityPushToken: task.activity_token,
             contentState: {
                 currentKm,
                 currentSoc,
@@ -603,215 +575,45 @@ async function updateLiveActivity(vin, task, vehicleData) {
 }
 
 /**
- * 加载指定VIN的range任务数据
- * @param {string} vin - 车辆VIN码
- * @returns {Object} VIN任务数据
- */
-function loadVinRangeTasks(vin) {
-    try {
-        const filePath = path.join(RANGE_TASKS_DIR, `${vin}.json`);
-        const fileData = fs.readFileSync(filePath, 'utf8');
-        return JSON.parse(fileData);
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            // 文件不存在，返回null表示没有任务
-            return null;
-        }
-        console.error(`[loadVinRangeTasks] 读取VIN ${vin} 任务文件失败:`, error);
-        return null;
-    }
-}
-
-/**
- * 保存指定VIN的range任务数据
- * @param {string} vin - 车辆VIN码
- * @param {Object} vinData - VIN任务数据
- */
-function saveVinRangeTasks(vin, vinData) {
-    // 在函数开始就定义 filePath，确保在整个函数作用域内可用
-    const filePath = path.join(RANGE_TASKS_DIR, `${vin}.json`);
-    
-    try {
-        // 确保目录存在
-        if (!fs.existsSync(RANGE_TASKS_DIR)) {
-            fs.mkdirSync(RANGE_TASKS_DIR, { recursive: true });
-        }
-        
-        vinData.lastUpdated = new Date().toISOString();
-        
-        // 使用同步方式写入文件
-        fs.writeFileSync(filePath, JSON.stringify(vinData, null, 2));
-        console.log(`[saveVinRangeTasks] VIN ${vin} 任务文件保存成功`);
-        
-    } catch (error) {
-        console.error(`[saveVinRangeTasks] 保存VIN ${vin} 任务文件失败:`, error);
-    }
-}
-
-/**
- * 加载指定VIN的time任务数据
- * @param {string} vin - 车辆VIN码
- * @returns {Object} VIN任务数据
- */
-function loadVinTimeTasks(vin) {
-    try {
-        const filePath = path.join(TIME_TASKS_DIR, `${vin}.json`);
-        const fileData = fs.readFileSync(filePath, 'utf8');
-        return JSON.parse(fileData);
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            // 文件不存在，返回null表示没有任务
-            return null;
-        }
-        console.error(`[loadVinTimeTasks] 读取VIN ${vin} 时间任务文件失败:`, error);
-        return null;
-    }
-}
-
-/**
- * 保存指定VIN的time任务数据
- * @param {string} vin - 车辆VIN码
- * @param {Object} vinData - VIN任务数据
- */
-function saveVinTimeTasks(vin, vinData) {
-    // 在函数开始就定义 filePath，确保在整个函数作用域内可用
-    const filePath = path.join(TIME_TASKS_DIR, `${vin}.json`);
-    
-    try {
-        // 确保目录存在
-        if (!fs.existsSync(TIME_TASKS_DIR)) {
-            fs.mkdirSync(TIME_TASKS_DIR, { recursive: true });
-        }
-        
-        vinData.lastUpdated = new Date().toISOString();
-        
-        // 使用同步方式写入文件
-        fs.writeFileSync(filePath, JSON.stringify(vinData, null, 2));
-        console.log(`[saveVinTimeTasks] VIN ${vin} 时间任务文件保存成功`);
-        
-    } catch (error) {
-        console.error(`[saveVinTimeTasks] 保存VIN ${vin} 时间任务文件失败:`, error);
-    }
-}
-
-/**
- * 获取所有range任务的VIN列表
- * @returns {Array} VIN列表
- */
-function getAllRangeVins() {
-    try {
-        if (!fs.existsSync(RANGE_TASKS_DIR)) {
-            return [];
-        }
-        
-        const files = fs.readdirSync(RANGE_TASKS_DIR);
-        return files
-            .filter(file => file.endsWith('.json'))
-            .map(file => file.replace('.json', ''));
-    } catch (error) {
-        console.error('[getAllRangeVins] 获取range VIN列表失败:', error);
-        return [];
-    }
-}
-
-/**
- * 获取所有time任务的VIN列表
- * @returns {Array} VIN列表
- */
-function getAllTimeVins() {
-    try {
-        if (!fs.existsSync(TIME_TASKS_DIR)) {
-            return [];
-        }
-        
-        const files = fs.readdirSync(TIME_TASKS_DIR);
-        return files
-            .filter(file => file.endsWith('.json'))
-            .map(file => file.replace('.json', ''));
-    } catch (error) {
-        console.error('[getAllTimeVins] 获取time VIN列表失败:', error);
-        return [];
-    }
-}
-
-/**
- * 删除指定VIN的range任务文件
- * @param {string} vin - 车辆VIN码
- */
-function deleteVinRangeTasks(vin) {
-    try {
-        const filePath = path.join(RANGE_TASKS_DIR, `${vin}.json`);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-            console.log(`[deleteVinRangeTasks] VIN ${vin} 任务文件删除成功`);
-        }
-    } catch (error) {
-        console.error(`[deleteVinRangeTasks] 删除VIN ${vin} 任务文件失败:`, error);
-    }
-}
-
-/**
- * 删除指定VIN的time任务文件
- * @param {string} vin - 车辆VIN码
- */
-function deleteVinTimeTasks(vin) {
-    try {
-        const filePath = path.join(TIME_TASKS_DIR, `${vin}.json`);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-            console.log(`[deleteVinTimeTasks] VIN ${vin} 时间任务文件删除成功`);
-        }
-    } catch (error) {
-        console.error(`[deleteVinTimeTasks] 删除VIN ${vin} 时间任务文件失败:`, error);
-    }
-}
-
-/**
  * 恢复时间任务（服务启动时调用）
  */
 function restoreTimeTasks() {
     try {
-        const timeVins = getAllTimeVins();
-        const now = Date.now();
+        const timeTasks = getPendingTimeChargeTasks();
+        const now = Math.floor(Date.now() / 1000);
         let restoredCount = 0;
         let expiredCount = 0;
         
-        console.log(`[restoreTimeTasks] 发现 ${timeVins.length} 个VIN的时间任务文件`);
+        console.log(`[restoreTimeTasks] 发现 ${timeTasks.length} 个时间任务`);
         
-        for (const vin of timeVins) {
-            const taskData = loadVinTimeTasks(vin);
+        for (const task of timeTasks) {
+            const { vin, target_timestamp, auto_stop_charge, tima_token, push_token } = task;
             
-            if (!taskData) {
-                console.log(`[restoreTimeTasks] VIN ${vin} 的任务数据为空，跳过`);
-                continue;
-            }
-            
-            const { targetTimestamp, autoStopCharge, token } = taskData;
-            
-            // 检查任务是否已过期
-            if (targetTimestamp <= now) {
+            // 检查任务是否已过期（双重检查）
+            if (target_timestamp <= now) {
                 console.log(`[restoreTimeTasks] 任务已过期，删除VIN: ${vin}`);
-                deleteVinTimeTasks(vin);
+                deleteChargeTaskByVin(vin);
                 expiredCount++;
                 continue;
             }
             
             // 重新创建scheduled job
-            const targetDate = new Date(targetTimestamp);
+            const targetDate = new Date(target_timestamp * 1000);
             const job = schedule.scheduleJob(targetDate, async () => {
                 // 发送推送通知
-                if (token.pushToken) {
+                if (push_token) {
                     await sendPushNotification(
-                        token.pushToken, 
+                        push_token, 
                         '充电监控提醒', 
-                        '已到达设定时间，请检查充电状态'
+                        '已到达设定时间，请检查充电状态',
+                        'time_task_ended'
                     );
                 }
 
                 // 如果需要自动停止充电，调用停止充电API
-                if (autoStopCharge && token.timaToken) {
+                if (auto_stop_charge && tima_token) {
                     try {
-                        await stopChargeAPI(vin, token.timaToken);
+                        await stopChargeAPI(vin, tima_token);
                     } catch (error) {
                         console.error(`[Time Mode] 自动停止充电失败，VIN: ${vin}`, error);
                     }
@@ -820,8 +622,8 @@ function restoreTimeTasks() {
                 // 任务完成后从scheduledJobs中移除
                 scheduledJobs.delete(vin);
                 
-                // 删除已完成的任务文件
-                deleteVinTimeTasks(vin);
+                // 删除已完成的任务
+                deleteChargeTaskByVin(vin);
             });
             
             if (job) {
@@ -832,6 +634,8 @@ function restoreTimeTasks() {
                 console.error(`[restoreTimeTasks] 恢复时间任务失败，VIN: ${vin}`);
             }
         }
+        
+        console.log(`[restoreTimeTasks] 完成 - 已恢复: ${restoredCount}, 已过期: ${expiredCount}`);
     } catch (error) {
         console.error('[restoreTimeTasks] 恢复时间任务失败:', error);
     }
@@ -842,10 +646,10 @@ function restoreTimeTasks() {
  */
 export function restoreRangeTasks() {
     try {
-        const rangeVins = getAllRangeVins();
+        const rangeTasks = getChargeTasksByMode('range');
         
-        if (rangeVins.length > 0) {
-            console.log(`[restoreRangeTasks] 发现 ${rangeVins.length} 个VIN的range监控任务，启动轮询监控`);
+        if (rangeTasks.length > 0) {
+            console.log(`[restoreRangeTasks] 发现 ${rangeTasks.length} 个range监控任务，启动轮询监控`);
             startRangeMonitoring();
         } else {
             console.log(`[restoreRangeTasks] 没有发现range监控任务`);

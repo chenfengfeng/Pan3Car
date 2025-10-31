@@ -1,51 +1,4 @@
 PODS:
-  - Alamofire (5.10.2)
-  - GRDB.swift (6.24.1):
-    - GRDB.swift/standard (= 6.24.1)
-  - GRDB.swift/standard (6.24.1)
-  - IQKeyboardCore (1.0.8)
-  - IQKeyboardManagerSwift (8.0.1):
-    - IQKeyboardManagerSwift/Appearance (= 8.0.1)
-    - IQKeyboardManagerSwift/Core (= 8.0.1)
-    - IQKeyboardManagerSwift/IQKeyboardReturnManager (= 8.0.1)
-    - IQKeyboardManagerSwift/IQKeyboardToolbarManager (= 8.0.1)
-    - IQKeyboardManagerSwift/IQTextView (= 8.0.1)
-    - IQKeyboardManagerSwift/Resign (= 8.0.1)
-  - IQKeyboardManagerSwift/Appearance (8.0.1):
-    - IQKeyboardManagerSwift/Core
-  - IQKeyboardManagerSwift/Core (8.0.1):
-    - IQKeyboardNotification
-    - IQTextInputViewNotification
-  - IQKeyboardManagerSwift/IQKeyboardReturnManager (8.0.1):
-    - IQKeyboardReturnManager
-  - IQKeyboardManagerSwift/IQKeyboardToolbarManager (8.0.1):
-    - IQKeyboardManagerSwift/Core
-    - IQKeyboardToolbarManager
-  - IQKeyboardManagerSwift/IQTextView (8.0.1):
-    - IQTextView
-  - IQKeyboardManagerSwift/Resign (8.0.1):
-    - IQKeyboardManagerSwift/Core
-  - IQKeyboardNotification (1.0.6)
-  - IQKeyboardReturnManager (1.0.6):
-    - IQKeyboardCore
-  - IQKeyboardToolbar (1.1.2):
-    - IQKeyboardToolbar/Core (= 1.1.2)
-  - IQKeyboardToolbar/Core (1.1.2):
-    - IQKeyboardCore
-    - IQKeyboardToolbar/Placeholderable
-  - IQKeyboardToolbar/Placeholderable (1.1.2)
-  - IQKeyboardToolbarManager (1.1.4):
-    - IQKeyboardToolbar
-    - IQTextInputViewNotification
-  - IQTextInputViewNotification (1.0.9):
-    - IQKeyboardCore
-  - IQTextView (1.0.5):
-    - IQKeyboardToolbar/Placeholderable
-  - Kingfisher (8.6.0)
-  - LookinServer (1.2.8):
-    - LookinServer/Core (= 1.2.8)
-  - LookinServer/Core (1.2.8)
-  - MJRefresh (3.7.9)
   - QMUIKit (4.8.0):
     - QMUIKit/QMUIComponents (= 4.8.0)
     - QMUIKit/QMUICore (= 4.8.0)
@@ -362,95 +315,17 @@ PODS:
     - QMUIKit/QMUILog
   - QMUIKit/QMUIResources (4.8.0)
   - QMUIKit/QMUIWeakObjectContainer (4.8.0)
-  - SnapKit (5.7.1)
-  - SwifterSwift (8.0.0):
-    - SwifterSwift/AppKit (= 8.0.0)
-    - SwifterSwift/AppKitNoIBInspectable (= 8.0.0)
-    - SwifterSwift/CoreAnimation (= 8.0.0)
-    - SwifterSwift/CoreGraphics (= 8.0.0)
-    - SwifterSwift/CoreLocation (= 8.0.0)
-    - SwifterSwift/CryptoKit (= 8.0.0)
-    - SwifterSwift/Dispatch (= 8.0.0)
-    - SwifterSwift/Foundation (= 8.0.0)
-    - SwifterSwift/HealthKit (= 8.0.0)
-    - SwifterSwift/MapKit (= 8.0.0)
-    - SwifterSwift/NoIBInspectable (= 8.0.0)
-    - SwifterSwift/SceneKit (= 8.0.0)
-    - SwifterSwift/SpriteKit (= 8.0.0)
-    - SwifterSwift/StoreKit (= 8.0.0)
-    - SwifterSwift/SwiftStdlib (= 8.0.0)
-    - SwifterSwift/UIKit (= 8.0.0)
-    - SwifterSwift/UIKitNoIBInspectable (= 8.0.0)
-    - SwifterSwift/WebKit (= 8.0.0)
-  - SwifterSwift/AppKit (8.0.0)
-  - SwifterSwift/AppKitNoIBInspectable (8.0.0):
-    - SwifterSwift/AppKit
-  - SwifterSwift/CoreAnimation (8.0.0)
-  - SwifterSwift/CoreGraphics (8.0.0)
-  - SwifterSwift/CoreLocation (8.0.0)
-  - SwifterSwift/CryptoKit (8.0.0)
-  - SwifterSwift/Dispatch (8.0.0)
-  - SwifterSwift/Foundation (8.0.0)
-  - SwifterSwift/HealthKit (8.0.0)
-  - SwifterSwift/MapKit (8.0.0)
-  - SwifterSwift/NoIBInspectable (8.0.0)
-  - SwifterSwift/SceneKit (8.0.0)
-  - SwifterSwift/SpriteKit (8.0.0)
-  - SwifterSwift/StoreKit (8.0.0)
-  - SwifterSwift/SwiftStdlib (8.0.0)
-  - SwifterSwift/UIKit (8.0.0)
-  - SwifterSwift/UIKitNoIBInspectable (8.0.0):
-    - SwifterSwift/UIKit
-  - SwifterSwift/WebKit (8.0.0)
 
 DEPENDENCIES:
-  - Alamofire
-  - GRDB.swift
-  - IQKeyboardManagerSwift
-  - Kingfisher
-  - LookinServer
-  - MJRefresh
   - QMUIKit
-  - SnapKit
-  - SwifterSwift
 
 SPEC REPOS:
   trunk:
-    - Alamofire
-    - GRDB.swift
-    - IQKeyboardCore
-    - IQKeyboardManagerSwift
-    - IQKeyboardNotification
-    - IQKeyboardReturnManager
-    - IQKeyboardToolbar
-    - IQKeyboardToolbarManager
-    - IQTextInputViewNotification
-    - IQTextView
-    - Kingfisher
-    - LookinServer
-    - MJRefresh
     - QMUIKit
-    - SnapKit
-    - SwifterSwift
 
 SPEC CHECKSUMS:
-  Alamofire: 7193b3b92c74a07f85569e1a6c4f4237291e7496
-  GRDB.swift: 136dcb5d8dddca50aae3ba7d77475f79e7232cd8
-  IQKeyboardCore: 8652977ec919cf5351aa2977fedd1a6546476fbc
-  IQKeyboardManagerSwift: 835fc9c6e4732398113406d84900ad2e8f141218
-  IQKeyboardNotification: eb4910401f5a0e68f97e71c62f8a0c5b7e9d535c
-  IQKeyboardReturnManager: fcbf51fc68d7536fc1fbcca5231c4e82576b12ac
-  IQKeyboardToolbar: a8aab764a27d55892b951e58ebfffdde14a01ce8
-  IQKeyboardToolbarManager: c8a575e8b5fffe5873d0e75312244498a0759473
-  IQTextInputViewNotification: 3b9fb27a16e7ee8958cc9092cfb07a1a9e1fd559
-  IQTextView: ae13b4922f22e6f027f62c557d9f4f236b19d5c7
-  Kingfisher: 64278f126a815d0e2d391cdf71311b85882c4de0
-  LookinServer: 1b2b61c6402ae29fa22182d48f5cd067b4e99e80
-  MJRefresh: ff9e531227924c84ce459338414550a05d2aea78
   QMUIKit: 3c622fe3c55c0dccfad750634bd9ee5e7ade9a53
-  SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
-  SwifterSwift: 517fa61daf5b4c5e3ed13b9f35f4c26b310cfb97
 
-PODFILE CHECKSUM: 55cc4e9cdee558d80a19eba8e797550a4f8a9c9a
+PODFILE CHECKSUM: 673f09b851d10cab25dc07eb97dc245a2d57eb96
 
 COCOAPODS: 1.16.2

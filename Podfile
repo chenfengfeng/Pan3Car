@@ -1,18 +1,8 @@
 platform :ios, '13.0'
 inhibit_all_warnings!
-use_frameworks!
 
 target 'Pan3' do
-  pod 'IQKeyboardManagerSwift'
-  pod 'SwifterSwift'
-  pod 'Kingfisher'
-  pod 'GRDB.swift'
-  pod 'Alamofire'
-  pod 'MJRefresh'
-  pod 'SnapKit'
   pod 'QMUIKit'
-  #debug
-  pod 'LookinServer', :configurations => ['Debug']
 end
 
 post_install do |installer|

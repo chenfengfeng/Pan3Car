@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "@parse/node-apn": "^6.5.0",
+    "better-sqlite3": "^11.8.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "node-schedule": "^2.1.1"

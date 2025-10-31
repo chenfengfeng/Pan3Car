@@ -5,13 +5,12 @@
 //  Created by Feng on 2025/6/29.
 //
 
-import GRDB
 import UIKit
 import MapKit
-import QMUIKit
 import MJRefresh
 import SwifterSwift
 import CoreLocation
+import CoreData
 
 class ChargeViewController: UIViewController {
     private lazy var spaceView: UIView = {
@@ -45,6 +44,10 @@ class ChargeViewController: UIViewController {
     private var currentPage = 1
     private var totalPages = 1
     
+    // 自动刷新相关属性
+    private var refreshTimer: Timer?
+    private var isPageVisible = false
+    private var lastChargingStatus: Int = 2 // 默认为未充电状态
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.title = "充电助手"
@@ -59,15 +62,44 @@ class ChargeViewController: UIViewController {
         
         // 加载本地数据库数据
         loadChargeList()
+        
+        // 设置应用生命周期通知监听
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidEnterBackground),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillEnterForeground),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        // 标记页面为可见状态
+        isPageVisible = true
+        
         // 切换到该 Tab 页面时，刷新头部和下方列表（重新读取数据库）
         mileageHeaderView.setupCarModel(false)
         currentPage = 1
         tableView.mj_footer?.resetNoMoreData()
         loadChargeList(page: 1)
+        
+        // 检查是否需要启动自动刷新
+        checkAndStartAutoRefresh()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // 标记页面为不可见状态
+        isPageVisible = false
+        // 停止自动刷新
+        stopAutoRefresh()
     }
     
     private func setupUIView() {
@@ -291,7 +323,7 @@ class ChargeViewController: UIViewController {
         let targetSoc = BatteryCalculationUtility.calculateSoc(currentKwh: targetKwh, batteryCapacity: batteryCapacity)//获取数据67.26
         
         // 5. 根据能耗估算目标续航里程
-        let targetRange = BatteryCalculationUtility.calculateRange(soc: targetSoc, carModel: carModel)//这里出错了，这里数据有336，2度电怎么怎么可能增加这么多里程
+        let targetRange = BatteryCalculationUtility.calculateRange(soc: targetSoc, carModel: carModel)//这里出错了，这里数据有336，2度电怎么很有可能增加这么多里程
         
         let currentKm = carModel.acOnMile
         
@@ -474,46 +506,38 @@ class ChargeViewController: UIViewController {
         defaults.removeObject(forKey: "activeMonitoringDetails")
         
         // 清除实时活动数据
-        defaults.removeObject(forKey: "LiveActivityData")
+        defaults.removeObject(forKey: "ChargeLiveActivityData")
         
         defaults.synchronize()
         
         // 停止实时活动
-        LiveActivityManager.shared.endCurrentActivity()
+        LiveActivityManager.shared.closeChargeActivity()
     }
 
     // MARK: - Data Loading
     private func loadChargeList(page: Int = 1) {
-        // 在后台线程执行数据库读取操作，避免阻塞UI
+        // 使用Core Data加载充电记录
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
             
-            do {
-                // 在数据库队列中执行读取
-                let records = try AppDatabase.dbQueue.read { db -> [ChargeTaskRecord] in
-                    // 根据分页参数计算偏移量
-                    let pageSize = 20 // 假设每页加载20条
-                    let offset = (page - 1) * pageSize
-                    
-                    // 从数据库查询 ChargeTaskRecord，按开始时间降序排列
-                    return try ChargeTaskRecord
-                        .order(Column("startTime").desc)
-                        .limit(pageSize, offset: offset)
-                        .fetchAll(db)
-                }
-                
-                let viewModels = records.map { ChargeTaskModel(from: $0) }
-                let hasMore = viewModels.count == 20 // 如果返回的数量等于页大小，则认为还有更多数据
-                
-                // 将处理结果切换回主线程来更新UI
-                self.handleLocalChargeListResponse(viewModels, page: page, hasMore: hasMore)
-            } catch {
-                // 处理数据库读取错误
-                DispatchQueue.main.async {
-                    self.tableView.mj_header?.endRefreshing()
-                    self.tableView.mj_footer?.endRefreshing()
-                    self.handleError(error)
-                }
+            let pageSize = 20 // 每页显示20条记录
+            let offset = (page - 1) * pageSize
+            
+            // 从Core Data获取充电记录
+            let chargeRecords = CoreDataManager.shared.fetchChargeRecords(limit: pageSize + 1, offset: offset)
+            
+            // 检查是否还有更多数据
+            let hasMore = chargeRecords.count > pageSize
+            let actualRecords = hasMore ? Array(chargeRecords.prefix(pageSize)) : chargeRecords
+            
+            // 转换为ChargeTaskModel
+            let chargeTasks = actualRecords.map { record in
+                ChargeTaskModel(from: record)
+            }
+            
+            // 在主线程更新UI
+            DispatchQueue.main.async {
+                self.handleLocalChargeListResponse(chargeTasks, page: page, hasMore: hasMore)
             }
         }
     }
@@ -637,19 +661,21 @@ class ChargeViewController: UIViewController {
     
     // MARK: - 获取车辆信息
     func fetchCarInfo() {
-        NetworkManager.shared.getInfo(completion: { [weak self] result in
-            guard let self else { return }
-            self.tableView.mj_header?.endRefreshing()
-            switch result {
+        NetworkManager.shared.getInfo { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
                 case .success(let model):
-                    // 保存车辆信息
-                    self.tableView.mj_header?.endRefreshing()
                     UserManager.shared.updateCarInfo(with: model)
-                    self.mileageHeaderView.setupCarModel(false)
+                    self?.mileageHeaderView.setupCarModel(false)
+                    
+                    // 检查充电状态变化并处理自动刷新
+                    self?.handleChargingStatusChange(newStatus: model.chgStatus)
+                    
                 case .failure(let error):
-                    QMUITips.show(withText: "获取车辆信息失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
+                    QMUITips.showError("获取车辆信息失败: \(error.localizedDescription)")
+                }
             }
-        })
+        }
     }
     
     // MARK: - 配置信息
@@ -733,7 +759,6 @@ class ChargeViewController: UIViewController {
         
         // 创建 ChargeAttributes
         let attributes = ChargeAttributes(
-            vin: UserManager.shared.defaultVin ?? "",
             startKm: carInfo.acOnMile,        // 使用当前里程作为起始里程
             endKm: Int(targetKm ?? Double(carInfo.acOnMile)), // 目标里程，如果没有则使用当前里程
             initialSoc: carInfo.soc          // 使用当前SOC作为初始SOC
@@ -751,7 +776,8 @@ class ChargeViewController: UIViewController {
         saveLiveActivityData(mode: mode, targetValue: targetValue, targetKm: targetKm, attributes: attributes, initialState: initialState)
         
         // 使用 LiveActivityManager 启动实时活动
-        LiveActivityManager.shared.manageActivityForTask(attributes: attributes, state: initialState)
+        LiveActivityManager.shared.cleanupAllActivities()
+        LiveActivityManager.shared.startChargeActivity(attributes: attributes, initialState: initialState)
         
         print("实时活动已启动 - 模式: \(mode), 目标值: \(targetValue)")
     }
@@ -762,7 +788,6 @@ class ChargeViewController: UIViewController {
             "mode": mode,
             "targetValue": targetValue,
             "targetKm": targetKm ?? 0,
-            "vin": attributes.vin,
             "startKm": attributes.startKm,
             "endKm": attributes.endKm,
             "initialSoc": attributes.initialSoc,
@@ -773,7 +798,7 @@ class ChargeViewController: UIViewController {
             "isActive": true
         ]
         
-        UserDefaults.standard.set(liveActivityData, forKey: "LiveActivityData")
+        UserDefaults.standard.set(liveActivityData, forKey: "ChargeLiveActivityData")
         UserDefaults.standard.synchronize()
         
         print("实时活动数据已保存到 UserDefaults")
@@ -930,38 +955,30 @@ extension ChargeViewController: UITableViewDelegate {
     }
     
     private func performDeleteTask(_ task: ChargeTaskModel, at indexPath: IndexPath) {
-        // 在后台线程执行数据库删除操作
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            do {
-                try AppDatabase.dbQueue.write { db in
-                    // 从数据库中删除记录
-                    try ChargeTaskRecord.deleteOne(db, key: task.id)
-                    print("充电任务记录已从数据库中删除")
-                }
+        // 使用Core Data删除记录
+        do {
+            try CoreDataManager.shared.deleteChargeRecord(withID: task.id)
+            
+            // 从数据源中移除
+            chargeTasks.remove(at: indexPath.row)
+            
+            // 更新UI
+            DispatchQueue.main.async { [weak self] in
+                self?.tableView.deleteRows(at: [indexPath], with: .fade)
                 
-                // 在主线程更新UI
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    
-                    // 从数据源中移除任务
-                    self.chargeTasks.remove(at: indexPath.row)
-                    
-                    // 删除表格行，带动画效果
-                    self.tableView.deleteRows(at: [indexPath], with: .fade)
-                    
-                    // 如果删除后列表为空，显示空状态
-                    if self.chargeTasks.isEmpty {
-                        self.showEmptyState()
-                    }
-                    
-                    QMUITips.showSucceed("删除成功")
+                // 如果删除后没有数据了，显示空状态
+                if self?.chargeTasks.isEmpty == true {
+                    self?.showEmptyState()
                 }
-                
-            } catch {
-                print("删除充电任务失败: \(error)")
-                DispatchQueue.main.async {
-                    self?.showAlert(title: "删除失败", message: "无法删除充电记录，请稍后重试")
-                }
+            }
+            
+            print("充电记录删除成功: \(task.id)")
+        } catch {
+            print("删除充电记录失败: \(error)")
+            
+            // 显示错误提示
+            DispatchQueue.main.async { [weak self] in
+                self?.showAlert(title: "删除失败", message: "删除充电记录时发生错误，请重试。")
             }
         }
     }
@@ -1102,4 +1119,97 @@ class SetTimeMonitorViewController: UIViewController {
     @objc private func cancelTapped() {
         dismiss(animated: true)
     }
+}
+
+// MARK: - 自动刷新相关方法
+extension ChargeViewController {
+    
+    /// 检查并启动自动刷新（如果需要）
+    private func checkAndStartAutoRefresh() {
+        guard isPageVisible else { return }
+        
+        // 获取当前车辆信息
+        guard let carModel = UserManager.shared.carModel else { return }
+        
+        // 检查是否正在充电（chgStatus != 2 表示正在充电）
+        if carModel.chgStatus != 2 {
+            startAutoRefresh()
+        } else {
+            stopAutoRefresh()
+        }
+        
+        // 更新上次充电状态
+        lastChargingStatus = carModel.chgStatus
+    }
+    
+    /// 启动自动刷新
+    private func startAutoRefresh() {
+        // 如果已经有定时器在运行，先停止
+        stopAutoRefresh()
+        
+        // 创建新的定时器，每5秒刷新一次
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            self?.performAutoRefresh()
+        }
+        
+        print("充电页面：启动自动刷新，每5秒刷新一次车辆信息")
+    }
+    
+    /// 停止自动刷新
+    private func stopAutoRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+        print("充电页面：停止自动刷新")
+    }
+    
+    /// 执行自动刷新
+    private func performAutoRefresh() {
+        guard isPageVisible else {
+            stopAutoRefresh()
+            return
+        }
+        
+        print("充电页面：执行自动刷新车辆信息")
+        fetchCarInfo()
+    }
+    
+    /// 处理充电状态变化
+    private func handleChargingStatusChange(newStatus: Int) {
+        // 如果充电状态发生变化
+        if newStatus != lastChargingStatus {
+            print("充电页面：充电状态变化 \(lastChargingStatus) -> \(newStatus)")
+            
+            if newStatus != 2 && isPageVisible {
+                // 开始充电且页面可见，启动自动刷新
+                startAutoRefresh()
+            } else {
+                // 停止充电或页面不可见，停止自动刷新
+                stopAutoRefresh()
+            }
+            
+            lastChargingStatus = newStatus
+        }
+    }
+    
+    /// 应用进入后台时停止自动刷新
+    @objc private func appDidEnterBackground() {
+        print("充电页面：应用进入后台，停止自动刷新")
+        stopAutoRefresh()
+    }
+    
+    /// 应用即将进入前台时检查并恢复自动刷新
+    @objc private func appWillEnterForeground() {
+        print("充电页面：应用即将进入前台，检查是否需要恢复自动刷新")
+        // 只有在页面可见时才恢复自动刷新
+        if isPageVisible {
+            checkAndStartAutoRefresh()
+        }
+    }
+    
+    /// 移除通知监听器
+    private func removeNotificationObservers() {
+        NotificationCenter.default.removeObserver(self, name: UIApplication.didEnterBackgroundNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.willEnterForegroundNotification, object: nil)
+    }
+ 
 }

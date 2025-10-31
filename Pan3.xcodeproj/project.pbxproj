@@ -14,11 +14,18 @@
 		046431532EAB6EBE00303D55 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 046431522EAB6EBE00303D55 /* SwiftyJSON */; };
 		046431552EAB6EC300303D55 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 046431542EAB6EC300303D55 /* SwiftyJSON */; };
 		04ABFFEE2EA4D536009F5063 /* Pan3PushService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 04ABFFE72EA4D536009F5063 /* Pan3PushService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		A6C03AD60AB66B1E8B69F0DE /* Pods_Pan3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1B597635421C2477B544AAE /* Pods_Pan3.framework */; };
+		5EFB22C77E186A6E1D2986F8 /* libPods-Pan3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D57302C024D36880A396059E /* libPods-Pan3.a */; };
 		B2757A4D2E4DE25F00F03D8D /* Car Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B2757A432E4DE25E00F03D8D /* Car Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B28A417C2E5B4FFD002B5AB2 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172512E1A767A00922A0C /* WidgetKit.framework */; };
 		B28A417D2E5B4FFD002B5AB2 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172532E1A767A00922A0C /* SwiftUI.framework */; };
 		B28A41862E5B4FFF002B5AB2 /* CarWatchWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B28A417B2E5B4FFD002B5AB2 /* CarWatchWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B28EA8782EB344B30096F7AC /* IQKeyboardManagerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA8772EB344B30096F7AC /* IQKeyboardManagerSwift */; };
+		B28EA87B2EB345150096F7AC /* SwifterSwift in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA87A2EB345150096F7AC /* SwifterSwift */; };
+		B28EA87E2EB345430096F7AC /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA87D2EB345430096F7AC /* Kingfisher */; };
+		B28EA8812EB3455D0096F7AC /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA8802EB3455D0096F7AC /* Alamofire */; };
+		B28EA8842EB3457A0096F7AC /* MJRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA8832EB3457A0096F7AC /* MJRefresh */; };
+		B28EA8872EB3458E0096F7AC /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA8862EB3458E0096F7AC /* SnapKit */; };
+		B28EA88A2EB345BE0096F7AC /* LookinServer in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA8892EB345BE0096F7AC /* LookinServer */; };
 		B2D172522E1A767A00922A0C /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172512E1A767A00922A0C /* WidgetKit.framework */; };
 		B2D172542E1A767A00922A0C /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172532E1A767A00922A0C /* SwiftUI.framework */; };
 		B2D172652E1A767C00922A0C /* CarWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -113,7 +120,7 @@
 		B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CarWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2D172512E1A767A00922A0C /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		B2D172532E1A767A00922A0C /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-		C1B597635421C2477B544AAE /* Pods_Pan3.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Pan3.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D57302C024D36880A396059E /* libPods-Pan3.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Pan3.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -121,6 +128,24 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+			);
+			target = 04ABFFE62EA4D536009F5063 /* Pan3PushService */;
+		};
+		04D484392EAF427200EF4A3E /* Exceptions for "LiveActivities" folder in "Pan3" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ChargeAttributes.swift,
+				ChargeLiveActivity.swift,
+				TripAttributes.swift,
+				TripLiveActivity.swift,
+			);
+			target = B2C867382E0F9C45009A8FD6 /* Pan3 */;
+		};
+		04D4843A2EAF427200EF4A3E /* Exceptions for "LiveActivities" folder in "Pan3PushService" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ChargeAttributes.swift,
+				TripAttributes.swift,
 			);
 			target = 04ABFFE62EA4D536009F5063 /* Pan3PushService */;
 		};
@@ -145,15 +170,12 @@
 			);
 			target = 04ABFFE62EA4D536009F5063 /* Pan3PushService */;
 		};
-		B239EB752EACC6F0004FB92A /* Exceptions for "CarWidget" folder in "Pan3" target */ = {
+		B21DFF202EAE771B00029D68 /* Exceptions for "Pan3" folder in "Pan3PushService" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				LiveActivities/ChargeAttributes.swift,
-				LiveActivities/ChargeLiveActivity.swift,
-				LiveActivities/TripAttributes.swift,
-				LiveActivities/TripLiveActivity.swift,
+				Manager/LiveActivityManager.swift,
 			);
-			target = B2C867382E0F9C45009A8FD6 /* Pan3 */;
+			target = 04ABFFE62EA4D536009F5063 /* Pan3PushService */;
 		};
 		B27B072F2E764E0100590DC8 /* Exceptions for "Shared" folder in "Pan3" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -208,6 +230,15 @@
 			path = Pan3PushService;
 			sourceTree = "<group>";
 		};
+		04D4842E2EAF427200EF4A3E /* LiveActivities */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				04D484392EAF427200EF4A3E /* Exceptions for "LiveActivities" folder in "Pan3" target */,
+				04D4843A2EAF427200EF4A3E /* Exceptions for "LiveActivities" folder in "Pan3PushService" target */,
+			);
+			path = LiveActivities;
+			sourceTree = "<group>";
+		};
 		B23E80982E51808C004E1C25 /* Shared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -235,7 +266,6 @@
 		B2D172552E1A767A00922A0C /* CarWidget */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				B239EB752EACC6F0004FB92A /* Exceptions for "CarWidget" folder in "Pan3" target */,
 				B2D172662E1A767C00922A0C /* Exceptions for "CarWidget" folder in "CarWidgetExtension" target */,
 			);
 			path = CarWidget;
@@ -246,6 +276,7 @@
 			exceptions = (
 				B2F7CE912E34C0EA00570201 /* Exceptions for "Pan3" folder in "Pan3" target */,
 				B2F7CE922E34C0EA00570201 /* Exceptions for "Pan3" folder in "CarWidgetExtension" target */,
+				B21DFF202EAE771B00029D68 /* Exceptions for "Pan3" folder in "Pan3PushService" target */,
 			);
 			path = Pan3;
 			sourceTree = "<group>";
@@ -283,9 +314,16 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B28EA87E2EB345430096F7AC /* Kingfisher in Frameworks */,
+				B28EA8812EB3455D0096F7AC /* Alamofire in Frameworks */,
 				0464314D2EAB6E1400303D55 /* SwiftyJSON in Frameworks */,
+				B28EA8782EB344B30096F7AC /* IQKeyboardManagerSwift in Frameworks */,
 				0464314A2EAB6D1100303D55 /* SwiftyJSON in Frameworks */,
-				A6C03AD60AB66B1E8B69F0DE /* Pods_Pan3.framework in Frameworks */,
+				B28EA88A2EB345BE0096F7AC /* LookinServer in Frameworks */,
+				B28EA87B2EB345150096F7AC /* SwifterSwift in Frameworks */,
+				B28EA8872EB3458E0096F7AC /* SnapKit in Frameworks */,
+				B28EA8842EB3457A0096F7AC /* MJRefresh in Frameworks */,
+				5EFB22C77E186A6E1D2986F8 /* libPods-Pan3.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -305,10 +343,10 @@
 		5512EBC70C9C6A82D7D293EE /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				C1B597635421C2477B544AAE /* Pods_Pan3.framework */,
 				B21E2C582E150823000FF4C8 /* Intents.framework */,
 				B2D172512E1A767A00922A0C /* WidgetKit.framework */,
 				B2D172532E1A767A00922A0C /* SwiftUI.framework */,
+				D57302C024D36880A396059E /* libPods-Pan3.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -319,6 +357,7 @@
 				B2F7CE772E34C0EA00570201 /* Pan3 */,
 				B23E80982E51808C004E1C25 /* Shared */,
 				B2D172552E1A767A00922A0C /* CarWidget */,
+				04D4842E2EAF427200EF4A3E /* LiveActivities */,
 				B2757A442E4DE25E00F03D8D /* Car Watch App */,
 				B28A417E2E5B4FFD002B5AB2 /* CarWatchWidget */,
 				04ABFFE82EA4D536009F5063 /* Pan3PushService */,
@@ -422,10 +461,10 @@
 				B2C867352E0F9C45009A8FD6 /* Sources */,
 				B2C867362E0F9C45009A8FD6 /* Frameworks */,
 				B2C867372E0F9C45009A8FD6 /* Resources */,
-				52C64B2089E42930B8066563 /* [CP] Embed Pods Frameworks */,
 				B21E2C652E150823000FF4C8 /* Embed Foundation Extensions */,
 				B2B8AF2E2E1632F1000FC8E6 /* Embed ExtensionKit Extensions */,
 				B28343D32E1E4FBA0014F730 /* Embed Watch Content */,
+				01DD6A4D99673F1FD9FBAE40 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -456,6 +495,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				04D4842E2EAF427200EF4A3E /* LiveActivities */,
 				B23E80982E51808C004E1C25 /* Shared */,
 				B2D172552E1A767A00922A0C /* CarWidget */,
 			);
@@ -504,6 +544,13 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				0464314B2EAB6E1400303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */,
+				B28EA8762EB344B30096F7AC /* XCRemoteSwiftPackageReference "IQKeyboardManager" */,
+				B28EA8792EB345150096F7AC /* XCRemoteSwiftPackageReference "SwifterSwift" */,
+				B28EA87C2EB345430096F7AC /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				B28EA87F2EB3455D0096F7AC /* XCRemoteSwiftPackageReference "Alamofire" */,
+				B28EA8822EB3457A0096F7AC /* XCRemoteSwiftPackageReference "MJRefresh" */,
+				B28EA8852EB3458E0096F7AC /* XCRemoteSwiftPackageReference "SnapKit" */,
+				B28EA8882EB345BE0096F7AC /* XCRemoteSwiftPackageReference "LookinServer" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B2C8673A2E0F9C45009A8FD6 /* Products */;
@@ -558,6 +605,27 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		01DD6A4D99673F1FD9FBAE40 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Pan3/Pods-Pan3-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			inputPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Pan3/Pods-Pan3-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Pan3/Pods-Pan3-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		4023E9718F2BAD5C2CBD1F9E /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -578,27 +646,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		52C64B2089E42930B8066563 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Pan3/Pods-Pan3-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			inputPaths = (
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-Pan3/Pods-Pan3-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Pan3/Pods-Pan3-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -794,6 +841,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CarWatchWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CarWatchWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -824,6 +872,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CarWatchWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CarWatchWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -856,6 +905,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pan3/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "胖3助手";
@@ -899,6 +949,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Pan3/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "胖3助手";
@@ -1060,6 +1111,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CarWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CarWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -1093,6 +1145,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CarWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CarWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -1193,6 +1246,62 @@
 				minimumVersion = 5.0.2;
 			};
 		};
+		B28EA8762EB344B30096F7AC /* XCRemoteSwiftPackageReference "IQKeyboardManager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hackiftekhar/IQKeyboardManager.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.1;
+			};
+		};
+		B28EA8792EB345150096F7AC /* XCRemoteSwiftPackageReference "SwifterSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SwifterSwift/SwifterSwift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.0.0;
+			};
+		};
+		B28EA87C2EB345430096F7AC /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 8.6.1;
+			};
+		};
+		B28EA87F2EB3455D0096F7AC /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.10.2;
+			};
+		};
+		B28EA8822EB3457A0096F7AC /* XCRemoteSwiftPackageReference "MJRefresh" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/CoderMJLee/MJRefresh.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.7.9;
+			};
+		};
+		B28EA8852EB3458E0096F7AC /* XCRemoteSwiftPackageReference "SnapKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SnapKit/SnapKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.7.1;
+			};
+		};
+		B28EA8882EB345BE0096F7AC /* XCRemoteSwiftPackageReference "LookinServer" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/QMUI/LookinServer/";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.8;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1225,6 +1334,41 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0464314B2EAB6E1400303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
 			productName = SwiftyJSON;
+		};
+		B28EA8772EB344B30096F7AC /* IQKeyboardManagerSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B28EA8762EB344B30096F7AC /* XCRemoteSwiftPackageReference "IQKeyboardManager" */;
+			productName = IQKeyboardManagerSwift;
+		};
+		B28EA87A2EB345150096F7AC /* SwifterSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B28EA8792EB345150096F7AC /* XCRemoteSwiftPackageReference "SwifterSwift" */;
+			productName = SwifterSwift;
+		};
+		B28EA87D2EB345430096F7AC /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B28EA87C2EB345430096F7AC /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+		B28EA8802EB3455D0096F7AC /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B28EA87F2EB3455D0096F7AC /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
+		B28EA8832EB3457A0096F7AC /* MJRefresh */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B28EA8822EB3457A0096F7AC /* XCRemoteSwiftPackageReference "MJRefresh" */;
+			productName = MJRefresh;
+		};
+		B28EA8862EB3458E0096F7AC /* SnapKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B28EA8852EB3458E0096F7AC /* XCRemoteSwiftPackageReference "SnapKit" */;
+			productName = SnapKit;
+		};
+		B28EA8892EB345BE0096F7AC /* LookinServer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B28EA8882EB345BE0096F7AC /* XCRemoteSwiftPackageReference "LookinServer" */;
+			productName = LookinServer;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -6,9 +6,8 @@
 //  Created by Feng on 2025/6/28.
 //
 
-import GRDB
 import UIKit
-import QMUIKit
+import CoreData
 import WidgetKit
 import AppIntents
 import IQKeyboardManagerSwift
@@ -20,16 +19,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // 初始化Core Data + CloudKit
+        _ = CoreDataManager.shared
+        print("[AppDelegate] Core Data + CloudKit 初始化完成")
         
-        // 检查是否是通过推送通知启动的APP
-        if let remoteNotification = launchOptions?[.remoteNotification] as? [AnyHashable: Any] {
-            print("APP通过推送通知启动，处理推送数据...")
-            // 延迟处理推送通知，确保APP完全初始化
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.handlePushNotificationUpdate(userInfo: remoteNotification)
-            }
+        // 在Debug模式下运行Core Data测试
+        #if DEBUG
+        DispatchQueue.global(qos: .background).async {
+            CoreDataMigrationTest.testBasicOperations()
+            CoreDataMigrationTest.testCloudKitSync()
+            CoreDataMigrationTest.testModelCompatibility()
         }
+        #endif
         
         // 检查用户登录状态
         if UserManager.shared.isLoggedIn {
@@ -46,18 +47,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             } else {
                 print("[AppDelegate] 未找到App Groups中的车辆数据")
             }
+            // 检查是否是通过推送通知启动的APP
+            if let remoteNotification = launchOptions?[.remoteNotification] as? [AnyHashable: Any] {
+                print("APP通过推送通知启动，处理推送数据...")
+                // 延迟处理推送通知，确保APP完全初始化
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.handlePushNotificationUpdate(userInfo: remoteNotification)
+                }
+            }
         } else {
             // 未登录，显示登录界面
             let loginViewController = LoginViewController()
             let navigationController = UINavigationController(rootViewController: loginViewController)
             window?.rootViewController = navigationController
-        }
-        // 在 App 启动时，调用数据库设置方法
-        do {
-            try AppDatabase.setup(for: application)
-        } catch {
-            // 如果数据库初始化失败，这是一个严重错误，您可以在这里记录日志或提示用户
-            fatalError("数据库初始化失败: \(error)")
         }
         
         window?.makeKeyAndVisible()
@@ -67,10 +69,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         IQKeyboardToolbarManager.shared.isEnabled = true
         LiveActivityManager.shared.cleanupAllActivities()
         
+        // 检查并重新加载充电实时活动
+        checkForPendingTripLiveActivity()
+        checkForPendingChargeLiveActivity()
+        
         // 当获取到apns的token，发送到服务器
-        LiveActivityManager.shared.onPushTokenReceived = { token in
-            print("收到推送 token：\(token)")
-            self.updateLiveActivityToken(token)
+        LiveActivityManager.shared.onPushTokenReceived = { token, type in
+            print("收到推送 token：\(token)，类型：\(type.rawValue)")
+            self.updateLiveActivityToken(token, type: type)
         }
         
         UNUserNotificationCenter.current().delegate = self
@@ -87,15 +93,112 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
     
-    private func updateLiveActivityToken(_ token: String) {
-        NetworkManager.shared.updateLiveActivityToken(token) { result in
+    func applicationWillTerminate(_ application: UIApplication) {
+        // 应用即将终止时保存Core Data上下文
+        CoreDataManager.shared.saveContext()
+        print("[AppDelegate] 应用终止前已保存Core Data上下文")
+    }
+    
+    private func updateLiveActivityToken(_ token: String, type: LiveActivityType) {
+        NetworkManager.shared.updateLiveActivityToken(token, type: type.rawValue) { result in
             switch result {
             case .success(_):
-                print("token更新成功")
+                print("token更新成功，类型：\(type.rawValue)")
             default:
                 break
             }
         }
+    }
+    
+    // MARK: - 充电实时活动检查
+    /// 检查是否有待恢复的充电实时活动
+    private func checkForPendingChargeLiveActivity() {
+        let defaults = UserDefaults.standard
+        
+        // 检查是否有保存的充电实时活动数据
+        guard let liveActivityData = defaults.object(forKey: "ChargeLiveActivityData") as? [String: Any] else {
+            print("[AppDelegate] 没有找到待恢复的充电实时活动")
+            return
+        }
+        
+        print("[AppDelegate] 发现待恢复的充电实时活动，准备重新启动...")
+        
+        // 提取保存的数据
+        guard let startKm = liveActivityData["startKm"] as? Int,
+              let endKm = liveActivityData["endKm"] as? Int,
+              let initialSoc = liveActivityData["initialSoc"] as? Int,
+              let currentKm = liveActivityData["currentKm"] as? Int,
+              let currentSoc = liveActivityData["currentSoc"] as? Int,
+              let chargeProgress = liveActivityData["chargeProgress"] as? Int,
+              let message = liveActivityData["message"] as? String else {
+            print("[AppDelegate] 充电实时活动数据格式不正确")
+            return
+        }
+        
+        // 重新创建 ChargeAttributes
+        let attributes = ChargeAttributes(
+            startKm: startKm,
+            endKm: endKm,
+            initialSoc: initialSoc
+        )
+        
+        // 重新创建当前状态
+        let currentState = ChargeAttributes.ContentState(
+            currentKm: currentKm,
+            currentSoc: currentSoc,
+            chargeProgress: chargeProgress,
+            message: message
+        )
+        
+        // 使用 LiveActivityManager 重新启动充电实时活动
+        LiveActivityManager.shared.startChargeActivity(attributes: attributes, initialState: currentState)
+        
+        print("[AppDelegate] 充电实时活动已重新启动，token将自动刷新")
+    }
+    
+    /// 检查并重新加载行程实时活动
+    private func checkForPendingTripLiveActivity() {
+        guard let groupDefaults = UserDefaults(suiteName: "group.com.feng.pan3") else {
+            print("无法访问App Groups")
+            return
+        }
+        
+        // 检查是否有保存的行程实时活动数据
+        guard let tripData = groupDefaults.object(forKey: "TripLiveActivityData") as? [String: Any] else {
+            print("未找到保存的行程实时活动数据")
+            return
+        }
+        
+        print("发现保存的行程实时活动数据，准备重新启动...")
+        
+        // 提取必要的数据
+        guard let attributesDict = tripData["attributes"] as? [String: Any],
+              let initialStateDict = tripData["initialState"] as? [String: Any] else {
+            print("行程实时活动数据格式不正确")
+            return
+        }
+        
+        // 重新创建TripAttributes
+        let departureTime = Date(timeIntervalSince1970: attributesDict["departureTime"] as? TimeInterval ?? Date().timeIntervalSince1970)
+        let attributes = TripAttributes(
+            departureTime: departureTime,
+            totalMileageAtStart: attributesDict["totalMileageAtStart"] as? Double ?? 0.0
+        )
+        
+        // 重新创建ContentState
+        let initialState = TripAttributes.ContentState(
+            actualMileage: initialStateDict["actualMileage"] as? Double ?? 0.0,
+            consumedMileage: initialStateDict["consumedMileage"] as? Double ?? 0.0,
+            isDriving: initialStateDict["isDriving"] as? Bool ?? true
+        )
+        
+        // 使用LiveActivityManager重新启动实时活动
+        LiveActivityManager.shared.startTripActivity(
+            attributes: attributes,
+            initialState: initialState
+        )
+        
+        print("行程实时活动已重新启动")
     }
     
     // MARK: - 充电任务推送处理
@@ -106,18 +209,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         if operationType == "time_task_ended" || operationType == "range_task_ended" {
             let defaults = UserDefaults.standard
-            defaults.removeObject(forKey: "activeMonitoringMode")
-            defaults.removeObject(forKey: "activeMonitoringTargetValue")
-            defaults.removeObject(forKey: "activeMonitoringAutoStop")
-            defaults.removeObject(forKey: "activeMonitoringDetails")
-            
             // 清除实时活动数据
-            defaults.removeObject(forKey: "LiveActivityData")
-            
+            defaults.removeObject(forKey: "ChargeLiveActivityData")
             defaults.synchronize()
             
             // 停止实时活动
-            LiveActivityManager.shared.endCurrentActivity()
+            LiveActivityManager.shared.closeChargeActivity()
         }
     }
     

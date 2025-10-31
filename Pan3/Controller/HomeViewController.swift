@@ -8,7 +8,6 @@
 import UIKit
 import MapKit
 import SnapKit
-import QMUIKit
 import MJRefresh
 import WidgetKit
 import CoreLocation
@@ -251,6 +250,11 @@ class HomeViewController: UIViewController, CarDataRefreshable {
     private let maxAutoReloginAttempts = 3
     private var lastAutoReloginTime: Date = Date(timeIntervalSince1970: 0)
     
+    // 添加数据获取尝试计数器
+    private var dataFetchAttempts = 0
+    private let maxDataFetchAttempts = 3
+    private var lastDataFetchTime: Date = Date(timeIntervalSince1970: 0)
+    
     /// 视图加载后进行 UI 初始化、获取车辆信息并设置通知
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -271,9 +275,6 @@ class HomeViewController: UIViewController, CarDataRefreshable {
         
         // 检查是否需要显示首次使用教程
         checkAndShowFirstTimeTutorial()
-        
-        // 检查并恢复实时活动
-        getTaskStatus()
         
         DispatchQueue.main.asyncAfter(deadline: .now()+0.1, execute: {[weak self] in
             guard let self else {return}
@@ -345,75 +346,6 @@ class HomeViewController: UIViewController, CarDataRefreshable {
     private func refreshWidget() {
         // 刷新所有小组件
         WidgetCenter.shared.reloadAllTimelines()
-    }
-    
-    // MARK: - 获取最新充电任务激活实时活动
-    /// 获取当前充电任务状态并启动实时活动
-    private func getTaskStatus() {
-        // 检查是否有保存的实时活动数据
-        guard let liveActivityData = UserDefaults.standard.dictionary(forKey: "LiveActivityData"),
-              let isActive = liveActivityData["isActive"] as? Bool,
-              isActive else {
-            print("没有找到活跃的实时活动数据")
-            return
-        }
-        
-        // 提取保存的数据
-        guard let mode = liveActivityData["mode"] as? String,
-              let targetValue = liveActivityData["targetValue"] as? String,
-              let targetKm = liveActivityData["targetKm"] as? Double,
-              let vin = liveActivityData["vin"] as? String,
-              let startKm = liveActivityData["startKm"] as? Int,
-              let endKm = liveActivityData["endKm"] as? Int,
-              let initialSoc = liveActivityData["initialSoc"] as? Int,
-              let currentKm = liveActivityData["currentKm"] as? Int,
-              let currentSoc = liveActivityData["currentSoc"] as? Int,
-              let chargeProgress = liveActivityData["chargeProgress"] as? Double,
-              let message = liveActivityData["message"] as? String else {
-            print("实时活动数据格式不正确")
-            return
-        }
-        
-        // 检查是否支持实时活动
-        if #available(iOS 16.1, *) {
-            // 重新创建 ChargeAttributes
-            let attributes = ChargeAttributes(
-                vin: vin,
-                startKm: startKm,
-                endKm: endKm,
-                initialSoc: initialSoc
-            )
-            
-            // 获取当前车辆信息来更新状态
-            if let carInfo = UserManager.shared.carModel {
-                // 创建更新后的状态
-                let updatedState = ChargeAttributes.ContentState(
-                    currentKm: carInfo.acOnMile,
-                    currentSoc: carInfo.soc,
-                    chargeProgress: Int(chargeProgress),
-                    message: "充电监控已恢复"
-                )
-                
-                // 重新启动实时活动
-                LiveActivityManager.shared.manageActivityForTask(attributes: attributes, state: updatedState)
-                
-                print("实时活动已恢复 - 模式: \(mode), 目标值: \(targetValue)")
-            } else {
-                // 如果没有当前车辆信息，使用保存的数据
-                let savedState = ChargeAttributes.ContentState(
-                    currentKm: currentKm,
-                    currentSoc: currentSoc,
-                    chargeProgress: Int(chargeProgress),
-                    message: message
-                )
-                
-                LiveActivityManager.shared.manageActivityForTask(attributes: attributes, state: savedState)
-                
-                print("实时活动已恢复（使用保存的数据）- 模式: \(mode), 目标值: \(targetValue)")
-            }
-        } else {
-            print("当前系统版本不支持实时活动")
-        }
     }
 }
 
@@ -653,12 +585,6 @@ extension HomeViewController {
             alertController.addAction(amapAction)
         }
         
-        // 苹果地图选项
-        let appleMapAction = UIAlertAction(title: "苹果地图", style: .default) { _ in
-            self.openAppleMapNavigation(model: model)
-        }
-        alertController.addAction(appleMapAction)
-        
         // 检查是否安装了百度地图
         if let baiduURL = URL(string: "baidumap://"), UIApplication.shared.canOpenURL(baiduURL) {
             let baiduAction = UIAlertAction(title: "百度地图", style: .default) { _ in
@@ -666,6 +592,12 @@ extension HomeViewController {
             }
             alertController.addAction(baiduAction)
         }
+        
+        // 苹果地图选项
+        let appleMapAction = UIAlertAction(title: "苹果地图", style: .default) { _ in
+            self.openAppleMapNavigation(model: model)
+        }
+        alertController.addAction(appleMapAction)
         
         // 取消选项
         let cancelAction = UIAlertAction(title: "取消", style: .cancel, handler: nil)
@@ -802,9 +734,8 @@ extension HomeViewController {
                 
                 switch result {
                 case .success(let authResponse):
-                    print("[HomeViewController] 自动登录成功，重置重试计数器")
-                    // 登录成功，重置重试计数器
-                    self.autoReloginAttempts = 0
+                    print("[HomeViewController] 自动登录成功")
+                    // 登录成功，但不重置重试计数器，等待数据获取成功后再重置
                     
                     // 登录成功，更新认证响应信息
                     UserManager.shared.authResponse = authResponse
@@ -845,6 +776,20 @@ extension HomeViewController {
         print("[HomeViewController] 当前token状态: \(UserManager.shared.timaToken != nil ? "有效" : "无效")")
         print("[HomeViewController] 当前vin状态: \(UserManager.shared.defaultVin != nil ? "有效" : "无效")")
         
+        // 更新数据获取尝试计数
+        let now = Date()
+        let timeSinceLastFetch = now.timeIntervalSince(lastDataFetchTime)
+        
+        // 如果距离上次尝试超过30秒，重置数据获取计数器
+        if timeSinceLastFetch > 30 {
+            print("[HomeViewController] 距离上次数据获取尝试超过30秒，重置数据获取计数器")
+            dataFetchAttempts = 0
+        }
+        
+        dataFetchAttempts += 1
+        lastDataFetchTime = now
+        print("[HomeViewController] 数据获取尝试次数: \(dataFetchAttempts)/\(maxDataFetchAttempts)")
+        
         NetworkManager.shared.getInfo { [weak self] result in
             guard let self else {return}
             self.scrollView.mj_header?.endRefreshing()
@@ -854,8 +799,9 @@ extension HomeViewController {
             switch result {
             case .success(let model):
                 print("[HomeViewController] 车辆信息获取成功")
-                // 成功获取数据，重置重试计数器
+                // 成功获取数据，重置所有重试计数器
                 self.autoReloginAttempts = 0
+                self.dataFetchAttempts = 0
                 
                 // 保存车辆信息
                 UserManager.shared.updateCarInfo(with: model)
@@ -877,19 +823,20 @@ extension HomeViewController {
                 if showSuccessMessage {
                     QMUITips.show(withText: "获取车辆信息失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
                 } else {
-                    // 检查错误类型，避免不必要的重新登录
+                    // 检查错误类型，修正错误检测逻辑
                     let errorDescription = error.localizedDescription.lowercased()
                     let errorDomain = (error as NSError).domain.lowercased()
                     let errorCode = (error as NSError).code
                     
                     print("[HomeViewController] 错误分析 - description: \(errorDescription), domain: \(errorDomain), code: \(errorCode)")
                     
-                    // 更严格的认证错误检测
-                    let isAuthError = errorDescription.contains("unauthorized") ||
-                    errorDescription.contains("token") ||
-                    errorDescription.contains("authentication") ||
-                    errorDescription.contains("用户未登录") ||
-                    errorDomain.contains("carinfo") || errorCode == 403
+                    // 更严格的认证错误检测，排除服务器内部错误
+                    let isAuthError = (errorDescription.contains("unauthorized") ||
+                                     errorDescription.contains("token") ||
+                                     errorDescription.contains("authentication") ||
+                                     errorDescription.contains("用户未登录") ||
+                                     errorCode == 401 || errorCode == 403) &&
+                                     errorCode != 500 // 排除服务器内部错误
                     
                     if isAuthError && !self.isAutoReloginInProgress {
                         print("[HomeViewController] 检测到认证相关错误，尝试自动重新登录")
@@ -897,11 +844,59 @@ extension HomeViewController {
                     } else if self.isAutoReloginInProgress {
                         print("[HomeViewController] 自动重新登录正在进行中，跳过重新登录")
                     } else {
-                        print("[HomeViewController] 非认证错误，不进行自动重新登录: \(error.localizedDescription)")
-                        QMUITips.show(withText: "网络请求失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
+                        print("[HomeViewController] 非认证错误或服务器错误，检查是否需要使用缓存数据")
+                        
+                        // 检查数据获取尝试次数
+                        if self.dataFetchAttempts >= self.maxDataFetchAttempts {
+                            print("[HomeViewController] 数据获取已达到最大尝试次数(\(self.maxDataFetchAttempts))，尝试使用缓存数据")
+                            self.handleDataFetchFailure()
+                        } else {
+                            print("[HomeViewController] 网络请求失败，将在下次尝试重新获取: \(error.localizedDescription)")
+                            QMUITips.show(withText: "网络请求失败: \(error.localizedDescription)", in: self.view, hideAfterDelay: 2.0)
+                        }
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - 处理数据获取失败，尝试使用缓存数据
+    private func handleDataFetchFailure() {
+        print("[HomeViewController] 开始处理数据获取失败，尝试使用缓存数据")
+        
+        // 尝试从App Groups获取缓存的车辆数据
+        if let sharedModel = UserManager.shared.loadCarModelFromAppGroups() {
+            print("[HomeViewController] 找到缓存的车辆数据，使用缓存数据")
+            
+            // 使用缓存数据更新UI
+            self.updateCarStatusInfo(with: sharedModel)
+            self.updateMapLocation(with: sharedModel)
+            
+            // 提示用户这是缓存数据
+            QMUITips.show(withText: "⚠️ 当前显示的是缓存数据，非实时数据", in: self.view, hideAfterDelay: 3.0)
+            
+            // 重置数据获取计数器
+            self.dataFetchAttempts = 0
+        } else {
+            print("[HomeViewController] 没有找到缓存数据")
+            
+            // 没有缓存数据，提示用户
+            let alert = UIAlertController(title: "数据获取失败", 
+                                        message: "无法获取车辆信息，且没有可用的缓存数据。请检查网络连接或稍后重试。", 
+                                        preferredStyle: .alert)
+            
+            alert.addAction(UIAlertAction(title: "重试", style: .default) { _ in
+                // 重置计数器并重试
+                self.dataFetchAttempts = 0
+                self.fetchCarInfo(showSuccessMessage: true)
+            })
+            
+            alert.addAction(UIAlertAction(title: "取消", style: .cancel) { _ in
+                // 重置计数器
+                self.dataFetchAttempts = 0
+            })
+            
+            self.present(alert, animated: true)
         }
     }
     
@@ -930,8 +925,27 @@ extension HomeViewController {
         
         if isFirstDataLoad {
             isFirstDataLoad = false
-            // 首次加载 - 激活实时活动
-            getTaskStatus()
+            if model.chgStatus == 2 {
+                // 清除实时活动数据
+                let defaults = UserDefaults.standard
+                defaults.removeObject(forKey: "ChargeLiveActivityData")
+                defaults.synchronize()
+                
+                // 停止实时活动
+                LiveActivityManager.shared.closeChargeActivity()
+            }
+            if model.keyStatus == 2, model.mainLockStatus == 0 {
+                // 清除实时活动数据
+                guard let groupDefaults = UserDefaults(suiteName: "group.com.feng.pan3") else {
+                    print("无法访问App Groups")
+                    return
+                }
+                groupDefaults.removeObject(forKey: "TripLiveActivityData")
+                groupDefaults.synchronize()
+                
+                // 停止实时活动
+                LiveActivityManager.shared.closeTripActivity()
+            }
         }
         
         // 控制按钮

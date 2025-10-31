@@ -29,17 +29,17 @@ struct ChargeTaskModel {
     let lon: Double?
     let address: String?
 
-    // 从数据库记录初始化
+    // MARK: - 从ChargeTaskRecord创建（推荐使用）
     init(from record: ChargeTaskRecord) {
-        self.id = record.id  // 现在是可选类型，直接赋值
+        self.id = Int64(record.startTime.timeIntervalSince1970)
         self.startTime = record.startTime
         self.endTime = record.endTime
-        self.startSoc = record.startSoc
-        self.endSoc = record.endSoc
-        self.startKm = record.startKm
-        self.endKm = record.endKm
-        self.lat = record.lat
-        self.lon = record.lon
+        self.startSoc = Int(record.startSoc)
+        self.endSoc = record.endTime != nil ? Int(record.endSoc) : nil
+        self.startKm = Int(record.startKm)
+        self.endKm = record.endTime != nil ? Int(record.endKm) : nil
+        self.lat = record.lat != 0.0 ? record.lat : nil
+        self.lon = record.lon != 0.0 ? record.lon : nil
         self.address = record.address
     }
 
@@ -92,6 +92,18 @@ struct ChargeTaskModel {
         } else {
             return "\(minutes)分钟"
         }
+    }
+
+    // SOC增量
+    var socGain: Int {
+        guard let endSoc = endSoc else { return 0 }
+        return endSoc - startSoc
+    }
+    
+    // 里程增量
+    var mileageGain: Int {
+        guard let endKm = endKm else { return 0 }
+        return endKm - startKm
     }
 
     // MARK: - 兼容旧UI/调用的计算属性（不作为持久化字段）

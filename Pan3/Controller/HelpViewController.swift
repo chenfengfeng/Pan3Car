@@ -6,7 +6,6 @@
 //
 
 import UIKit
-import QMUIKit
 
 class HelpViewController: UIViewController {
     
