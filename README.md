@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![iOS](https://img.shields.io/badge/iOS-13.0+-blue.svg)
+![iOS](https://img.shields.io/badge/iOS-16.0+-blue.svg)
 ![Swift](https://img.shields.io/badge/Swift-5.0-orange.svg)
-![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
+![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)
 
 一个功能完善的智能汽车控制应用，专为胖3（Pan3）车型设计，支持远程控制、实时监控、充电管理等核心功能。
