@@ -1,16 +1,27 @@
 // /www/wwwroot/pan3/core/services/polling.service.js
 
-import { getVehiclesDueForPolling, updateVehicleAfterPoll, insertDataPoint, createDrive, updateDrive, createCharge, updateCharge } from '../database/operations.js';
+import { getVehiclesDueForPolling, updateVehicleAfterPoll, insertDataPoint, createDrive, updateDrive, createCharge, updateCharge, deleteOrphanedDataPointsForVin } from '../database/operations.js';
 import { getVehicleDataInternal, sendPushNotificationInternal } from './internal.service.js';
-import { calculateSpeed } from '../utils/geo.js';
 
 // 轮询间隔（毫秒）
-const POLL_INTERVAL_ACTIVE = 5000;  // 5 秒（active 状态）
-const POLL_INTERVAL_IDLE = 60000;   // 1 分钟（idle 状态）
+const POLL_INTERVAL_ACTIVE_MIN = 5000;   // 5 秒（active 状态最小间隔）
+const POLL_INTERVAL_ACTIVE_MAX = 10000;  // 10 秒（active 状态最大间隔）
+const POLL_INTERVAL_IDLE_MIN = 55000;    // 55 秒（idle 状态最小间隔）
+const POLL_INTERVAL_IDLE_MAX = 65000;    // 65 秒（idle 状态最大间隔）
 
 // 轮询服务状态
 let isPollingActive = false;
 let pollingTimeoutId = null;
+
+/**
+ * 生成随机轮询间隔（毫秒）
+ * @param {number} min - 最小间隔
+ * @param {number} max - 最大间隔
+ * @returns {number} 随机间隔
+ */
+function getRandomInterval(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 /**
  * 启动轮询服务
@@ -44,10 +55,13 @@ export function stopPollingService() {
 function scheduleNextPoll() {
     if (!isPollingActive) return;
     
+    // 使用随机间隔（5-10秒），避免风控
+    const randomInterval = getRandomInterval(POLL_INTERVAL_ACTIVE_MIN, POLL_INTERVAL_ACTIVE_MAX);
+    
     pollingTimeoutId = setTimeout(async () => {
         await performPollingCycle();
         scheduleNextPoll(); // 递归链
-    }, POLL_INTERVAL_ACTIVE); // 使用 active 间隔（5秒）作为检查频率
+    }, randomInterval);
 }
 
 /**
@@ -62,18 +76,14 @@ async function performPollingCycle() {
             return; // 没有待轮询车辆
         }
         
-        console.log(`[Polling Service] 开始轮询 ${vehicles.length} 辆车辆`);
-        
         // 并发处理所有车辆
         const results = await Promise.allSettled(
             vehicles.map(vehicle => pollSingleVehicle(vehicle))
         );
         
-        // 统计结果
+        // 统计结果（仅用于错误处理，不输出日志）
         const successful = results.filter(r => r.status === 'fulfilled').length;
         const failed = results.filter(r => r.status === 'rejected').length;
-        
-        console.log(`[Polling Service] 轮询完成 - 成功: ${successful}, 失败: ${failed}`);
         
     } catch (error) {
         console.error('[Polling Service] 轮询周期执行异常:', error);
@@ -111,7 +121,7 @@ function shouldBeIdle(keyStatus, mainLockStatus, chgStatus) {
  * @param {object} vehicle - 车辆记录
  */
 async function pollSingleVehicle(vehicle) {
-    const { vin, api_token, push_token, last_keyStatus, last_mainLockStatus, last_chgStatus, last_lat, last_lon, last_timestamp, current_drive_id, current_charge_id, internal_state } = vehicle;
+    const { vin, api_token, push_token, last_keyStatus, last_mainLockStatus, last_chgStatus, last_lat, last_lon, last_timestamp, last_total_mileage, last_calculated_speed, current_drive_id, current_charge_id, internal_state } = vehicle;
     
     try {
         // 1. 调用 JVC API 获取车辆数据
@@ -121,20 +131,56 @@ async function pollSingleVehicle(vehicle) {
         const currentKeyStatus = String(vehicleData.keyStatus);
         const currentMainLockStatus = String(vehicleData.mainLockStatus);
         const currentChgStatus = String(vehicleData.chgStatus);
-        const currentLat = vehicleData.lat;
-        const currentLon = vehicleData.lon;
+        const currentLat = vehicleData.latitude;
+        const currentLon = vehicleData.longtitude;
         const currentTimestamp = Date.now();
         const currentSoc = vehicleData.soc;
         const currentRangeKm = vehicleData.acOnMile || 0;        // 剩余续航
         const currentTotalMileage = vehicleData.totalMileage || null;  // 总里程
         
-        // 3. 计算速度
+        // 3. 基于总里程计算速度（加速度限制优化）
         let calculatedSpeed = 0;
-        if (last_lat && last_lon && last_timestamp) {
-            calculatedSpeed = calculateSpeed(
-                last_lat, last_lon, last_timestamp,
-                currentLat, currentLon, currentTimestamp
-            );
+        
+        // 获取上次计算的速度
+        const lastSpeed = last_calculated_speed || 0;
+        
+        // 只在有历史数据时计算
+        if (last_total_mileage && currentTotalMileage && last_timestamp) {
+            const mileageDiff = parseFloat(currentTotalMileage) - parseFloat(last_total_mileage);
+            const timeSeconds = (currentTimestamp - last_timestamp) / 1000;
+            
+            // 里程未变化，速度为0
+            if (mileageDiff === 0) {
+                calculatedSpeed = 0;
+            }
+            // 确保时间差和里程差合理
+            else if (timeSeconds > 0 && mileageDiff >= 0 && mileageDiff < 100) { // 100公里为单次轮询最大合理值
+                const rawSpeed = (mileageDiff / timeSeconds) * 3600; // 转换为km/h
+                
+                // 速度合理性检查（0-200 km/h）
+                if (rawSpeed >= 0 && rawSpeed <= 200) {
+                    // 应用加速度限制（10 km/h/s，相当于百米加速10秒）
+                    const maxSpeedChange = timeSeconds * 10;
+                    
+                    if (Math.abs(rawSpeed - lastSpeed) > maxSpeedChange) {
+                        // 速度变化超过限制，进行平滑处理
+                        if (rawSpeed > lastSpeed) {
+                            calculatedSpeed = Math.round(lastSpeed + maxSpeedChange);
+                        } else {
+                            calculatedSpeed = Math.round(Math.max(0, lastSpeed - maxSpeedChange));
+                        }
+                    } else {
+                        calculatedSpeed = Math.round(rawSpeed);
+                    }
+                } else {
+                    calculatedSpeed = 0; // 超出合理范围，设为0
+                }
+            }
+        }
+        
+        // 特殊状态处理：充电或停车时速度强制为0
+        if (currentChgStatus === '3' || (currentKeyStatus === '2' && currentMainLockStatus === '0')) {
+            calculatedSpeed = 0;
         }
         
         // 4. 判断新的状态
@@ -258,7 +304,12 @@ async function pollSingleVehicle(vehicle) {
             }
         }
         
-        // 6. 插入数据点（包含新字段）
+        // 6. 插入数据点前，如果是空闲状态（没有行程或充电），先删除该VIN旧的空闲数据点
+        if (!newDriveId && !newChargeId) {
+            deleteOrphanedDataPointsForVin(vin);
+        }
+        
+        // 7. 插入数据点（包含新字段）
         insertDataPoint({
             timestamp: new Date(currentTimestamp).toISOString(),
             vin,
@@ -271,17 +322,23 @@ async function pollSingleVehicle(vehicle) {
             mainLockStatus: currentMainLockStatus,
             chgPlugStatus: String(vehicleData.chgPlugStatus || ''),
             chgStatus: currentChgStatus,
-            chgLeftTime: vehicleData.chgLeftTime || 0,
+            chgLeftTime: vehicleData.quickChgLeftTime || 0,
             calculated_speed_kmh: calculatedSpeed,
             drive_id: newDriveId,
             charge_id: newChargeId
         });
         
-        // 7. 计算下次轮询时间（动态间隔）
-        const pollInterval = newInternalState === 'active' ? POLL_INTERVAL_ACTIVE : POLL_INTERVAL_IDLE;
+        // 8. 计算下次轮询时间（随机间隔，避免风控）
+        let pollInterval;
+        if (newInternalState === 'active') {
+            pollInterval = getRandomInterval(POLL_INTERVAL_ACTIVE_MIN, POLL_INTERVAL_ACTIVE_MAX);
+        } else {
+            pollInterval = getRandomInterval(POLL_INTERVAL_IDLE_MIN, POLL_INTERVAL_IDLE_MAX);
+        }
+        
         const nextPollTime = new Date(Date.now() + pollInterval).toISOString().replace('T', ' ').substring(0, 19);
         
-        // 8. 更新 vehicles 表
+        // 9. 更新 vehicles 表
         updateVehicleAfterPoll(vin, {
             internal_state: newInternalState,
             next_poll_time: nextPollTime,
@@ -291,35 +348,47 @@ async function pollSingleVehicle(vehicle) {
             last_lat: currentLat,
             last_lon: currentLon,
             last_timestamp: currentTimestamp,
+            last_total_mileage: currentTotalMileage,
+            last_calculated_speed: calculatedSpeed,
             current_drive_id: newDriveId,
             current_charge_id: newChargeId
         });
-        
-        console.log(`[Polling Service] ${vin} 轮询成功 [${newInternalState}] 下次: ${pollInterval/1000}秒后`);
         
     } catch (error) {
         console.error(`[Polling Service] ${vin} 轮询失败:`, error.message);
         
         // 错误处理
-        let delayMinutes = 5; // 默认 5 分钟
+        let delayMilliseconds; // 使用毫秒单位
         let newState = 'error';
         
-        if (error.message.includes('500')) {
-            delayMinutes = 5;
-            newState = 'error_500';
-        } else if (error.message.includes('403')) {
-            delayMinutes = 43200; // 30 天 = 30 * 24 * 60 分钟
+        if (error.message.includes('500') || error.message.includes('502')) {
+            // 500/502 错误：根据当前状态决定重试策略
+            if (internal_state === 'active') {
+                // 激活状态：1-2分钟随机重试，保持active状态
+                delayMilliseconds = getRandomInterval(60000, 120000);
+                newState = 'active';
+            } else {
+                // 非激活状态：5分钟重试，改为error_500状态
+                delayMilliseconds = 5 * 60 * 1000;
+                newState = 'error_500';
+            }
+        } else if (error.message.includes('403') || error.message.includes('Authentication failure')) {
+            // 403错误或认证失败：token失效，30天后重试
+            delayMilliseconds = 43200 * 60 * 1000; // 30天
             newState = 'token_invalid';
+        } else {
+            // 其他错误：默认5分钟重试
+            delayMilliseconds = 5 * 60 * 1000;
         }
         
-        const nextPollTime = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
+        const nextPollTime = new Date(Date.now() + delayMilliseconds).toISOString().replace('T', ' ').substring(0, 19);
         
         updateVehicleAfterPoll(vin, {
             internal_state: newState,
             next_poll_time: nextPollTime
         });
         
-        console.log(`[Polling Service] ${vin} 设置下次轮询时间: ${nextPollTime}`);
+        console.log(`[Polling Service] ${vin} 轮询失败 [${newState}] 下次: ${(delayMilliseconds/1000).toFixed(1)}秒后 (${nextPollTime})`);
     }
 }
 

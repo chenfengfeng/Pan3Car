@@ -23,15 +23,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ = CoreDataManager.shared
         print("[AppDelegate] Core Data + CloudKit 初始化完成")
         
-        // 在Debug模式下运行Core Data测试
-        #if DEBUG
-        DispatchQueue.global(qos: .background).async {
-            CoreDataMigrationTest.testBasicOperations()
-            CoreDataMigrationTest.testCloudKitSync()
-            CoreDataMigrationTest.testModelCompatibility()
-        }
-        #endif
-        
         // 检查用户登录状态
         if UserManager.shared.isLoggedIn {
             // 已登录，跳转到主界面
@@ -209,12 +200,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         
         if operationType == "time_task_ended" || operationType == "range_task_ended" {
             let defaults = UserDefaults.standard
+            
+            // 清除监控任务信息
+            defaults.removeObject(forKey: "activeMonitoringMode")
+            defaults.removeObject(forKey: "activeMonitoringTargetValue")
+            defaults.removeObject(forKey: "activeMonitoringAutoStop")
+            defaults.removeObject(forKey: "activeMonitoringDetails")
+            
             // 清除实时活动数据
             defaults.removeObject(forKey: "ChargeLiveActivityData")
             defaults.synchronize()
             
             // 停止实时活动
             LiveActivityManager.shared.closeChargeActivity()
+            
+            // 发送通知给ChargeViewController，让它更新悬浮按钮
+            NotificationCenter.default.post(
+                name: NSNotification.Name("ChargeMonitoringTaskEnded"),
+                object: nil,
+                userInfo: ["operationType": operationType]
+            )
+            
+            print("充电监控任务已结束，已清除所有相关数据并发送UI更新通知")
         }
     }
     

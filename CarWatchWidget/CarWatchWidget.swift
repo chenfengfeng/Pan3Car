@@ -35,8 +35,7 @@ struct Provider: TimelineProvider {
         }
         
         // 尝试从App Groups读取SharedCarModel数据
-        if let sharedCarModelData = userDefaults.data(forKey: "SharedCarModelData"),
-           let sharedCarModelDict = try? JSONSerialization.jsonObject(with: sharedCarModelData) as? [String: Any],
+        if let sharedCarModelDict = userDefaults.object(forKey: "SharedCarModelData") as? [String: Any],
            let sharedCarModel = SharedCarModel(dictionary: sharedCarModelDict) {
             
             // 将SharedCarModel转换为CarInfo
@@ -86,6 +85,15 @@ struct CarWatchWidgetEntryView : View {
     var entry: Provider.Entry
 
     var body: some View {
+        let content = buildContent()
+        
+        // 点击打开 Watch App 到控制页面
+        content
+            .widgetURL(URL(string: "pan3watch://control"))
+    }
+    
+    @ViewBuilder
+    private func buildContent() -> some View {
         if let errorMessage = entry.errorMessage {
             // 错误状态显示
             VStack(alignment: .leading, spacing: 2) {

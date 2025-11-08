@@ -17,17 +17,83 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
     @IBOutlet weak var shortcutsView: UIScrollView!
     
     // MARK: - 行程记录相关属性
-    private var tripRecords: [TripRecordData] = []
-    private var groupedTripRecords: [(date: String, trips: [TripRecordData])] = []
-    private var currentPage = 1
-    private var totalPages = 1
+    private var tripRecords: [TripRecord] = []
+    private var groupedTripRecords: [(date: String, trips: [TripRecord])] = []
     private var isLoading = false
+    private var isSyncing = false
+    private var isGeocoding = false  // 标记是否正在进行地址解析
+    private var addressVisibilityButton: UIButton!
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupHeader()
+        setupNavigationItems()
         setupTableView()
-        loadTripRecords()
+        setupNotifications()
+        
+        // 首次加载：先从CoreData加载本地数据，然后从服务器同步
+        loadLocalTripRecords()
+        syncTripRecordsFromServer()
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        // 每次页面显示时，检查是否有需要解析地址的记录
+        checkAndTriggerGeocodingIfNeeded()
+    }
+    
+    deinit {
+        // 移除通知监听
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - Notifications Setup
+    
+    private func setupNotifications() {
+        // 监听地址解析完成通知
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAddressUpdated),
+            name: GeocodingService.addressDidUpdateNotification,
+            object: nil
+        )
+    }
+    
+    @objc private func handleAddressUpdated() {
+        print("[ShortcutsViewController] 收到地址更新通知，刷新列表")
+        
+        // 重置解析标记
+        isGeocoding = false
+        
+        // 重新加载本地数据并刷新 UI
+        loadLocalTripRecords()
+    }
+    
+    // MARK: - Geocoding Management
+    
+    /// 检查并触发地址解析（如果需要）
+    private func checkAndTriggerGeocodingIfNeeded() {
+        // 如果正在解析，跳过
+        guard !isGeocoding else {
+            print("[ShortcutsViewController] 地址解析正在进行中，跳过")
+            return
+        }
+        
+        // 获取所有需要解析地址的记录
+        let recordsNeedingGeocoding = CoreDataManager.shared.getTripRecordsNeedingGeocoding()
+        
+        guard !recordsNeedingGeocoding.isEmpty else {
+            print("[ShortcutsViewController] 没有需要解析地址的记录")
+            return
+        }
+        
+        print("[ShortcutsViewController] 发现 \(recordsNeedingGeocoding.count) 条记录需要解析地址，开始解析...")
+        
+        // 标记为正在解析
+        isGeocoding = true
+        
+        // 触发批量解析
+        GeocodingService.shared.geocodeTripRecords(recordsNeedingGeocoding)
     }
     
     // MARK: - 点击事件
@@ -130,21 +196,38 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
     }
     
     // MARK: - 行程记录相关方法
-    private func setupHeader() {
-        let isBlurAddress = UserDefaults.standard.bool(forKey: "isBlurAddress")
+    
+    /// 设置导航栏按钮
+    private func setupNavigationItems() {
+        // 左侧统计按钮（使用现代化 API）
+        let statisticsBtn = UIButton(type: .system)
+        var statsConfig = UIButton.Configuration.plain()
+        statsConfig.image = UIImage(systemName: "chart.bar.fill")
+        statsConfig.title = "行程统计"
+        statsConfig.imagePadding = 4
+        statsConfig.imagePlacement = .leading
+        statsConfig.baseForegroundColor = .label
+        statisticsBtn.configuration = statsConfig
+        statisticsBtn.addTarget(self, action: #selector(showStatistics), for: .touchUpInside)
         
-        let title = UILabel(text: "隐藏地址")
-        title.font = .systemFont(ofSize: 14)
-        title.textColor = .white
-        view.addSubview(title)
-        let sw = UISwitch()
-        sw.isOn = isBlurAddress
-        sw.addTarget(self, action: #selector(changeSwitch), for: .valueChanged)
-        view.addSubview(sw)
-        let view = UIStackView(arrangedSubviews: [title, sw], axis: .horizontal)
-        view.spacing = 4
-        let item = UIBarButtonItem(customView: view)
-        navigationItem.rightBarButtonItem = item
+        let statisticsButton = UIBarButtonItem(customView: statisticsBtn)
+        navigationItem.leftBarButtonItem = statisticsButton
+        
+        // 右侧隐藏地址按钮（使用现代化 API）
+        addressVisibilityButton = UIButton(type: .system)
+        addressVisibilityButton.addTarget(self, action: #selector(toggleAddressVisibility), for: .touchUpInside)
+        
+        // 使用 iOS 15+ 的 UIButton.Configuration API
+        updateAddressVisibilityButton()
+        
+        let rightBarButton = UIBarButtonItem(customView: addressVisibilityButton)
+        navigationItem.rightBarButtonItem = rightBarButton
+    }
+    
+    @objc private func showStatistics() {
+        let statisticsVC = TripStatisticsViewController()
+        statisticsVC.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(statisticsVC, animated: true)
     }
     
     private func setupTableView() {
@@ -160,69 +243,81 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         }
         header.lastUpdatedTimeLabel?.isHidden = true
         tableView.mj_header = header
-        
-        // 使用 MJRefresh 添加上拉加载更多
-        let footer = MJRefreshAutoNormalFooter { [weak self] in
-            self?.loadMoreTripRecords()
-        }
-        tableView.mj_footer = footer
     }
     
-    private func loadTripRecords(page: Int = 1) {
-        guard !isLoading else { return }
+    /// 从CoreData加载本地行程记录
+    private func loadLocalTripRecords() {
+        tripRecords = CoreDataManager.shared.fetchTripRecords()
+        groupTripRecordsByDate()
+        tableView.reloadData()
+        print("[ShortcutsVC] 从CoreData加载了 \(tripRecords.count) 条行程记录")
+    }
+    
+    /// 从服务器同步行程记录
+    private func syncTripRecordsFromServer() {
+        guard !isSyncing else { return }
         
-        isLoading = true
+        isSyncing = true
         
-        NetworkManager.shared.getTripRecords(page: page) { [weak self] result in
+        NetworkManager.shared.getTripRecordsFromServer { [weak self] result in
             DispatchQueue.main.async {
-                self?.isLoading = false
-                
-                // 结束刷新状态
-                if page == 1 {
-                    self?.tableView.mj_header?.endRefreshing()
-                } else {
-                    if case .success(let response) = result, response.trips.isEmpty {
-                        self?.tableView.mj_footer?.endRefreshingWithNoMoreData()
-                    } else {
-                        self?.tableView.mj_footer?.endRefreshing()
-                    }
-                }
+                self?.isSyncing = false
+                self?.tableView.mj_header?.endRefreshing()
                 
                 switch result {
-                case .success(let response):
-                    if page == 1 {
-                        self?.tripRecords = response.trips
-                    } else {
-                        self?.tripRecords.append(contentsOf: response.trips)
+                case .success(let tripsData):
+                    guard !tripsData.isEmpty else {
+                        print("[ShortcutsVC] 服务器没有新的行程记录")
+                        return
                     }
                     
-                    self?.currentPage = response.pagination.currentPage
-                    self?.totalPages = response.pagination.totalPages
-                    self?.groupTripRecordsByDate()
-                    self?.tableView.reloadData()
+                    print("[ShortcutsVC] 从服务器获取了 \(tripsData.count) 条行程记录，开始同步到CoreData...")
                     
-                    // 检查是否还有更多数据
-                    if self?.currentPage ?? 0 >= self?.totalPages ?? 0 {
-                        self?.tableView.mj_footer?.endRefreshingWithNoMoreData()
+                    // 保存到CoreData
+                    let savedRecords = CoreDataManager.shared.syncTripRecordsFromServer(tripsData)
+                    
+                    if !savedRecords.isEmpty {
+                        print("[ShortcutsVC] 成功同步 \(savedRecords.count) 条行程记录到CoreData")
+                        
+                        // ⚠️ 修复：只提取实际保存成功的记录ID，通知服务器删除
+                        let tripIds = savedRecords.compactMap { record -> Int? in
+                            return Int(record.recordID ?? "0")
+                        }.filter { $0 > 0 }
+                        
+                        if !tripIds.isEmpty {
+                            print("[ShortcutsVC] 通知服务器删除 \(tripIds.count) 条已同步的行程记录")
+                            self?.confirmSyncComplete(tripIds: tripIds)
+                        } else {
+                            print("[ShortcutsVC] 警告：没有有效的recordID可确认")
+                        }
+                        
+                        // 重新加载本地数据
+                        self?.loadLocalTripRecords()
                     }
                     
                 case .failure(let error):
-                    self?.showErrorAlert(message: error.localizedDescription)
+                    print("[ShortcutsVC] 同步失败: \(error.localizedDescription)")
+                    QMUITips.showError("同步失败: \(error.localizedDescription)")
                 }
             }
         }
     }
     
-    @objc private func refreshTripRecords() {
-        currentPage = 1
-        // 重置 footer 状态
-        tableView.mj_footer?.resetNoMoreData()
-        loadTripRecords(page: 1)
+    /// 确认同步完成，通知服务器删除数据
+    private func confirmSyncComplete(tripIds: [Int]) {
+        NetworkManager.shared.confirmTripSyncComplete(tripIds: tripIds) { result in
+            switch result {
+            case .success(let stats):
+                print("[ShortcutsVC] 服务器已删除 \(stats["deletedTrips"] ?? 0) 条行程记录")
+            case .failure(let error):
+                print("[ShortcutsVC] 确认同步失败: \(error.localizedDescription)")
+            }
+        }
     }
     
-    private func loadMoreTripRecords() {
-        guard currentPage < totalPages && !isLoading else { return }
-        loadTripRecords(page: currentPage + 1)
+    @objc private func refreshTripRecords() {
+        // 下拉刷新：从服务器同步最新数据
+        syncTripRecordsFromServer()
     }
     
     private func showErrorAlert(message: String) {
@@ -231,10 +326,41 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         present(alert, animated: true)
     }
     
-    @objc private func changeSwitch(_ sender: UISwitch) {
+    @objc private func toggleAddressVisibility() {
+        // 切换状态
         let ud = UserDefaults.standard
-        ud.set(sender.isOn, forKey: "isBlurAddress")
+        let currentState = ud.bool(forKey: "isBlurAddress")
+        ud.set(!currentState, forKey: "isBlurAddress")
+        
+        // 更新按钮样式
+        updateAddressVisibilityButton()
+        
+        // 刷新列表
         tableView.reloadData()
+    }
+    
+    /// 更新地址可见性按钮的样式
+    private func updateAddressVisibilityButton() {
+        let isBlurAddress = UserDefaults.standard.bool(forKey: "isBlurAddress")
+        
+        // 使用 iOS 15+ 的 UIButton.Configuration API
+        var config = UIButton.Configuration.plain()
+        
+        if isBlurAddress {
+            // 隐藏地址状态
+            config.image = UIImage(systemName: "eye.slash.fill")
+            config.title = "隐藏地址"
+        } else {
+            // 显示地址状态
+            config.image = UIImage(systemName: "eye.fill")
+            config.title = "显示地址"
+        }
+        
+        config.imagePadding = 4
+        config.imagePlacement = .leading
+        config.baseForegroundColor = .label
+        
+        addressVisibilityButton.configuration = config
     }
     
     // MARK: - 数据分组方法
@@ -244,25 +370,19 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
         
         // 按日期分组
-        var groupedDict: [String: [TripRecordData]] = [:]
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        var groupedDict: [String: [TripRecord]] = [:]
         
         let dayFormatter = DateFormatter()
         dayFormatter.dateFormat = "yyyy-MM-dd"
         
         for trip in tripRecords {
-            // 使用完整的 startTime 来解析日期
-            if let date = dateFormatter.date(from: trip.startTime) {
-                let dayStart = calendar.startOfDay(for: date)
-                let dayKey = dayFormatter.string(from: dayStart)
-                
-                if groupedDict[dayKey] == nil {
-                    groupedDict[dayKey] = []
-                }
-                groupedDict[dayKey]?.append(trip)
+            let dayStart = calendar.startOfDay(for: trip.startTime)
+            let dayKey = dayFormatter.string(from: dayStart)
+            
+            if groupedDict[dayKey] == nil {
+                groupedDict[dayKey] = []
             }
+            groupedDict[dayKey]?.append(trip)
         }
         
         // 转换为有序数组并生成显示标题
@@ -327,9 +447,52 @@ extension ShortcutsViewController: UITableViewDataSource {
               indexPath.row < groupedTripRecords[indexPath.section].trips.count else {
             return cell
         }
-        let tripData = groupedTripRecords[indexPath.section].trips[indexPath.row]
+        let tripRecord = groupedTripRecords[indexPath.section].trips[indexPath.row]
+        
+        // 转换为TripRecordData以配置cell（临时方案）
+        let tripData = convertToTripRecordData(tripRecord)
         cell.configure(with: tripData)
         return cell
+    }
+    
+    /// 将TripRecord转换为TripRecordData
+    private func convertToTripRecordData(_ record: TripRecord) -> TripRecordData {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "HH:mm"
+        let departureTime = dateFormatter.string(from: record.startTime)
+        
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let startTime = dateFormatter.string(from: record.startTime)
+        let endTime = dateFormatter.string(from: record.endTime ?? Date())
+        
+        return TripRecordData(
+            id: Int(record.id),
+            vin: "",
+            departureAddress: record.displayStartAddress,
+            destinationAddress: record.displayEndAddress,
+            departureTime: departureTime,
+            duration: record.tripDuration,
+            drivingMileage: record.totalDistance,
+            consumedMileage: Double(record.consumedRange),
+            achievementRate: record.achievementRate,
+            powerConsumption: record.powerConsumption,
+            averageSpeed: Double(record.avgSpeed),
+            energyEfficiency: record.energyEfficiency,
+            startTime: startTime,
+            endTime: endTime,
+            startLocation: "",
+            endLocation: "",
+            startLatLng: nil,
+            endLatLng: nil,
+            startMileage: 0,
+            endMileage: 0,
+            startRange: Double(record.startRangeKm),
+            endRange: Double(record.endRangeKm),
+            startSoc: Int(record.startSoc),
+            endSoc: Int(record.endSoc),
+            createdAt: "",
+            updatedAt: ""
+        )
     }
     
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
@@ -349,7 +512,63 @@ extension ShortcutsViewController: UITableViewDelegate {
         return 200
     }
     
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return 44.0
+    }
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        
+        guard indexPath.section < groupedTripRecords.count,
+              indexPath.row < groupedTripRecords[indexPath.section].trips.count else {
+            return
+        }
+        
+        let tripRecord = groupedTripRecords[indexPath.section].trips[indexPath.row]
+        
+        // 跳转到详情页面
+        let detailVC = TripDetailViewController(tripRecord: tripRecord)
+        navigationController?.pushViewController(detailVC, animated: true)
+    }
+    
+    // MARK: - 滑动删除
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            guard indexPath.section < groupedTripRecords.count,
+                  indexPath.row < groupedTripRecords[indexPath.section].trips.count else {
+                return
+            }
+            
+            let tripRecord = groupedTripRecords[indexPath.section].trips[indexPath.row]
+            
+            // 二次确认
+            let alert = UIAlertController(
+                title: "确认删除",
+                message: "确定要删除这条行程记录吗？",
+                preferredStyle: .alert
+            )
+            
+            alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+            alert.addAction(UIAlertAction(title: "删除", style: .destructive) { [weak self] _ in
+                // 从CoreData删除
+                CoreDataManager.shared.deleteTripRecord(tripRecord)
+                
+                // 更新UI
+                self?.loadLocalTripRecords()
+                
+                QMUITips.showSucceed("删除成功")
+            })
+            
+            present(alert, animated: true)
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, titleForDeleteConfirmationButtonForRowAt indexPath: IndexPath) -> String? {
+        return "删除"
+    }
+    
+    // 旧的didSelectRowAt内容（如果有其他逻辑需要保留）
+    func _old_tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
         guard indexPath.section < groupedTripRecords.count,

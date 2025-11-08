@@ -1,6 +1,6 @@
 // /www/wwwroot/pan3/core/services/summary.service.js
 
-import { getPendingDrives, getPendingCharges, updateDriveSummary, updateChargeSummary, getDataPointsByDriveId, getDataPointsByChargeId, getDriveStatistics, getChargeStatistics } from '../database/operations.js';
+import { getPendingDrives, getPendingCharges, updateDriveSummary, updateChargeSummary, getDataPointsByDriveId, getDataPointsByChargeId, getDriveStatistics, getChargeStatistics, deleteDrive } from '../database/operations.js';
 
 // 摘要计算间隔（毫秒）
 const SUMMARY_INTERVAL = 30000;  // 30 秒
@@ -123,17 +123,24 @@ async function processDriveSummary(drive) {
             consumedRange = firstPoint.remaining_range_km - lastPoint.remaining_range_km;
         }
         
+        // ✅ 优化3：过滤无效行程（挪车、拿东西等短距离行程）
+        if (totalDistance <= 1) {
+            console.log(`[Summary Service] 行程 ${driveId} 里程过短 (${totalDistance.toFixed(2)}km)，已删除（挪车或开门拿东西）`);
+            deleteDrive(driveId);
+            return;
+        }
+        
         // 更新摘要数据（包含速度统计）
         updateDriveSummary(driveId, {
             summary_status: 'completed',
             total_distance: totalDistance,
             consumed_range: consumedRange,
-            max_speed: statistics.max_speed || 0,        // 最高速度（来自SQL聚合）
+            max_speed: 0,        // 最高速度（固定为0，不再计算以节省资源）
             avg_speed: statistics.avg_speed || 0,        // 平均速度（来自SQL聚合）
             data_points_count: statistics.data_points_count
         });
         
-        console.log(`[Summary Service] 行程 ${driveId} 摘要完成 - 距离: ${totalDistance.toFixed(2)}km, 消耗: ${consumedRange}km, 最高: ${statistics.max_speed}km/h, 平均: ${statistics.avg_speed}km/h, 点数: ${statistics.data_points_count}`);
+        console.log(`[Summary Service] 行程 ${driveId} 摘要完成 - 距离: ${totalDistance.toFixed(2)}km, 消耗: ${consumedRange}km, 平均: ${statistics.avg_speed}km/h, 点数: ${statistics.data_points_count}`);
         
     } catch (error) {
         console.error(`[Summary Service] 行程 ${driveId} 摘要计算失败:`, error.message);

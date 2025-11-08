@@ -6,9 +6,6 @@
 //
 
 import Foundation
-#if os(watchOS)
-import WatchConnectivity
-#endif
 
 /// 共享网络管理器，支持多Target复用（主应用、小组件、Watch等）
 class SharedNetworkManager {
@@ -29,44 +26,25 @@ class SharedNetworkManager {
     
     // MARK: - 获取用户认证信息
     private var timaToken: String? {
-        #if os(watchOS)
-        // 在Watch应用中，从WatchConnectivityManager获取token
-        return WatchConnectivityManager.shared.getCurrentToken()
-        #else
-        // 在iPhone应用中，从App Groups获取
+        // 在iPhone和Watch应用中，都从App Groups获取token
         return UserDefaults(suiteName: "group.com.feng.pan3")?.string(forKey: "timaToken")
-        #endif
     }
     
     private var defaultVin: String? {
-        #if os(watchOS)
-        // 在Watch应用中，从WatchConnectivityManager获取vin
-        return WatchConnectivityManager.shared.getCurrentVin()
-        #else
-        // 在iPhone应用中，从App Groups获取
+        // 在iPhone和Watch应用中，都从App Groups获取vin
         return UserDefaults(suiteName: "group.com.feng.pan3")?.string(forKey: "defaultVin")
-        #endif
     }
     
     private var pushToken: String? {
-        #if os(watchOS)
-        // 在Watch应用中，从WatchConnectivityManager获取pushToken
-        return WatchConnectivityManager.shared.getCurrentPushToken()
-        #else
-        // 在iPhone应用中，从App Groups获取
+        // pushToken 不需要在接口中传输，已改为登录后记录在数据库
+        // 这里保留以防未来需要
         return UserDefaults(suiteName: "group.com.feng.pan3")?.string(forKey: "pushToken")
-        #endif
     }
     
     private var presetTemperature: Int {
-        #if os(watchOS)
-        // 在Watch应用中，从WatchConnectivityManager获取预设温度
-        // 如果Watch端没有实现温度同步，使用默认值26度
-        return 26
-        #else
-        // 在iPhone应用中，从App Groups获取预设温度，如果没有设置则使用默认值26度
-        return UserDefaults(suiteName: "group.com.feng.pan3")?.integer(forKey: "PresetTemperature") ?? 26
-        #endif
+        // 在iPhone和Watch应用中，都从App Groups获取预设温度，如果没有设置则使用默认值26度
+        let temperature = UserDefaults(suiteName: "group.com.feng.pan3")?.integer(forKey: "PresetTemperature") ?? 0
+        return temperature > 0 ? temperature : 26
     }
     
     // MARK: - 车辆控制方法（使用energy端点）
@@ -85,8 +63,7 @@ class SharedNetworkManager {
         let parameters: [String: Any] = [
             "vin": vin,
             "operation": operation, // 1关锁，2开锁
-            "operationType": "LOCK",
-            "pushToken": pushToken ?? ""
+            "operationType": "LOCK"
         ]
         
         print("[Shared Debug] 执行远程锁操作：\(operation)")
@@ -109,8 +86,7 @@ class SharedNetworkManager {
             "vin": vin,
             "operation": operation, // 执行动作类型，1关闭，2开启
             "operationType": "WINDOW",
-            "openLevel": openLevel, // 开窗等级：0=关闭，2=完全打开
-            "pushToken": pushToken ?? ""
+            "openLevel": openLevel // 开窗等级：0=关闭，2=完全打开
         ]
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)
@@ -135,8 +111,7 @@ class SharedNetworkManager {
             "operation": operation, // 2表示开启，1表示关闭
             "operationType": "INTELLIGENT_AIRCONDITIONER",
             "temperature": actualTemperature,
-            "duringTime": duringTime,
-            "pushToken": pushToken ?? ""
+            "duringTime": duringTime
         ]
         
         print("[Shared Debug] 空调控制 - 操作: \(operation), 温度: \(actualTemperature)°C (预设温度: \(presetTemperature)°C)")
@@ -157,8 +132,7 @@ class SharedNetworkManager {
         
         let parameters: [String: Any] = [
             "vin": vin,
-            "operationType": "FIND_VEHICLE",
-            "pushToken": pushToken ?? ""
+            "operationType": "FIND_VEHICLE"
         ]
         
         performRequest(url: url, parameters: parameters, timaToken: timaToken, completion: completion)

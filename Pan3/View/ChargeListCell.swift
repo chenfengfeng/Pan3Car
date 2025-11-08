@@ -339,7 +339,7 @@ class ChargeListCell: UITableViewCell {
         if let address = task.address, !address.isEmpty {
             addressLabel.text = "地址：\(address)"
         } else {
-            addressLabel.text = "地址：未知地址"
+            addressLabel.text = "地址：胖3充电站"
         }
     }
     

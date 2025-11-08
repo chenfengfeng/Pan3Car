@@ -4,7 +4,9 @@ import apn from '@parse/node-apn';
 import { APNsCircuitBreaker } from '../utils/circuit-breaker.js';
 
 // === 环境变量和配置 ===
-const { APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID, APNS_KEY_PATH } = process.env;
+const { APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID, APNS_KEY_PATH, NODE_ENV } = process.env;
+// APNs 生产环境配置：生产环境默认为 true，开发环境可通过环境变量设置为 false
+const APNS_PRODUCTION = NODE_ENV !== 'development' && process.env.APNS_PRODUCTION !== 'false';
 
 // === 全局 Provider 管理 ===
 let apnProvider = null;
@@ -18,7 +20,6 @@ const pushQueue = [];
 let isProcessingQueue = false;
 
 function createProvider() {
-    console.log("🔧 开始创建APNs Provider...");
     try {
         providerState = 'CONNECTING';
 
@@ -28,18 +29,13 @@ function createProvider() {
                 keyId: APNS_KEY_ID,
                 teamId: APNS_TEAM_ID,
             },
-            production: false
+            production: APNS_PRODUCTION
         });
 
         // 增强事件监听，提供更丰富的诊断信息
         provider.on('error', (error) => {
             console.error("❌ APNs Provider 错误:", error);
             providerState = 'ERROR';
-        });
-
-        // 监听推送传输成功事件
-        provider.on('transmitted', (notification, device) => {
-            console.log(`📤 APNs 推送已传输到设备: ${device}`);
         });
 
         // 监听推送失败事件 - APNs服务器明确拒绝的通知
@@ -64,7 +60,6 @@ function createProvider() {
         // Provider创建成功后立即标记为就绪状态
         // APNs库会在需要时自动建立连接，无需等待连接事件
         providerState = 'READY';
-        console.log("✅ APNs Provider 创建成功，已就绪");
 
         return provider;
     } catch (error) {
@@ -74,21 +69,14 @@ function createProvider() {
     }
 }
 
-// 懒加载：仅在需要时初始化 Provider
-console.log("📱 APNs 推送服务已启动（懒加载模式）");
-
 // === 按需连接管理 ===
 async function ensureConnection() {
     // 如果已有活跃连接，直接使用
     if (apnProvider && providerState === 'READY') {
-        console.log("🔄 使用现有APNs连接");
         return apnProvider;
     }
 
     // 创建新连接
-    console.log("🔄 按需建立 APNs 连接...");
-    console.log(`🔍 环境变量检查: APNS_KEY_ID=${APNS_KEY_ID ? '已设置' : '未设置'}, APNS_TEAM_ID=${APNS_TEAM_ID ? '已设置' : '未设置'}, APNS_BUNDLE_ID=${APNS_BUNDLE_ID ? '已设置' : '未设置'}, APNS_KEY_PATH=${APNS_KEY_PATH ? '已设置' : '未设置'}`);
-
     apnProvider = createProvider();
 
     if (!apnProvider) {
@@ -96,7 +84,6 @@ async function ensureConnection() {
     }
 
     // Provider创建成功即可使用，无需等待连接事件
-    console.log("✅ APNs连接建立成功");
     return apnProvider;
 }
 
@@ -160,7 +147,6 @@ async function processQueue() {
 // === 直接发送函数（集成熔断器）===
 async function executeDirectSend(notification, token, desc = "推送") {
     // 使用熔断器保护APNs推送操作
-    console.log(`🔄 尝试发送 ${desc} 到设备 ${token}...`);
     return await apnsCircuitBreaker.executePush(async () => {
         const maxRetries = 3;
 
@@ -172,7 +158,6 @@ async function executeDirectSend(notification, token, desc = "推送") {
                 const result = await provider.send(notification, token);
 
                 if (result.sent.length > 0) {
-                    console.log(`✅ ${desc} 发送成功`);
                     updateConnectionStats(true);
                     // 保持持久连接，不启动空闲计时器
                     return result;
@@ -184,7 +169,6 @@ async function executeDirectSend(notification, token, desc = "推送") {
                     console.error(`❌ ${desc} 失败: ${reason}`);
 
                     // 让node-apn库自己管理连接恢复，不主动断开连接
-                    console.log("🔄 推送失败，让node-apn库处理连接管理...");
 
                     if (attempt < maxRetries) {
                         // 增加重试延迟，给APNs服务器更多时间
@@ -202,7 +186,6 @@ async function executeDirectSend(notification, token, desc = "推送") {
                 console.error(`❌ ${desc} 异常: ${err.message}`);
 
                 // 让node-apn库自己管理连接异常恢复，不主动断开连接
-                console.log("🔄 捕获到异常，让node-apn库处理连接管理...");
 
                 if (attempt < maxRetries) {
                     // 增加重试延迟，给APNs服务器更多时间

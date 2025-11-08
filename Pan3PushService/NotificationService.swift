@@ -50,22 +50,11 @@ class NotificationService: UNNotificationServiceExtension {
             print("[NotificationService] 无法从推送中提取车辆数据")
             return
         }
-        
-        print("[NotificationService] 成功提取车辆数据: \(carData)")
-//        let mainLockStatus: Int = (carData["mainLockStatus"] ?? 100) as! Int
-//        content.body = "车锁状态 \(mainLockStatus == 0 ? "已锁定" : "已解锁")"
-        
         // 2. 保存数据到 App Groups
         saveCarDataToAppGroups(carData: carData)
         
         // 3. 刷新小组件
         refreshWidgets(content: content)
-        
-        // 4. 发送数据到手表
-//        sendDataToWatch(carData: carData)
-        
-        // 5. 可选：修改通知内容
-//        enhanceNotificationContent(content: content)
     }
     
     // MARK: - 提取推送数据
@@ -128,10 +117,10 @@ class NotificationService: UNNotificationServiceExtension {
         userDefaults.set(carModelDict, forKey: "CarModelData")
         
         // 检测解锁汽车条件并启动实时活动
-        if sharedCarModel.keyStatus == 2 && sharedCarModel.mainLockStatus == 1 {
-            print("[NotificationService] 检测到解锁汽车并且车辆还没启动，启动实时活动")
-            startTripLiveActivity(sharedCarModel: sharedCarModel)
-        }
+//        if sharedCarModel.keyStatus == 2 && sharedCarModel.mainLockStatus == 1 {
+//            print("[NotificationService] 检测到解锁汽车并且车辆还没启动，启动实时活动")
+//            startTripLiveActivity(sharedCarModel: sharedCarModel)
+//        }
         
         // 设置本地修改标记，供小组件检测
         let currentTime = Date().timeIntervalSince1970

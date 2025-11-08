@@ -28,19 +28,3 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-/**
- * 计算速度
- * @param {number} lat1 - 起点纬度
- * @param {number} lon1 - 起点经度
- * @param {number} timestamp1 - 起点时间戳（毫秒）
- * @param {number} lat2 - 终点纬度
- * @param {number} lon2 - 终点经度
- * @param {number} timestamp2 - 终点时间戳（毫秒）
- * @returns {number} 速度（km/h），如果时间差为 0 则返回 0
- */
-export function calculateSpeed(lat1, lon1, timestamp1, lat2, lon2, timestamp2) {
-    const distance = calculateDistance(lat1, lon1, lat2, lon2);
-    const timeHours = (timestamp2 - timestamp1) / (1000 * 60 * 60);
-    return timeHours > 0 ? Math.round(distance / timeHours) : 0;
-}
-

@@ -48,6 +48,32 @@ class ChargeViewController: UIViewController {
     private var refreshTimer: Timer?
     private var isPageVisible = false
     private var lastChargingStatus: Int = 2 // 默认为未充电状态
+    
+    // MARK: - 悬浮状态按钮
+    private lazy var floatingStatusButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.isHidden = true
+        button.alpha = 0
+        button.addTarget(self, action: #selector(floatingButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    private let gradientLayer = CAGradientLayer()
+    
+    private lazy var iconImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.tintColor = .white
+        return imageView
+    }()
+    
+    private lazy var statusLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = .white
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.textAlignment = .center
+        return label
+    }()
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.title = "充电助手"
@@ -77,12 +103,23 @@ class ChargeViewController: UIViewController {
             name: UIApplication.willEnterForegroundNotification,
             object: nil
         )
+        
+        // 监听充电任务结束通知
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleMonitoringTaskEnded),
+            name: NSNotification.Name("ChargeMonitoringTaskEnded"),
+            object: nil
+        )
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         // 标记页面为可见状态
         isPageVisible = true
+        
+        // 同步服务器上的充电数据（自动检查间隔时间）
+        performAutoSync()
         
         // 切换到该 Tab 页面时，刷新头部和下方列表（重新读取数据库）
         mileageHeaderView.setupCarModel(false)
@@ -92,6 +129,9 @@ class ChargeViewController: UIViewController {
         
         // 检查是否需要启动自动刷新
         checkAndStartAutoRefresh()
+        
+        // 检查并更新悬浮按钮状态
+        updateFloatingButtonState()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -121,10 +161,24 @@ class ChargeViewController: UIViewController {
             make.trailing.bottom.leading.equalToSuperview()
         }
         
-        let leftBtn = UIBarButtonItem(title: "电池信息", style: .plain, target: self, action: #selector(clickBatteryInfo))
+        // 左侧统计按钮（使用现代化 API）
+        let statisticsBtn = UIButton(type: .system)
+        var statsConfig = UIButton.Configuration.plain()
+        statsConfig.image = UIImage(systemName: "chart.bar.fill")
+        statsConfig.title = "充电统计"
+        statsConfig.imagePadding = 4
+        statsConfig.imagePlacement = .leading
+        statsConfig.baseForegroundColor = .label
+        statisticsBtn.configuration = statsConfig
+        statisticsBtn.addTarget(self, action: #selector(clickChargeStatistics), for: .touchUpInside)
+        
+        let leftBtn = UIBarButtonItem(customView: statisticsBtn)
         navigationItem.leftBarButtonItem = leftBtn
         let rightBtn = UIBarButtonItem(customView: monitorButton)
         navigationItem.rightBarButtonItem = rightBtn
+        
+        // 设置悬浮状态按钮
+        setupFloatingButton()
     }
     
     private func setupRefreshControl() {
@@ -368,6 +422,10 @@ class ChargeViewController: UIViewController {
         // 保存监控信息到UserDefaults
         saveMonitoringInfo(mode: mode, targetValue: targetValue, autoStopCharge: autoStopCharge, targetKm: targetKm)
         
+        // 更新并显示悬浮按钮
+        updateFloatingButtonState()
+        showFloatingButton(animated: true)
+        
         // 启动实时活动
         if mode == "range" {
             startLiveActivity(mode: mode, targetValue: targetValue, targetKm: targetKm)
@@ -479,17 +537,18 @@ class ChargeViewController: UIViewController {
     
     /// 取消活跃的监控任务
     private func cancelActiveMonitoring(mode: String) {
+        // 清除监控信息
         clearMonitoringInfo()
-        QMUITips.showLoading("正在取消监控...", in: self.view)
+        // 隐藏悬浮按钮
+        hideFloatingButton(animated: true)
         
-        NetworkManager.shared.stopChargeMonitoring(mode: mode) { [weak self] result in
+        QMUITips.showLoading("正在取消监控...", in: self.view)
+        NetworkManager.shared.stopChargeMonitoring(mode: mode) { result in
             DispatchQueue.main.async {
                 QMUITips.hideAllTips()
-                
                 switch result {
                 case .success:
                     QMUITips.showSucceed("监控已取消")
-                    self?.clearMonitoringInfo()
                 case .failure(let error):
                     QMUITips.showError("取消失败: \(error.localizedDescription)")
                 }
@@ -516,29 +575,34 @@ class ChargeViewController: UIViewController {
 
     // MARK: - Data Loading
     private func loadChargeList(page: Int = 1) {
-        // 使用Core Data加载充电记录
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
-            
+        // 使用Core Data加载充电记录（在后台上下文中执行）
+        CoreDataManager.shared.performBackgroundTask { context in
             let pageSize = 20 // 每页显示20条记录
             let offset = (page - 1) * pageSize
             
-            // 从Core Data获取充电记录
-            let chargeRecords = CoreDataManager.shared.fetchChargeRecords(limit: pageSize + 1, offset: offset)
+            // 在后台上下文中获取充电记录
+            let chargeRecords = CoreDataManager.shared.fetchChargeRecords(
+                limit: pageSize + 1,
+                offset: offset,
+                context: context
+            )
             
             // 检查是否还有更多数据
             let hasMore = chargeRecords.count > pageSize
             let actualRecords = hasMore ? Array(chargeRecords.prefix(pageSize)) : chargeRecords
             
-            // 转换为ChargeTaskModel
+            // 在后台线程中转换为ChargeTaskModel
+            // 此时 record 和 context 在同一线程，访问安全
             let chargeTasks = actualRecords.map { record in
                 ChargeTaskModel(from: record)
             }
             
-            // 在主线程更新UI
-            DispatchQueue.main.async {
-                self.handleLocalChargeListResponse(chargeTasks, page: page, hasMore: hasMore)
-            }
+            // 返回转换后的数据（已经是值类型，可以安全传递到主线程）
+            return (chargeTasks: chargeTasks, page: page, hasMore: hasMore)
+            
+        } completion: { [weak self] result in
+            // 此闭包自动在主线程执行
+            self?.handleLocalChargeListResponse(result.chargeTasks, page: result.page, hasMore: result.hasMore)
         }
     }
     
@@ -688,6 +752,12 @@ class ChargeViewController: UIViewController {
     }
     
     // MARK: - 点击事件
+    @objc func clickChargeStatistics() {
+        let statisticsVC = ChargeStatisticsViewController()
+        statisticsVC.hidesBottomBarWhenPushed = true
+        navigationController?.pushViewController(statisticsVC, animated: true)
+    }
+    
     @objc func clickBatteryInfo() {
         guard let model = UserManager.shared.carModel else { return }
         
@@ -827,7 +897,45 @@ extension ChargeViewController: UITableViewDelegate {
         // 获取选中的充电任务
         let task = chargeTasks[indexPath.row]
         
-        showNavigationOptions(for: task)
+        // 从Core Data获取对应的充电记录
+        if let record = getChargeRecordForTask(task) {
+            let detailVC = ChargeDetailViewController(chargeRecord: record)
+            navigationController?.pushViewController(detailVC, animated: true)
+        } else {
+            QMUITips.showError("无法加载充电详情")
+        }
+    }
+    
+    /// 根据ChargeTaskModel获取对应的Core Data记录
+    private func getChargeRecordForTask(_ task: ChargeTaskModel) -> ChargeTaskRecord? {
+        let request: NSFetchRequest<ChargeTaskRecord> = ChargeTaskRecord.fetchRequest()
+        
+        // 使用时间范围匹配（±1秒）以避免精度问题
+        let targetTime = task.startTime
+        let lowerBound = targetTime.addingTimeInterval(-1.0)
+        let upperBound = targetTime.addingTimeInterval(1.0)
+        request.predicate = NSPredicate(format: "startTime >= %@ AND startTime <= %@", lowerBound as NSDate, upperBound as NSDate)
+        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
+        request.fetchLimit = 1
+        
+        do {
+            let records = try CoreDataManager.shared.viewContext.fetch(request)
+            
+            // 如果找到多条记录，选择时间最接近的一条
+            if let record = records.first {
+                return record
+            } else {
+                // 如果时间范围匹配没找到，尝试精确匹配（备用方案）
+                let exactRequest: NSFetchRequest<ChargeTaskRecord> = ChargeTaskRecord.fetchRequest()
+                exactRequest.predicate = NSPredicate(format: "startTime == %@", targetTime as NSDate)
+                exactRequest.fetchLimit = 1
+                let exactRecords = try CoreDataManager.shared.viewContext.fetch(exactRequest)
+                return exactRecords.first
+            }
+        } catch {
+            print("获取充电记录失败: \(error)")
+            return nil
+        }
     }
     
     // MARK: - 侧滑删除功能
@@ -955,32 +1063,34 @@ extension ChargeViewController: UITableViewDelegate {
     }
     
     private func performDeleteTask(_ task: ChargeTaskModel, at indexPath: IndexPath) {
-        // 使用Core Data删除记录
-        do {
-            try CoreDataManager.shared.deleteChargeRecord(withID: task.id)
-            
-            // 从数据源中移除
-            chargeTasks.remove(at: indexPath.row)
-            
-            // 更新UI
-            DispatchQueue.main.async { [weak self] in
-                self?.tableView.deleteRows(at: [indexPath], with: .fade)
-                
-                // 如果删除后没有数据了，显示空状态
-                if self?.chargeTasks.isEmpty == true {
-                    self?.showEmptyState()
-                }
-            }
-            
-            print("充电记录删除成功: \(task.id)")
-        } catch {
-            print("删除充电记录失败: \(error)")
+        // 先通过startTime查找对应的ChargeTaskRecord
+        guard let record = getChargeRecordForTask(task) else {
+            print("删除充电记录失败: 无法找到对应的记录，startTime=\(task.startTime)")
             
             // 显示错误提示
             DispatchQueue.main.async { [weak self] in
-                self?.showAlert(title: "删除失败", message: "删除充电记录时发生错误，请重试。")
+                self?.showAlert(title: "删除失败", message: "无法找到对应的充电记录，请重试。")
+            }
+            return
+        }
+        
+        // 使用Core Data删除记录（直接删除记录对象，更可靠）
+        CoreDataManager.shared.deleteChargeRecord(record)
+        
+        // 从数据源中移除
+        chargeTasks.remove(at: indexPath.row)
+        
+        // 更新UI
+        DispatchQueue.main.async { [weak self] in
+            self?.tableView.deleteRows(at: [indexPath], with: .fade)
+            
+            // 如果删除后没有数据了，显示空状态
+            if self?.chargeTasks.isEmpty == true {
+                self?.showEmptyState()
             }
         }
+        
+        print("充电记录删除成功: startTime=\(task.startTime)")
     }
 }
 
@@ -1210,6 +1320,319 @@ extension ChargeViewController {
     private func removeNotificationObservers() {
         NotificationCenter.default.removeObserver(self, name: UIApplication.didEnterBackgroundNotification, object: nil)
         NotificationCenter.default.removeObserver(self, name: UIApplication.willEnterForegroundNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name("ChargeMonitoringTaskEnded"), object: nil)
     }
- 
+    
+    /// 处理监控任务结束通知（来自推送）
+    @objc private func handleMonitoringTaskEnded(_ notification: Notification) {
+        print("[ChargeViewController] 收到监控任务结束通知")
+        
+        DispatchQueue.main.async { [weak self] in
+            // 隐藏悬浮按钮
+            self?.hideFloatingButton(animated: true)
+            print("[ChargeViewController] 悬浮按钮已隐藏")
+        }
+    }
 }
+
+// MARK: - 悬浮状态按钮实现
+
+extension ChargeViewController {
+    
+    /// 设置悬浮按钮
+    private func setupFloatingButton() {
+        // 添加子视图
+        floatingStatusButton.addSubview(iconImageView)
+        floatingStatusButton.addSubview(statusLabel)
+        
+        // 将按钮添加到最顶层
+        view.addSubview(floatingStatusButton)
+        
+        // 设置约束
+        floatingStatusButton.snp.makeConstraints { make in
+            make.trailing.equalTo(view.safeAreaLayoutGuide.snp.trailing).offset(-20)
+            make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).offset(-20)
+            make.width.height.equalTo(64)
+        }
+        
+        iconImageView.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.top.equalToSuperview().offset(12)
+            make.width.height.equalTo(24)
+        }
+        
+        statusLabel.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.top.equalTo(iconImageView.snp.bottom).offset(4)
+            make.leading.trailing.equalToSuperview().inset(4)
+        }
+        
+        // 设置圆形和阴影
+        floatingStatusButton.layer.cornerRadius = 32
+        floatingStatusButton.clipsToBounds = false
+        floatingStatusButton.layer.shadowColor = UIColor.black.cgColor
+        floatingStatusButton.layer.shadowOffset = CGSize(width: 0, height: 4)
+        floatingStatusButton.layer.shadowRadius = 8
+        floatingStatusButton.layer.shadowOpacity = 0.3
+        
+        // 设置渐变层
+        gradientLayer.cornerRadius = 32
+        gradientLayer.frame = CGRect(x: 0, y: 0, width: 64, height: 64)
+        floatingStatusButton.layer.insertSublayer(gradientLayer, at: 0)
+    }
+    
+    /// 更新悬浮按钮状态
+    private func updateFloatingButtonState() {
+        let defaults = UserDefaults.standard
+        
+        guard let mode = defaults.string(forKey: "activeMonitoringMode"),
+              let details = defaults.string(forKey: "activeMonitoringDetails") else {
+            // 没有活跃任务，隐藏按钮
+            hideFloatingButton(animated: false)
+            return
+        }
+        
+        // 根据模式更新UI
+        switch mode {
+        case "time":
+            iconImageView.image = UIImage(systemName: "clock.fill")
+            statusLabel.text = "时间"
+            setGradientColors(colors: [
+                UIColor.systemBlue.cgColor,
+                UIColor.systemTeal.cgColor
+            ])
+            
+        case "range":
+            iconImageView.image = UIImage(systemName: "bolt.fill")
+            statusLabel.text = "里程"
+            setGradientColors(colors: [
+                UIColor.systemGreen.cgColor,
+                UIColor.systemMint.cgColor
+            ])
+            
+        default:
+            break
+        }
+        
+        // 显示按钮
+        if floatingStatusButton.isHidden {
+            showFloatingButton(animated: false)
+        }
+        
+        // 启动脉冲动画
+        startPulseAnimation()
+    }
+    
+    /// 设置渐变颜色
+    private func setGradientColors(colors: [CGColor]) {
+        gradientLayer.colors = colors
+        gradientLayer.startPoint = CGPoint(x: 0, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 1, y: 1)
+    }
+    
+    /// 显示悬浮按钮
+    private func showFloatingButton(animated: Bool) {
+        // 确保按钮已显示且不在动画中才执行
+        guard floatingStatusButton.isHidden || floatingStatusButton.alpha < 0.1 else {
+            // 按钮已经显示，只更新样式
+            startPulseAnimation()
+            return
+        }
+        
+        floatingStatusButton.isHidden = false
+        
+        if !animated {
+            floatingStatusButton.alpha = 1.0
+            floatingStatusButton.transform = .identity
+            startPulseAnimation()
+            return
+        }
+        
+        // 初始状态：缩小并从右下角位置
+        floatingStatusButton.transform = CGAffineTransform(scaleX: 0.1, y: 0.1)
+            .translatedBy(x: 50, y: 50)
+        
+        // 弹性动画
+        UIView.animate(
+            withDuration: 0.6,
+            delay: 0,
+            usingSpringWithDamping: 0.7,
+            initialSpringVelocity: 0.5,
+            options: .curveEaseOut
+        ) {
+            self.floatingStatusButton.alpha = 1.0
+            self.floatingStatusButton.transform = .identity
+        }
+        
+        // 启动脉冲动画
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            self.startPulseAnimation()
+        }
+    }
+    
+    /// 隐藏悬浮按钮
+    private func hideFloatingButton(animated: Bool) {
+        // 停止脉冲动画
+        stopPulseAnimation()
+        
+        if !animated {
+            floatingStatusButton.isHidden = true
+            floatingStatusButton.alpha = 0
+            return
+        }
+        
+        UIView.animate(
+            withDuration: 0.3,
+            delay: 0,
+            options: .curveEaseIn
+        ) {
+            self.floatingStatusButton.alpha = 0
+            self.floatingStatusButton.transform = CGAffineTransform(scaleX: 0.1, y: 0.1)
+        } completion: { _ in
+            self.floatingStatusButton.isHidden = true
+            self.floatingStatusButton.transform = .identity
+        }
+    }
+    
+    /// 启动脉冲动画
+    private func startPulseAnimation() {
+        // 移除之前的动画
+        floatingStatusButton.layer.removeAnimation(forKey: "pulseAnimation")
+        
+        // 创建脉冲动画
+        let pulse = CABasicAnimation(keyPath: "opacity")
+        pulse.duration = 2.0
+        pulse.fromValue = 1.0
+        pulse.toValue = 0.7
+        pulse.autoreverses = true
+        pulse.repeatCount = .infinity
+        pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        
+        floatingStatusButton.layer.add(pulse, forKey: "pulseAnimation")
+    }
+    
+    /// 停止脉冲动画
+    private func stopPulseAnimation() {
+        floatingStatusButton.layer.removeAnimation(forKey: "pulseAnimation")
+    }
+    
+    /// 点击悬浮按钮
+    @objc private func floatingButtonTapped() {
+        // 点击反馈动画
+        UIView.animate(withDuration: 0.1, animations: {
+            self.floatingStatusButton.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+        }) { _ in
+            UIView.animate(withDuration: 0.1) {
+                self.floatingStatusButton.transform = .identity
+            }
+        }
+        
+        // 检查并显示监控任务详情
+        let defaults = UserDefaults.standard
+        
+        if let mode = defaults.string(forKey: "activeMonitoringMode"),
+           let details = defaults.string(forKey: "activeMonitoringDetails") {
+            showMonitoringAlert(mode: mode, details: details)
+        }
+    }
+}
+
+// MARK: - 充电数据同步
+
+extension ChargeViewController {
+    
+    /// 同步服务器上的充电记录到本地
+    /// 该方法会：
+    /// 1. 从服务器获取已完成的充电记录（包含data_points）
+    /// 2. 保存到本地Core Data数据库
+    /// 3. 通知服务器删除已同步的数据
+    func syncChargeDataFromServer() {
+        // 检查是否已登录
+        guard UserManager.shared.defaultVin != nil else {
+            print("[syncChargeData] 用户未登录，跳过同步")
+            return
+        }
+        
+        print("[syncChargeData] 开始同步服务器充电记录...")
+        
+        // 步骤1：从服务器获取充电记录
+        NetworkManager.shared.getChargeRecordsFromServer { [weak self] result in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(let chargesData):
+                if chargesData.isEmpty {
+                    print("[syncChargeData] 服务器没有需要同步的充电记录")
+                    return
+                }
+                
+                print("[syncChargeData] 收到 \(chargesData.count) 条充电记录，开始保存到本地...")
+                
+                // 步骤2：在后台线程保存数据到Core Data
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let savedRecords = CoreDataManager.shared.syncChargeRecordsFromServer(chargesData)
+                    
+                    print("[syncChargeData] 成功保存 \(savedRecords.count) 条充电记录到本地数据库")
+                    
+                    // 步骤3：通知服务器删除已同步的数据
+                    // ⚠️ 修复：只提取实际保存成功的记录ID
+                    let chargeIds = savedRecords.compactMap { record -> Int? in
+                        return Int(record.recordID ?? "0")
+                    }.filter { $0 > 0 }
+                    
+                    if !chargeIds.isEmpty {
+                        print("[syncChargeData] 通知服务器删除 \(chargeIds.count) 条已同步的充电记录")
+                        NetworkManager.shared.confirmChargeSyncComplete(chargeIds: chargeIds) { result in
+                            switch result {
+                            case .success(let deletionResult):
+                                print("[syncChargeData] 同步完成！服务器已删除 \(deletionResult["deletedCharges"] ?? 0) 条充电记录")
+                                
+                                // 刷新UI
+                                DispatchQueue.main.async {
+                                    self.currentPage = 1
+                                    self.tableView.mj_footer?.resetNoMoreData()
+                                    self.loadChargeList(page: 1)
+                                }
+                                
+                            case .failure(let error):
+                                print("[syncChargeData] 通知服务器删除数据失败: \(error.localizedDescription)")
+                                // 即使通知失败，本地数据已经保存成功，所以也刷新UI
+                                DispatchQueue.main.async {
+                                    self.currentPage = 1
+                                    self.tableView.mj_footer?.resetNoMoreData()
+                                    self.loadChargeList(page: 1)
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            case .failure(let error):
+                print("[syncChargeData] 从服务器获取充电记录失败: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    /// 在页面出现时自动同步数据
+    /// 可以选择性地在viewWillAppear中调用此方法
+    private func performAutoSync() {
+        // 调试模式：每次都同步
+        // TODO: 正式版本启用间隔限制
+        syncChargeDataFromServer()
+        
+        // 正式版本使用以下代码（间隔时间限制）
+        /*
+        let lastSyncTime = UserDefaults.standard.double(forKey: "lastChargeSyncTime")
+        let currentTime = Date().timeIntervalSince1970
+        let syncInterval: TimeInterval = 300 // 5分钟
+        
+        if currentTime - lastSyncTime > syncInterval {
+            syncChargeDataFromServer()
+            UserDefaults.standard.set(currentTime, forKey: "lastChargeSyncTime")
+        } else {
+            print("[performAutoSync] 距离上次同步时间过短，跳过自动同步")
+        }
+        */
+    }
+}
+

@@ -8,6 +8,7 @@
 import SwiftUI
 import CoreLocation
 import WatchKit
+import WidgetKit
 
 // 使用自定义Button样式以保持视觉一致性
 
@@ -94,9 +95,24 @@ struct ContentView: View {
         .edgesIgnoringSafeArea(.all) // watchOS全屏设置
         .onAppear {
             loadCarData()
+            requestAuthDataIfNeeded()
+            
+            // 监听数据更新通知
+            NotificationCenter.default.addObserver(
+                forName: NSNotification.Name("WatchCarDataDidUpdate"),
+                object: nil,
+                queue: .main
+            ) { _ in
+                print("[Watch Debug] 收到数据更新通知，重新加载数据")
+                loadCarData()
+            }
         }
         .onChange(of: watchConnectivityManager.lastUpdateTime) { _ in
+            print("[Watch Debug] lastUpdateTime改变，重新加载数据")
             loadCarData()
+        }
+        .onOpenURL { url in
+            handleURLScheme(url)
         }
 
     }
@@ -183,14 +199,23 @@ struct ContentView: View {
                         .alert("确认\(isCarLocked ? "解锁车辆" : "锁定车辆")？", isPresented: $showLockConfirm) {
                             Button("确认") {
                                 let operation = isCarLocked ? 2 : 1 // 2=开锁, 1=关锁
-//                                SharedNetworkManager.shared.energyLock(operation: operation) { _ in
-//                                    print("车锁控制按钮被点击，状态已切换")
-//                                }
                                 
+                                // 1. 乐观更新本地UI
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
                                     if var model = carModel {
                                         model.mainLockStatus = model.mainLockStatus == 0 ? 1 : 0
                                         carModel = model
+                                        
+                                        // 2. 保存到App Groups并刷新Widget
+                                        saveCarModelToAppGroups(model)
+                                    }
+                                }
+                                
+                                // 3. 异步发送网络请求
+                                if #available(watchOS 10.0, *) {
+                                    Task {
+                                        let intent = WatchLockControlIntent(operation: operation)
+                                        try? await intent.perform()
                                     }
                                 }
                             }
@@ -220,12 +245,26 @@ struct ContentView: View {
                         .alert("确认\(isACOn ? "关闭空调" : "开启空调")？", isPresented: $showACConfirm) {
                             Button("确认") {
                                 let operation = isACOn ? 1 : 2
-                                let temperature = 26
                                 let duringTime = 30
-//                                SharedNetworkManager.shared.energyAirConditioner(operation: operation, temperature: temperature, duringTime: duringTime) { _ in
-//                                    print("空调控制按钮被点击，状态已切换")
-//                                }
+                                
+                                // 1. 乐观更新本地UI
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
+                                    if var model = carModel {
+                                        // 空调状态：0=开启，1=关闭
+                                        model.acStatus = model.acStatus == 0 ? 1 : 0
+                                        carModel = model
+                                        
+                                        // 2. 保存到App Groups并刷新Widget
+                                        saveCarModelToAppGroups(model)
+                                    }
+                                }
+                                
+                                // 3. 异步发送网络请求
+                                if #available(watchOS 10.0, *) {
+                                    Task {
+                                        let intent = WatchACControlIntent(operation: operation, temperature: nil, duringTime: duringTime)
+                                        try? await intent.perform()
+                                    }
                                 }
                             }
                             Button("取消", role: .cancel) {}
@@ -258,10 +297,29 @@ struct ContentView: View {
                             Button("确认") {
                                 let operation = isWindowOpen ? 1 : 2  // 2开启，1关闭
                                 let openLevel = isWindowOpen ? 0 : 2  // 2完全打开，0关闭
-                                // SharedNetworkManager.shared.energyWindow(operation: operation, openLevel: openLevel) { _ in
-                                //     print("车窗控制按钮被点击，状态已切换")
-                                // }
+                                
+                                // 1. 乐观更新本地UI
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6, blendDuration: 0)) {
+                                    if var model = carModel {
+                                        // 更新所有车窗状态：0=关闭，100=完全打开
+                                        let newWindowStatus = openLevel == 2 ? 100 : 0
+                                        model.lfWindowOpen = newWindowStatus
+                                        model.rfWindowOpen = newWindowStatus
+                                        model.lrWindowOpen = newWindowStatus
+                                        model.rrWindowOpen = newWindowStatus
+                                        carModel = model
+                                        
+                                        // 2. 保存到App Groups并刷新Widget
+                                        saveCarModelToAppGroups(model)
+                                    }
+                                }
+                                
+                                // 3. 异步发送网络请求
+                                if #available(watchOS 10.0, *) {
+                                    Task {
+                                        let intent = WatchWindowControlIntent(operation: operation, openLevel: openLevel)
+                                        try? await intent.perform()
+                                    }
                                 }
                             }
                             Button("取消", role: .cancel) {}
@@ -425,7 +483,7 @@ struct ContentView: View {
                         Spacer()
                     }
                     HStack {
-                        Text("获取中...")
+                        Text(vinCode)
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.8))
                             .tracking(1)
@@ -521,13 +579,95 @@ struct ContentView: View {
         }
     }
     
+    // MARK: - URL Scheme 处理
+    
+    /// 处理从 Widget 点击过来的 URL
+    private func handleURLScheme(_ url: URL) {
+        print("[Watch Debug] 收到URL: \(url)")
+        
+        guard url.scheme == "pan3watch" else {
+            print("[Watch Debug] URL scheme 不匹配")
+            return
+        }
+        
+        // 导航到控制页面
+        if url.host == "control" {
+            currentPage = 1  // 切换到第二页（控制面板）
+            print("[Watch Debug] 已切换到控制页面")
+            
+            // 解析 action 参数，自动弹出对应的确认对话框
+            if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+               let queryItems = components.queryItems,
+               let actionItem = queryItems.first(where: { $0.name == "action" }),
+               let action = actionItem.value {
+                
+                print("[Watch Debug] 解析到 action: \(action)")
+                
+                // 延迟弹出对话框，确保页面切换动画完成
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    switch action {
+                    case "lock":
+                        print("[Watch Debug] 弹出车锁确认对话框")
+                        showLockConfirm = true
+                    case "ac":
+                        print("[Watch Debug] 弹出空调确认对话框")
+                        showACConfirm = true
+                    case "window":
+                        print("[Watch Debug] 弹出车窗确认对话框")
+                        showWindowConfirm = true
+                    default:
+                        print("[Watch Debug] 未知的 action: \(action)")
+                    }
+                }
+            }
+        }
+    }
+    
     // MARK: - 数据获取方法
+    
+    /// 保存更新后的车辆数据到App Groups
+    private func saveCarModelToAppGroups(_ model: SharedCarModel) {
+        guard let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3") else {
+            print("[Watch] 无法访问App Groups")
+            return
+        }
+        
+        let carModelDict = model.toDictionary()
+        userDefaults.set(carModelDict, forKey: "SharedCarModelData")
+        userDefaults.set(Date().timeIntervalSince1970, forKey: "SharedCarModelLastUpdate")
+        userDefaults.synchronize()
+        
+        print("[Watch] 已保存更新后的车辆数据到App Groups")
+        
+        // 刷新 Watch Widget
+        WidgetCenter.shared.reloadAllTimelines()
+        print("[Watch] 已刷新Watch Widget")
+    }
+    
+    /// 请求iOS端发送认证数据（如果本地没有）
+    private func requestAuthDataIfNeeded() {
+        // 检查是否已有认证数据
+        let hasToken = watchConnectivityManager.getCurrentToken() != nil
+        let hasVin = watchConnectivityManager.getCurrentVin() != nil
+        
+        if !hasToken || !hasVin {
+            print("[Watch Debug] 本地缺少认证数据，向iOS请求同步")
+            watchConnectivityManager.requestAuthDataFromiOS()
+        } else {
+            print("[Watch Debug] 本地已有认证数据，Token: \(hasToken), VIN: \(hasVin)")
+        }
+    }
     
     /// 加载车辆数据
     private func loadCarData() {
         carModel = watchConnectivityManager.loadSharedCarModelFromAppGroups()
         lastUpdateTime = watchConnectivityManager.getLastUpdateTime()
         print("[Watch Debug] 从App Groups加载车辆数据: \(carModel != nil ? "成功" : "失败")")
+        
+        // 加载数据后更新UI（包括地址解析）
+        if let model = carModel {
+            updateUIFromCarModel(model)
+        }
     }
     
     /// 刷新车辆数据（异步版本）
@@ -542,15 +682,17 @@ struct ContentView: View {
     private func updateUIFromCarModel(_ model: SharedCarModel) {
         // 获取位置信息
         let coordinate = model.coordinate
+        print("[Watch Debug] GPS坐标: 纬度=\(coordinate.latitude), 经度=\(coordinate.longitude)")
+        
         if coordinate.latitude != 0 && coordinate.longitude != 0 {
             let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
             let geocoder = CLGeocoder()
-            print(coordinate)
+            
             geocoder.reverseGeocodeLocation(location) { placemarks, error in
                 DispatchQueue.main.async {
                     if let error = error {
                         print("[Watch Debug] 逆地理编码失败: \(error.localizedDescription)")
-                        currentLocation = "位置获取失败"
+                        self.currentLocation = "位置获取失败"
                         return
                     }
                     
@@ -564,12 +706,20 @@ struct ContentView: View {
                             addressComponents.append(name)
                         }
                         
-                        currentLocation = addressComponents.joined(separator: " ")
+                        if addressComponents.isEmpty {
+                            self.currentLocation = "位置解析失败"
+                        } else {
+                            self.currentLocation = addressComponents.joined(separator: " ")
+                        }
+                        print("[Watch Debug] 地址解析成功: \(self.currentLocation)")
                     } else {
-                        currentLocation = "位置解析失败"
+                        self.currentLocation = "位置解析失败"
                     }
                 }
             }
+        } else {
+            print("[Watch Debug] GPS坐标无效，跳过地址解析")
+            self.currentLocation = "GPS数据无效"
         }
     }
     
@@ -621,6 +771,11 @@ struct ContentView: View {
     }
     
     // MARK: - 从CarModel获取车辆状态
+    
+    /// VIN码 - 从App Groups获取
+    private var vinCode: String {
+        return watchConnectivityManager.getCurrentVin() ?? "未获取"
+    }
     
     /// 车锁状态 - 从CarModel的mainLockStatus获取
     private var isCarLocked: Bool {

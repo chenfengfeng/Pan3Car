@@ -8,6 +8,7 @@ import authRoutes from './api/auth/auth.routes.js'; // 导入您的用户认证�
 import pushRoutes from './api/push/push.routes.js'; // 导入推送路由
 import carRoutes from './api/car/car.routes.js'; // 导入车辆路由
 import chargeRoutes from './api/charge/charge.routes.js'; // 导入充电路由
+import tripRoutes from './api/trip/trip.routes.js'; // 导入行程路由
 import { restoreTimeTasks, restoreRangeTasks } from './api/charge/charge.controller.js'; // 导入时间任务和range监控恢复函数
 import { initDatabase } from './core/database/init.js'; // 导入数据库初始化函数
 import { startPollingService } from './core/services/polling.service.js'; // 导入轮询服务
@@ -24,6 +25,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/car', carRoutes);
 app.use('/api/charge', chargeRoutes);
+app.use('/api/trip', tripRoutes);
 
 // --- 启动服务器 ---
 app.listen(PORT, () => {

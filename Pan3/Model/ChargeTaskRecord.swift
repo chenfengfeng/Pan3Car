@@ -19,6 +19,10 @@ public class ChargeTaskRecord: NSManagedObject {
     @NSManaged public var address: String?
     @NSManaged public var recordID: String?
     
+    // MARK: - Relationships
+    
+    @NSManaged public var dataPoints: NSSet?
+    
     // MARK: - Computed Properties
     
     /// 充电时长（基于开始/结束时间）
@@ -165,4 +169,36 @@ extension ChargeTaskRecord: Identifiable {
     public var id: NSManagedObjectID {
         return objectID
     }
+}
+
+// MARK: - DataPoints Relationship Helpers
+
+extension ChargeTaskRecord {
+    
+    /// 获取排序后的数据点数组
+    var sortedDataPoints: [ChargeDataPoint] {
+        let set = dataPoints as? Set<ChargeDataPoint> ?? []
+        return set.sorted { $0.timestamp ?? Date() < $1.timestamp ?? Date() }
+    }
+    
+    /// 数据点数量
+    var dataPointsCount: Int {
+        return dataPoints?.count ?? 0
+    }
+    
+    /// 添加数据点
+    @objc(addDataPointsObject:)
+    @NSManaged public func addToDataPoints(_ value: ChargeDataPoint)
+    
+    /// 移除数据点
+    @objc(removeDataPointsObject:)
+    @NSManaged public func removeFromDataPoints(_ value: ChargeDataPoint)
+    
+    /// 批量添加数据点
+    @objc(addDataPoints:)
+    @NSManaged public func addToDataPoints(_ values: NSSet)
+    
+    /// 批量移除数据点
+    @objc(removeDataPoints:)
+    @NSManaged public func removeFromDataPoints(_ values: NSSet)
 }

@@ -1,8 +1,9 @@
 // /www/wwwroot/pan3/api/car/car.controller.js
 
 import { makeRequest, baseApiUrl } from '../../core/utils/request.js';
-import { setVehicleActive } from '../../core/database/operations.js';
+import { setVehicleActive, getVehicleByVin } from '../../core/database/operations.js';
 import { execFile } from 'child_process';
+import path from 'path';
 
 /**
  * 获取车辆信息的接口 - 纯查询功能，不主动推送
@@ -110,16 +111,15 @@ export async function controlVehicle(req, res) {
     try {
         const timaToken = req.headers.timatoken;
         const input = req.body;
-        // 确保从 input 中解构出 operation
-        const { vin, operationType, pushToken, operation } = input;
+        // 确保从 input 中解构出 operation，不再从请求中获取 pushToken
+        const { vin, operationType, operation } = input;
 
         // 参数验证 (增加了对 operation 的验证)
         if (!vin || !operationType || !timaToken || operation === undefined) {
             return res.status(400).json({ error: 'Missing required parameters (vin, operationType, timaToken, operation)' });
         }
 
-        // --- 步骤一: 执行“快速检查” (这部分逻辑不变) ---
-        console.log(`[Quick Check] - VIN: ${vin} - Operation: ${operationType} - Starting...`);
+        // --- 步骤一: 执行"快速检查" (这部分逻辑不变) ---
         let postData = { vin, operationType, operation }; // 将 operation 直接加入 postData
         switch (operationType) {
             case 'WINDOW':
@@ -148,7 +148,6 @@ export async function controlVehicle(req, res) {
             return res.status(200).json(asyncResponse || { code: 5004, message: '指令状态确认失败' });
         }
         
-        console.log(`[Quick Check] - VIN: ${vin} - SUCCESS. Command accepted by upstream.`);
 
         // --- 步骤1.5：如果是解锁操作，设置车辆为 active 状态
         if (operationType === 'LOCK' && operation === '2') {
@@ -160,34 +159,39 @@ export async function controlVehicle(req, res) {
             }
         }
 
-        // --- 步骤二: 启动后台CLI任务
-        if (pushToken && pushToken !== "") {
-            console.log(`[CLI] - VIN: ${vin} - 开始后台任务...`);
+        // --- 步骤二: 启动后台CLI任务（从数据库获取 pushToken）
+        try {
+            const vehicle = getVehicleByVin(vin);
+            const pushToken = vehicle?.push_token;
             
-            // 将脚本文件名更新为您修改后的名字
-            const scriptPath = path.join(process.cwd(), 'cli', 'tasks', 'vehicle-control-workflow.js');
-            
-            const scriptArgs = [vin, timaToken, pushToken, operationType, operation];
+            if (pushToken && pushToken !== "") {
+                const scriptPath = path.join(process.cwd(), 'cli', 'tasks', 'vehicle-control-workflow.js');
+                const scriptArgs = [vin, timaToken, pushToken, operationType, operation];
 
-            execFile('node', [scriptPath, ...scriptArgs], (error, stdout, stderr) => {
-                if (error) { 
-                    console.error(`[CLI] - VIN: ${vin} - Error:`, error); 
-                    return; 
-                }
-                if (stdout) {
-                    console.log(`[CLI] - VIN: ${vin} - STDOUT:\n${stdout}`);
-                }
-                if (stderr) { 
-                    console.error(`[CLI] - VIN: ${vin} - STDERR:\n${stderr}`); 
-                }
-                console.log(`[CLI] - VIN: ${vin} - 子进程已完成`);
-            });
+                execFile('node', [scriptPath, ...scriptArgs], (error, stdout, stderr) => {
+                    if (error) { 
+                        console.error(`[CLI] ${vin} Error:`, error); 
+                        return; 
+                    }
+                    if (stdout) {
+                        console.log(stdout.trim());
+                    }
+                    if (stderr) { 
+                        console.error(`[CLI] ${vin} STDERR:`, stderr); 
+                    }
+                });
 
-            return res.status(200).json({ 
-                code: 200, 
-                message: '操作已受理，后台将确认最终状态并推送通知'
-            });
-        } else {
+                return res.status(200).json({ 
+                    code: 200, 
+                    message: '操作已受理，后台将确认最终状态并推送通知'
+                });
+            } else {
+                console.log(`[Control] - VIN: ${vin} - 未找到 pushToken，跳过后台任务`);
+                return res.status(200).json(asyncResponse);
+            }
+        } catch (dbError) {
+            console.error('[Control] 从数据库获取 pushToken 失败:', dbError);
+            // 即使获取 pushToken 失败，也返回成功响应
             return res.status(200).json(asyncResponse);
         }
 

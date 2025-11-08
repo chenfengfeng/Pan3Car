@@ -40,10 +40,10 @@ struct SharedCarModel: Codable {
     let doorsLockStatus: Int?            // 车门锁状态
     
     // MARK: - 车窗状态
-    let lfWindowOpen: Int                // 左前车窗开启状态
-    let rfWindowOpen: Int                // 右前车窗开启状态
-    let lrWindowOpen: Int                // 左后车窗开启状态
-    let rrWindowOpen: Int                // 右后车窗开启状态
+    var lfWindowOpen: Int                // 左前车窗开启状态
+    var rfWindowOpen: Int                // 右前车窗开启状态
+    var lrWindowOpen: Int                // 左后车窗开启状态
+    var rrWindowOpen: Int                // 右后车窗开启状态
     let topWindowOpen: Int               // 天窗开启状态
     
     // MARK: - 轮胎信息
@@ -53,7 +53,7 @@ struct SharedCarModel: Codable {
     let rrTirePresure: Int               // 右后轮胎压力
     
     // MARK: - 空调系统
-    let acStatus: Int                    // 空调状态
+    var acStatus: Int                    // 空调状态
     let temperatureInCar: Int            // 车内温度
     let quickcoolACStatus: Int?          // 快速制冷空调状态
     let quickheatACStatus: Int           // 快速制热空调状态
@@ -185,7 +185,7 @@ struct SharedCarModel: Codable {
         var dictionary: [String: Any] = [
             // 位置信息
             "latitude": latitude,
-            "longitude": longitude,
+            "longtitude": longitude,  // 注意：保持与服务器API一致的拼写
             
             // 电池信息
             "soc": soc,

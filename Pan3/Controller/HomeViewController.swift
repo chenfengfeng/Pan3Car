@@ -264,6 +264,9 @@ class HomeViewController: UIViewController, CarDataRefreshable {
         // 设置UI
         setupUI()
         
+        // 更新推送Token（如果已登录）
+        updatePushTokenIfNeeded()
+        
         // 获取车辆信息
         fetchCarInfoAndValidateLogin()
         
@@ -378,9 +381,9 @@ extension HomeViewController {
             navigationItem.title = "尊贵的\(carNumber)车主"
         case "custom":
             let customGreeting = UserDefaults.standard.string(forKey: "CustomGreeting") ?? ""
-            navigationItem.title = "尊贵的\(customGreeting)车主"
+            navigationItem.title = customGreeting
         case "none":
-            navigationItem.title = "胖3汽车"
+            navigationItem.title = "胖3助手"
         default:
             let name = UserManager.shared.userInfo?.userName ?? ""
             navigationItem.title = "尊贵的\(name)车主"
@@ -662,6 +665,36 @@ extension HomeViewController {
 
 // MARK: - 网络请求
 extension HomeViewController {
+    // MARK: - 更新推送Token
+    /// 更新推送Token到服务器（在登录状态下）
+    func updatePushTokenIfNeeded() {
+        // 检查用户是否已登录
+        guard UserManager.shared.isLoggedIn else {
+            print("[HomeViewController] 用户未登录，跳过更新推送Token")
+            return
+        }
+        
+        // 获取推送Token
+        guard let pushToken = UserDefaults.standard.string(forKey: "pushToken"),
+              !pushToken.isEmpty else {
+            print("[HomeViewController] 未找到推送Token，跳过更新")
+            return
+        }
+        
+        print("[HomeViewController] 开始更新推送Token到服务器")
+        
+        // 调用更新推送Token的API
+        NetworkManager.shared.updatePushToken(pushToken: pushToken) { result in
+            switch result {
+            case .success:
+                print("[HomeViewController] 推送Token更新成功")
+            case .failure(let error):
+                print("[HomeViewController] 推送Token更新失败: \(error.localizedDescription)")
+                // 静默失败，不影响用户体验
+            }
+        }
+    }
+    
     // MARK: - 获取车辆信息并验证登录状态
     func fetchCarInfoAndValidateLogin() {
         let userManager = UserManager.shared
@@ -999,7 +1032,13 @@ extension HomeViewController {
             return
         }
         
-        // 根据不同的action调用对应的控制方法（使用小组件专用方法，绕过调试模式检查）
+        // 检查是否启用调试模式
+        let shouldEnableDebug = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
+        guard shouldEnableDebug else {
+            return
+        }
+        
+        // 根据不同的action调用对应的控制方法
         switch action {
         case "lock":
             // 调用车锁控制

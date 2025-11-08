@@ -1,5 +1,5 @@
 {
-  "originHash" : "7d2531bb1b8e134e330a649c38656b5493e25e6d7794d69f85a1e137370aad51",
+  "originHash" : "6eb3a7e96df65f2e66d71ee01afd7fdb467dce67a240e9c323a07b0ced4642a8",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "513364f870f6bfc468f9d2ff0a95caccc10044c5",
         "version" : "5.10.2"
+      }
+    },
+    {
+      "identity" : "charts",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/danielgindi/Charts.git",
+      "state" : {
+        "revision" : "dd9c72e3d7e751e769971092a6bd72d39198ae63",
+        "version" : "5.1.0"
       }
     },
     {
@@ -89,15 +98,6 @@
       "state" : {
         "revision" : "4d75de347da985a70c63af4d799ed482021f6733",
         "version" : "8.6.1"
-      }
-    },
-    {
-      "identity" : "lookinserver",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/QMUI/LookinServer/",
-      "state" : {
-        "revision" : "e553d1b689d147817dc54ad5c28fcff71e860101",
-        "version" : "1.2.8"
       }
     },
     {

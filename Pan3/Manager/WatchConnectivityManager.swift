@@ -43,6 +43,16 @@ class WatchConnectivityManager: NSObject, ObservableObject {
         let shouldEnableDebug = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
         context["shouldEnableDebug"] = shouldEnableDebug
         
+        // 添加空调预设温度
+        if let groupDefaults = UserDefaults(suiteName: "group.com.feng.pan3") {
+            let presetTemperature = groupDefaults.integer(forKey: "PresetTemperature")
+            if presetTemperature > 0 {
+                context["PresetTemperature"] = presetTemperature
+            } else {
+                context["PresetTemperature"] = 26 // 默认温度
+            }
+        }
+        
         // 添加时间戳确保数据更新
         context["timestamp"] = Date().timeIntervalSince1970
         
@@ -212,6 +222,11 @@ extension WatchConnectivityManager: WCSessionDelegate {
                         reply["isLoggedIn"] = userManager.isLoggedIn
                         // 添加shouldEnableDebug状态
                         reply["shouldEnableDebug"] = UserDefaults.standard.bool(forKey: "shouldEnableDebug")
+                        // 添加预设温度
+                        if let groupDefaults = UserDefaults(suiteName: "group.com.feng.pan3") {
+                            let presetTemperature = groupDefaults.integer(forKey: "PresetTemperature")
+                            reply["PresetTemperature"] = presetTemperature > 0 ? presetTemperature : 26
+                        }
                     }
                 default:
                     break

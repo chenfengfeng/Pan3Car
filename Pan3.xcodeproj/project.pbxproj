@@ -14,6 +14,7 @@
 		046431532EAB6EBE00303D55 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 046431522EAB6EBE00303D55 /* SwiftyJSON */; };
 		046431552EAB6EC300303D55 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 046431542EAB6EC300303D55 /* SwiftyJSON */; };
 		04ABFFEE2EA4D536009F5063 /* Pan3PushService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 04ABFFE72EA4D536009F5063 /* Pan3PushService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		04F54D5E2EB7444900AEDBF1 /* DGCharts in Frameworks */ = {isa = PBXBuildFile; productRef = 04F54D5D2EB7444900AEDBF1 /* DGCharts */; };
 		5EFB22C77E186A6E1D2986F8 /* libPods-Pan3.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D57302C024D36880A396059E /* libPods-Pan3.a */; };
 		B2757A4D2E4DE25F00F03D8D /* Car Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = B2757A432E4DE25E00F03D8D /* Car Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B28A417C2E5B4FFD002B5AB2 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172512E1A767A00922A0C /* WidgetKit.framework */; };
@@ -25,7 +26,6 @@
 		B28EA8812EB3455D0096F7AC /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA8802EB3455D0096F7AC /* Alamofire */; };
 		B28EA8842EB3457A0096F7AC /* MJRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA8832EB3457A0096F7AC /* MJRefresh */; };
 		B28EA8872EB3458E0096F7AC /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA8862EB3458E0096F7AC /* SnapKit */; };
-		B28EA88A2EB345BE0096F7AC /* LookinServer in Frameworks */ = {isa = PBXBuildFile; productRef = B28EA8892EB345BE0096F7AC /* LookinServer */; };
 		B2D172522E1A767A00922A0C /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172512E1A767A00922A0C /* WidgetKit.framework */; };
 		B2D172542E1A767A00922A0C /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D172532E1A767A00922A0C /* SwiftUI.framework */; };
 		B2D172652E1A767C00922A0C /* CarWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2D172502E1A767A00922A0C /* CarWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -153,6 +153,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				SharedCarModel.swift,
+				SharedNetworkManager.swift,
 			);
 			target = B2757A422E4DE25E00F03D8D /* Car Watch App */;
 		};
@@ -160,6 +161,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				SharedCarModel.swift,
+				SharedNetworkManager.swift,
 			);
 			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
 		};
@@ -188,6 +190,20 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+			);
+			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
+		};
+		B29BF9C72EBE499600F03E31 /* Exceptions for "Car Watch App" folder in "Car Watch App" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Car-Watch-App-Info.plist",
+			);
+			target = B2757A422E4DE25E00F03D8D /* Car Watch App */;
+		};
+		B2B568D22EBCAAEA0061849E /* Exceptions for "Car Watch App" folder in "CarWatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				WatchAppIntents.swift,
 			);
 			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
 		};
@@ -252,6 +268,10 @@
 		};
 		B2757A442E4DE25E00F03D8D /* Car Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B29BF9C72EBE499600F03E31 /* Exceptions for "Car Watch App" folder in "Car Watch App" target */,
+				B2B568D22EBCAAEA0061849E /* Exceptions for "Car Watch App" folder in "CarWatchWidgetExtension" target */,
+			);
 			path = "Car Watch App";
 			sourceTree = "<group>";
 		};
@@ -319,10 +339,10 @@
 				0464314D2EAB6E1400303D55 /* SwiftyJSON in Frameworks */,
 				B28EA8782EB344B30096F7AC /* IQKeyboardManagerSwift in Frameworks */,
 				0464314A2EAB6D1100303D55 /* SwiftyJSON in Frameworks */,
-				B28EA88A2EB345BE0096F7AC /* LookinServer in Frameworks */,
 				B28EA87B2EB345150096F7AC /* SwifterSwift in Frameworks */,
 				B28EA8872EB3458E0096F7AC /* SnapKit in Frameworks */,
 				B28EA8842EB3457A0096F7AC /* MJRefresh in Frameworks */,
+				04F54D5E2EB7444900AEDBF1 /* DGCharts in Frameworks */,
 				5EFB22C77E186A6E1D2986F8 /* libPods-Pan3.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -550,7 +570,7 @@
 				B28EA87F2EB3455D0096F7AC /* XCRemoteSwiftPackageReference "Alamofire" */,
 				B28EA8822EB3457A0096F7AC /* XCRemoteSwiftPackageReference "MJRefresh" */,
 				B28EA8852EB3458E0096F7AC /* XCRemoteSwiftPackageReference "SnapKit" */,
-				B28EA8882EB345BE0096F7AC /* XCRemoteSwiftPackageReference "LookinServer" */,
+				04F54D5C2EB7444900AEDBF1 /* XCRemoteSwiftPackageReference "Charts" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B2C8673A2E0F9C45009A8FD6 /* Products */;
@@ -783,6 +803,7 @@
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Car-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "胖3助手";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.dream.pan3car;
@@ -813,6 +834,7 @@
 				DEVELOPMENT_TEAM = 2WP22Y7RSK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Car-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "胖3助手";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.dream.pan3car;
@@ -925,7 +947,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -969,7 +991,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.3.0;
+				MARKETING_VERSION = 1.4.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -1246,6 +1268,14 @@
 				minimumVersion = 5.0.2;
 			};
 		};
+		04F54D5C2EB7444900AEDBF1 /* XCRemoteSwiftPackageReference "Charts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/danielgindi/Charts.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.1.0;
+			};
+		};
 		B28EA8762EB344B30096F7AC /* XCRemoteSwiftPackageReference "IQKeyboardManager" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/hackiftekhar/IQKeyboardManager.git";
@@ -1294,14 +1324,6 @@
 				minimumVersion = 5.7.1;
 			};
 		};
-		B28EA8882EB345BE0096F7AC /* XCRemoteSwiftPackageReference "LookinServer" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/QMUI/LookinServer/";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.8;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1335,6 +1357,11 @@
 			package = 0464314B2EAB6E1400303D55 /* XCRemoteSwiftPackageReference "SwiftyJSON" */;
 			productName = SwiftyJSON;
 		};
+		04F54D5D2EB7444900AEDBF1 /* DGCharts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 04F54D5C2EB7444900AEDBF1 /* XCRemoteSwiftPackageReference "Charts" */;
+			productName = DGCharts;
+		};
 		B28EA8772EB344B30096F7AC /* IQKeyboardManagerSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B28EA8762EB344B30096F7AC /* XCRemoteSwiftPackageReference "IQKeyboardManager" */;
@@ -1364,11 +1391,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B28EA8852EB3458E0096F7AC /* XCRemoteSwiftPackageReference "SnapKit" */;
 			productName = SnapKit;
-		};
-		B28EA8892EB345BE0096F7AC /* LookinServer */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = B28EA8882EB345BE0096F7AC /* XCRemoteSwiftPackageReference "LookinServer" */;
-			productName = LookinServer;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -26,6 +26,8 @@ export function initDatabase() {
                 last_lat DECIMAL(10, 7),
                 last_lon DECIMAL(10, 7),
                 last_timestamp BIGINT,
+                last_total_mileage VARCHAR(20),
+                last_calculated_speed INTEGER DEFAULT 0,
                 current_drive_id INTEGER,
                 current_charge_id INTEGER
             );

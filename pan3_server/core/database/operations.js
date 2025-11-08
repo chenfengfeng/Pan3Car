@@ -37,6 +37,18 @@ export function deleteVehicle(vin) {
 }
 
 /**
+ * 清空车辆的 API Token（用户退出登录时调用）
+ * @param {string} vin - 车辆 VIN
+ * @returns {object} 操作结果
+ */
+export function clearVehicleApiToken(vin) {
+    const db = getDatabase();
+    const stmt = db.prepare('UPDATE vehicles SET api_token = NULL WHERE vin = ?');
+    const result = stmt.run(vin);
+    return { success: true, changes: result.changes };
+}
+
+/**
  * 更新车辆的推送 Token
  * @param {string} vin - 车辆 VIN
  * @param {string} pushToken - 推送 Token
@@ -54,6 +66,17 @@ export function updateVehiclePushToken(vin, pushToken) {
 }
 
 /**
+ * 根据 VIN 获取车辆信息
+ * @param {string} vin - 车辆 VIN
+ * @returns {object|null} 车辆信息，包含 push_token 等字段
+ */
+export function getVehicleByVin(vin) {
+    const db = getDatabase();
+    const stmt = db.prepare('SELECT * FROM vehicles WHERE vin = ?');
+    return stmt.get(vin);
+}
+
+/**
  * 获取待轮询的车辆列表
  * @returns {array} 车辆列表
  */
@@ -62,6 +85,7 @@ export function getVehiclesDueForPolling() {
     const stmt = db.prepare(`
         SELECT * FROM vehicles 
         WHERE next_poll_time <= datetime('now')
+            AND api_token IS NOT NULL
         ORDER BY next_poll_time ASC
     `);
     return stmt.all();
@@ -125,6 +149,10 @@ export function updateVehicleAfterPoll(vin, updateData) {
         fields.push('last_timestamp = ?');
         values.push(updateData.last_timestamp);
     }
+    if (updateData.last_total_mileage !== undefined) {
+        fields.push('last_total_mileage = ?');
+        values.push(updateData.last_total_mileage);
+    }
     if (updateData.current_drive_id !== undefined) {
         fields.push('current_drive_id = ?');
         values.push(updateData.current_drive_id);
@@ -132,6 +160,10 @@ export function updateVehicleAfterPoll(vin, updateData) {
     if (updateData.current_charge_id !== undefined) {
         fields.push('current_charge_id = ?');
         values.push(updateData.current_charge_id);
+    }
+    if (updateData.last_calculated_speed !== undefined) {
+        fields.push('last_calculated_speed = ?');
+        values.push(updateData.last_calculated_speed);
     }
     
     if (fields.length > 0) {
@@ -207,6 +239,119 @@ export function getDriveById(driveId) {
     return stmt.get(driveId);
 }
 
+/**
+ * 获取行程记录及其所有数据点（用于同步到app）
+ * @param {number} driveId - 行程 ID
+ * @returns {object|null} 包含行程记录和数据点的完整对象
+ */
+export function getDriveWithDataPoints(driveId) {
+    const drive = getDriveById(driveId);
+    if (!drive) {
+        return null;
+    }
+    
+    const dataPoints = getDataPointsByDriveId(driveId);
+    
+    return {
+        ...drive,
+        data_points: dataPoints
+    };
+}
+
+/**
+ * 根据VIN获取所有已完成的行程记录（用于同步到app）
+ * @param {string} vin - 车辆 VIN
+ * @param {number} limit - 最大数量（可选）
+ * @param {number} offset - 偏移量（可选）
+ * @returns {array} 行程记录列表
+ */
+export function getCompletedDrivesByVin(vin, limit = null, offset = 0) {
+    const db = getDatabase();
+    let sql = `
+        SELECT * FROM drives 
+        WHERE vin = ? 
+        AND end_time IS NOT NULL
+        AND summary_status = 'completed'
+        ORDER BY start_time DESC
+    `;
+    
+    if (limit !== null) {
+        sql += ` LIMIT ? OFFSET ?`;
+    }
+    
+    const stmt = db.prepare(sql);
+    
+    let result;
+    if (limit !== null) {
+        result = stmt.all(vin, limit, offset);
+    } else {
+        result = stmt.all(vin);
+    }
+    
+    return result;
+}
+
+/**
+ * 批量获取行程记录及其数据点（用于同步到app）
+ * @param {string} vin - 车辆 VIN
+ * @param {number} limit - 最大数量（可选）
+ * @returns {array} 包含行程记录和数据点的完整数组
+ */
+export function getDrivesWithDataPointsByVin(vin, limit = null) {
+    const drives = getCompletedDrivesByVin(vin, limit);
+    
+    return drives.map(drive => {
+        const dataPoints = getDataPointsByDriveId(drive.id);
+        return {
+            ...drive,
+            data_points: dataPoints
+        };
+    });
+}
+
+/**
+ * 删除行程记录及其相关数据点
+ * @param {number} driveId - 行程 ID
+ */
+export function deleteDrive(driveId) {
+    const db = getDatabase();
+    
+    // 删除相关数据点
+    const deleteDataPointsStmt = db.prepare('DELETE FROM data_points WHERE drive_id = ?');
+    deleteDataPointsStmt.run(driveId);
+    
+    // 删除行程记录
+    const deleteDriveStmt = db.prepare('DELETE FROM drives WHERE id = ?');
+    deleteDriveStmt.run(driveId);
+}
+
+/**
+ * 批量删除行程记录及其数据点（用于清理已同步的数据）
+ * @param {array} driveIds - 行程记录 ID 数组
+ * @returns {object} 删除统计信息
+ */
+export function deleteDrivesByIds(driveIds) {
+    const db = getDatabase();
+    let deletedDrives = 0;
+    let deletedDataPoints = 0;
+    
+    const deleteDataPointsStmt = db.prepare('DELETE FROM data_points WHERE drive_id = ?');
+    const deleteDriveStmt = db.prepare('DELETE FROM drives WHERE id = ?');
+    
+    for (const driveId of driveIds) {
+        const dataPointsResult = deleteDataPointsStmt.run(driveId);
+        deletedDataPoints += dataPointsResult.changes;
+        
+        const driveResult = deleteDriveStmt.run(driveId);
+        deletedDrives += driveResult.changes;
+    }
+    
+    return {
+        deletedDrives,
+        deletedDataPoints
+    };
+}
+
 // ==================== Charges 表操作 ====================
 
 /**
@@ -268,6 +413,119 @@ export function getChargeById(chargeId) {
     return stmt.get(chargeId);
 }
 
+/**
+ * 根据VIN获取所有已完成的充电记录（用于同步到app）
+ * @param {string} vin - 车辆 VIN
+ * @param {number} limit - 最大数量（可选）
+ * @param {number} offset - 偏移量（可选）
+ * @returns {array} 充电记录列表
+ */
+export function getCompletedChargesByVin(vin, limit = null, offset = 0) {
+    const db = getDatabase();
+    let sql = `
+        SELECT * FROM charges 
+        WHERE vin = ? 
+        AND end_time IS NOT NULL
+        AND summary_status = 'completed'
+        ORDER BY start_time DESC
+    `;
+    
+    if (limit !== null) {
+        sql += ` LIMIT ? OFFSET ?`;
+    }
+    
+    const stmt = db.prepare(sql);
+    
+    let result;
+    if (limit !== null) {
+        result = stmt.all(vin, limit, offset);
+    } else {
+        result = stmt.all(vin);
+    }
+    
+    return result;
+}
+
+/**
+ * 获取充电记录及其所有数据点（用于同步到app）
+ * @param {number} chargeId - 充电 ID
+ * @returns {object|null} 包含充电记录和数据点的完整对象
+ */
+export function getChargeWithDataPoints(chargeId) {
+    const charge = getChargeById(chargeId);
+    if (!charge) {
+        return null;
+    }
+    
+    const dataPoints = getDataPointsByChargeId(chargeId);
+    
+    return {
+        ...charge,
+        data_points: dataPoints
+    };
+}
+
+/**
+ * 批量获取充电记录及其数据点（用于同步到app）
+ * @param {string} vin - 车辆 VIN
+ * @param {number} limit - 最大数量（可选）
+ * @returns {array} 包含充电记录和数据点的完整数组
+ */
+export function getChargesWithDataPointsByVin(vin, limit = null) {
+    const charges = getCompletedChargesByVin(vin, limit);
+    
+    return charges.map(charge => {
+        const dataPoints = getDataPointsByChargeId(charge.id);
+        return {
+            ...charge,
+            data_points: dataPoints
+        };
+    });
+}
+
+/**
+ * 删除充电记录及其相关数据点
+ * @param {number} chargeId - 充电 ID
+ */
+export function deleteCharge(chargeId) {
+    const db = getDatabase();
+    
+    // 删除相关数据点
+    const deleteDataPointsStmt = db.prepare('DELETE FROM data_points WHERE charge_id = ?');
+    deleteDataPointsStmt.run(chargeId);
+    
+    // 删除充电记录
+    const deleteChargeStmt = db.prepare('DELETE FROM charges WHERE id = ?');
+    deleteChargeStmt.run(chargeId);
+}
+
+/**
+ * 批量删除充电记录及其数据点（用于清理已同步的数据）
+ * @param {array} chargeIds - 充电记录 ID 数组
+ * @returns {object} 删除统计信息
+ */
+export function deleteChargesByIds(chargeIds) {
+    const db = getDatabase();
+    let deletedCharges = 0;
+    let deletedDataPoints = 0;
+    
+    const deleteDataPointsStmt = db.prepare('DELETE FROM data_points WHERE charge_id = ?');
+    const deleteChargeStmt = db.prepare('DELETE FROM charges WHERE id = ?');
+    
+    for (const chargeId of chargeIds) {
+        const dataPointsResult = deleteDataPointsStmt.run(chargeId);
+        deletedDataPoints += dataPointsResult.changes;
+        
+        const chargeResult = deleteChargeStmt.run(chargeId);
+        deletedCharges += chargeResult.changes;
+    }
+    
+    return {
+        deletedCharges,
+        deletedDataPoints
+    };
+}
+
 // ==================== DataPoints 表操作 ====================
 
 /**
@@ -310,7 +568,7 @@ export function getDriveStatistics(driveId) {
     const stmt = db.prepare(`
         SELECT 
             COUNT(*) as data_points_count,
-            MAX(calculated_speed_kmh) as max_speed,
+            0 as max_speed,
             CAST(AVG(calculated_speed_kmh) AS INTEGER) as avg_speed
         FROM data_points 
         WHERE drive_id = ? 
@@ -607,5 +865,55 @@ export function insertDataPoint(dataPointData) {
         dataPointData.drive_id || null,
         dataPointData.charge_id || null
     );
+}
+
+/**
+ * 删除指定VIN的所有空闲状态数据点
+ * @param {string} vin - 车辆VIN
+ * @returns {number} 删除的数据点数量
+ */
+export function deleteOrphanedDataPointsForVin(vin) {
+    const db = getDatabase();
+    
+    // 删除该VIN的所有空闲数据点（插入新的后就只有1条）
+    const stmt = db.prepare(`
+        DELETE FROM data_points 
+        WHERE vin = ? 
+        AND drive_id IS NULL 
+        AND charge_id IS NULL
+    `);
+    
+    const result = stmt.run(vin);
+    return result.changes;
+}
+
+/**
+ * 清理所有VIN的孤立数据点（删除所有空闲状态的数据点）
+ * @returns {number} 删除的数据点数量
+ */
+export function cleanAllOrphanedDataPoints() {
+    const db = getDatabase();
+    
+    // 获取所有有空闲数据点的VIN
+    const vinsStmt = db.prepare(`
+        SELECT DISTINCT vin 
+        FROM data_points 
+        WHERE drive_id IS NULL 
+        AND charge_id IS NULL
+    `);
+    const vins = vinsStmt.all();
+    
+    let totalDeleted = 0;
+    
+    for (const { vin } of vins) {
+        const deleted = deleteOrphanedDataPointsForVin(vin);
+        totalDeleted += deleted;
+        if (deleted > 0) {
+            console.log(`[cleanOrphanedDataPoints] VIN: ${vin}, 删除了 ${deleted} 条空闲数据点`);
+        }
+    }
+    
+    console.log(`[cleanOrphanedDataPoints] 总共删除了 ${totalDeleted} 条空闲数据点`);
+    return totalDeleted;
 }
 

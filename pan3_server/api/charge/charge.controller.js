@@ -13,7 +13,10 @@ import {
     getChargeTasksByMode,
     updateChargeTaskActivityToken,
     deleteChargeTaskByVin,
-    getPendingTimeChargeTasks
+    getPendingTimeChargeTasks,
+    getVehicleByVin,
+    getChargesWithDataPointsByVin,
+    deleteChargesByIds
 } from '../../core/database/operations.js';
 
 // 存储time模式的scheduled jobs，用于管理和取消
@@ -38,8 +41,7 @@ export async function startMonitoring(req, res) {
         monitoringMode, 
         targetTimestamp, 
         targetRange, 
-        autoStopCharge, 
-        pushToken
+        autoStopCharge
     } = req.body;
 
     if (!vin || !timaToken || !monitoringMode) {
@@ -47,6 +49,15 @@ export async function startMonitoring(req, res) {
             code: 400, 
             message: '关键参数缺失：vin、timaToken 或 monitoringMode' 
         });
+    }
+
+    // 从数据库获取 pushToken
+    let pushToken = '';
+    try {
+        const vehicle = getVehicleByVin(vin);
+        pushToken = vehicle?.push_token || '';
+    } catch (dbError) {
+        console.warn('[startMonitoring] 从数据库获取 pushToken 失败，将继续使用空值:', dbError);
     }
 
     try {
@@ -657,6 +668,93 @@ export function restoreRangeTasks() {
         
     } catch (error) {
         console.error('[restoreRangeTasks] 恢复range监控任务失败:', error);
+    }
+}
+
+/**
+ * 获取充电记录列表（包含data_points，用于同步到app）
+ */
+export async function getChargeRecords(req, res) {
+    try {
+        const timaToken = req.headers.timatoken;
+        const { vin, limit } = req.body;
+        
+        console.log(`[getChargeRecords] 收到请求 - VIN: "${vin}", VIN长度: ${vin?.length}, limit: ${limit}`);
+        
+        if (!vin || !timaToken) {
+            return res.status(400).json({
+                code: 400,
+                message: '缺少必要参数：vin 或 timaToken'
+            });
+        }
+        
+        // 获取充电记录及其数据点
+        const charges = getChargesWithDataPointsByVin(vin, limit || null);
+        
+        console.log(`[getChargeRecords] VIN: "${vin}", 获取到 ${charges.length} 条充电记录`);
+        console.log(`[getChargeRecords] 数据详情:`, charges.map(c => ({ id: c.id, vin: c.vin, dataPoints: c.data_points?.length })));
+        
+        return res.status(200).json({
+            code: 200,
+            message: '获取充电记录成功',
+            data: {
+                charges: charges,
+                count: charges.length
+            }
+        });
+        
+    } catch (error) {
+        console.error('[getChargeRecords] 获取充电记录失败:', error);
+        return res.status(500).json({
+            code: 500,
+            message: `获取充电记录失败: ${error.message}`
+        });
+    }
+}
+
+/**
+ * 确认充电数据同步完成，删除服务器上的数据
+ */
+export async function confirmChargeSyncComplete(req, res) {
+    try {
+        const timaToken = req.headers.timatoken;
+        const { vin, chargeIds } = req.body;
+        
+        if (!vin || !timaToken || !chargeIds || !Array.isArray(chargeIds)) {
+            return res.status(400).json({
+                code: 400,
+                message: '缺少必要参数：vin、timaToken 或 chargeIds（数组）'
+            });
+        }
+        
+        if (chargeIds.length === 0) {
+            return res.status(200).json({
+                code: 200,
+                message: '没有需要删除的充电记录',
+                data: {
+                    deletedCharges: 0,
+                    deletedDataPoints: 0
+                }
+            });
+        }
+        
+        // 删除指定的充电记录及其数据点
+        const result = deleteChargesByIds(chargeIds);
+        
+        console.log(`[confirmChargeSyncComplete] VIN: ${vin}, 删除 ${result.deletedCharges} 条充电记录, ${result.deletedDataPoints} 个数据点`);
+        
+        return res.status(200).json({
+            code: 200,
+            message: '充电数据同步确认成功，服务器数据已清理',
+            data: result
+        });
+        
+    } catch (error) {
+        console.error('[confirmChargeSyncComplete] 确认同步失败:', error);
+        return res.status(500).json({
+            code: 500,
+            message: `确认同步失败: ${error.message}`
+        });
     }
 }
 

@@ -44,10 +44,9 @@ async function sendHttpRequest(endpoint, data) {
 async function getVehicleData(vin, timaToken) {
     try {
         const vehicleData = await getVehicleDataInternal(vin, timaToken);
-        console.log(`[CLI] 获取车辆信息成功 - VIN: ${vin}`);
         return vehicleData;
     } catch (error) {
-        console.error(`[CLI] 获取车辆信息失败 - VIN: ${vin}:`, error.message);
+        console.error(`[CLI] ${vin} 获取车辆信息失败:`, error.message);
         return null;
     }
 }
@@ -72,7 +71,6 @@ async function sendPushNotification(title, body, pushToken, operationType) {
         };
 
         await sendHttpRequest('/api/push/send', pushData);
-        console.log(`[CLI] 推送通知发送成功 - ${title}: ${body}`);
     } catch (error) {
         console.error(`[CLI] 推送通知发送异常:`, error.message);
     }
@@ -109,7 +107,6 @@ async function sendCarDataPushNotification(title, body, pushToken, operationType
         };
 
         await sendHttpRequest('/api/push/car-data', carPushData);
-        console.log(`[CLI] 车辆数据推送发送成功 - ${title}: ${body}`);
     } catch (error) {
         console.error(`[CLI] 车辆数据推送发送异常:`, error.message);
     }
@@ -119,15 +116,10 @@ async function runBackgroundTask(vin, timaToken, pushToken, operationType, opera
     const MAX_RETRIES = 10; // 最大轮询次数
     const RETRY_DELAY = 3000; // 每次轮询间隔（毫秒）
 
-    console.log(`[CLI] 开始后台任务 - VIN: ${vin}, 操作类型: ${operationType}, 操作: ${operation}`);
-
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        console.log(`[CLI] 第 ${attempt}/${MAX_RETRIES} 次轮询车辆状态...`);
-
         // 检查1：获取车辆数据
         const vehicleData = await getVehicleData(vin, timaToken);
         if (!vehicleData) {
-            console.log(`[CLI] 第 ${attempt} 次轮询失败，无法获取车辆数据`);
             continue; // 继续下一次轮询
         }
 
@@ -174,7 +166,7 @@ async function runBackgroundTask(vin, timaToken, pushToken, operationType, opera
         // 检查3：如果操作成功，发送车辆数据推送并结束任务
         if (isSuccess) {
             await sendCarDataPushNotification('操作成功', successMessage, pushToken, operationType, vehicleData);
-            console.log(`[CLI] 操作成功确认，任务完成。`);
+            console.log(`${vin} ${successMessage}`);
             process.exit(0); // 显式退出进程，确保父进程能收到输出
         }
 
@@ -183,9 +175,8 @@ async function runBackgroundTask(vin, timaToken, pushToken, operationType, opera
     }
 
     // 检查4：如果循环完成，但操作仍未成功，视为超时
-    // 超时时也获取最新车辆数据发送推送
     await sendPushNotification('操作超时', '车辆状态未在预期时间内变更，请稍后重试', pushToken, operationType);
-    console.log('[CLI] 任务超时，发送通知后退出。');
+    console.log(`${vin} 操作超时`);
     process.exit(1); // 超时退出，使用退出码1表示异常
 }
 
@@ -193,10 +184,13 @@ async function runBackgroundTask(vin, timaToken, pushToken, operationType, opera
 // ======================= 脚本入口 =======================
 
 const args = process.argv.slice(2);
+
 if (args.length < 5) {
+    console.error(`[CLI Script] 参数不足！期望5个，实际收到${args.length}个`);
     console.error('Usage: node vehicle-control.js <vin> <timaToken> <pushToken> <operationType> <operation>');
     process.exit(1);
 }
 
 const [vin, timaToken, pushToken, operationType, operation] = args;
+
 runBackgroundTask(vin, timaToken, pushToken, operationType, operation);

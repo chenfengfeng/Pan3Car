@@ -1,7 +1,7 @@
 // /www/wwwroot/pan3/api/auth/auth.controller.js
 
 import { makeRequest, baseApiUrl } from '../../core/utils/request.js';
-import { upsertVehicle, updateVehiclePushToken } from '../../core/database/operations.js';
+import { upsertVehicle, updateVehiclePushToken, clearVehicleApiToken } from '../../core/database/operations.js';
 
 /**
  * 用户登录处理函数
@@ -118,8 +118,20 @@ export async function logout(req, res) {
 
     // 3. 根据返回结果，构造响应
     if (logoutResponse.code === 0) {
-      // 不再删除车辆记录，只返回成功（数据继续保留）
-      console.log('[Auth] 用户退出登录成功，车辆数据继续保留');
+      // 清空该用户车辆的api_token，停止轮询
+      try {
+        const { vin } = req.body; // 从请求体获取VIN
+        
+        if (vin) {
+          clearVehicleApiToken(vin);
+          console.log(`[Auth] 用户退出登录成功，车辆 ${vin} 已停止轮询，数据继续保留`);
+        } else {
+          console.log('[Auth] 用户退出登录成功，但未提供VIN，无法停止轮询');
+        }
+      } catch (dbError) {
+        console.error('[Auth] 清空车辆token失败:', dbError);
+      }
+      
       return res.status(200).json({ code: 200, message: '退出登录成功' });
     } else {
       const errorMsg = logoutResponse.msg || '退出登录失败';

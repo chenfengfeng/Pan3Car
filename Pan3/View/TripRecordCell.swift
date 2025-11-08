@@ -428,8 +428,8 @@ class TripRecordCell: UITableViewCell {
         durationLabel.text = "历时: \(tripData.duration)"
         
         // 设置里程
-        mileageLabel.text = "\(tripData.drivingMileage) km"
-        consumptionLabel.text = "\(tripData.consumedMileage) km"
+        mileageLabel.text = "\(String(format: "%.1f", tripData.drivingMileage)) km"
+        consumptionLabel.text = "\(String(format: "%.1f", tripData.consumedMileage)) km"
         
         // 设置达成率（重点显示）
         let achievementRate = tripData.achievementRate

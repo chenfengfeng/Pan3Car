@@ -325,8 +325,7 @@ class ControllButtonView: UIStackView {
             successText: "\(actionText)指令发送成功",
             failureText: "\(actionText)失败",
             controlAction: { completion in
-                let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
-                NetworkManager.shared.syncVehicle(operationType: "LOCK", operation: operation, pushToken: pushToken, completion: completion)
+                NetworkManager.shared.syncVehicle(operationType: "LOCK", operation: operation, completion: completion)
             }
         )
     }
@@ -377,14 +376,11 @@ class ControllButtonView: UIStackView {
             successText: "\(actionText)指令发送成功",
             failureText: "\(actionText)失败",
             controlAction: { completion in
-                let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
-                
                 NetworkManager.shared.syncVehicle(
                     operationType: "INTELLIGENT_AIRCONDITIONER",
                     operation: operation,
                     temperature: temperature,
                     duringTime: time,
-                    pushToken: pushToken,
                     completion: completion
                 )
             }
@@ -427,12 +423,10 @@ class ControllButtonView: UIStackView {
             successText: "\(actionText)指令发送成功",
             failureText: "\(actionText)失败",
             controlAction: { completion in
-                let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
                 NetworkManager.shared.syncVehicle(
                     operationType: "WINDOW",
                     operation: operation,
                     openLevel: openLevel,
-                    pushToken: pushToken,
                     completion: completion
                 )
             }
@@ -440,16 +434,13 @@ class ControllButtonView: UIStackView {
     }
     
     func actionCall() {
-        let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
-        
         // 尝试获取视图控制器，如果获取不到（如小组件触发），使用全局提示方法
         if let keyWindow = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) {
             QMUITips.showLoading("鸣笛寻车指令发送中...", in: keyWindow)
         }
         
         NetworkManager.shared.syncVehicle(
-            operationType: "FIND_VEHICLE",
-            pushToken: pushToken) { result in
+            operationType: "FIND_VEHICLE") { result in
                 QMUITips.hideAllTips()
                 switch result {
                 case .success(_):

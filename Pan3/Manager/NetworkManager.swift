@@ -84,7 +84,8 @@ class NetworkManager {
     func logout(completion: @escaping (Result<Bool, Error>) -> Void) {
         // 内部获取必要参数
         guard let no = UserManager.shared.no,
-              let timaToken = UserManager.shared.timaToken else {
+              let timaToken = UserManager.shared.timaToken,
+              let vin = UserManager.shared.defaultVin else {
             let error = NSError(domain: "LogoutError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录"])
             completion(.failure(error))
             return
@@ -93,7 +94,8 @@ class NetworkManager {
         let url = "\(baseURL)/auth/logout"
         
         let parameters: [String: Any] = [
-            "no": no
+            "no": no,
+            "vin": vin
         ]
         
         let headers: HTTPHeaders = [
@@ -191,7 +193,6 @@ class NetworkManager {
     ///   - temperature: 温度 (仅空调需要)
     ///   - duringTime: 空调持续时间 (仅空调需要)
     ///   - openLevel: 车窗开启程度 (仅车窗需要)
-    ///   - pushToken: 推送令牌 (可选)
     ///   - completion: 完成回调
     func syncVehicle(
         operationType: String,
@@ -199,7 +200,6 @@ class NetworkManager {
         temperature: Int? = nil,
         duringTime: Int? = nil,
         openLevel: Int? = nil,
-        pushToken: String = "",
         completion: @escaping (Result<Bool, Error>) -> Void
     ) {
         guard let vin = UserManager.shared.defaultVin,
@@ -214,8 +214,7 @@ class NetworkManager {
         // --- 动态构造请求参数 ---
         var parameters: [String: Any] = [
             "vin": vin,
-            "operationType": operationType,
-            "pushToken": pushToken
+            "operationType": operationType
         ]
         
         if let operation = operation {
@@ -287,12 +286,10 @@ class NetworkManager {
         }
         
         let url = "\(baseURL)/charge/start"
-        let pushToken = UserDefaults.standard.string(forKey: "pushToken") ?? ""
         
         var parameters: [String: Any] = [
             "vin": vin,
-            "monitoringMode": mode,
-            "pushToken": pushToken
+            "monitoringMode": mode
         ]
         
         if mode == "time", let timestamp = targetTimestamp {
@@ -338,6 +335,54 @@ class NetworkManager {
                 completion(.failure(error))
             }
         }
+    }
+    
+    // MARK: - 推送Token更新接口
+    
+    /// 更新推送Token
+    /// - Parameters:
+    ///   - pushToken: 推送Token
+    ///   - completion: 完成回调
+    func updatePushToken(pushToken: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        guard let vin = UserManager.shared.defaultVin,
+              let timaToken = UserManager.shared.timaToken else {
+            let error = NSError(domain: "UpdatePushTokenError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/auth/updatePushToken"
+        
+        let parameters: [String: Any] = [
+            "vin": vin,
+            "pushToken": pushToken
+        ]
+        
+        let headers: HTTPHeaders = [
+            "Content-Type": "application/json",
+            "Timatoken": timaToken
+        ]
+        
+        AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let json = try JSON(data: data)
+                        if json["code"].intValue == 200 {
+                            completion(.success(true))
+                        } else {
+                            let errorMsg = json["message"].stringValue.isEmpty ? "推送Token更新失败" : json["message"].stringValue
+                            let error = NSError(domain: "UpdatePushTokenError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+                            completion(.failure(error))
+                        }
+                    } catch {
+                        completion(.failure(error))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
     }
     
     /// 更新实时活动的推送Token
@@ -558,5 +603,229 @@ class NetworkManager {
                 completion(address)
             }
         }
+    }
+    
+    // MARK: - 充电数据同步接口
+    
+    /// 从服务器获取充电记录（包含data_points）
+    /// - Parameters:
+    ///   - limit: 限制获取数量（可选）
+    ///   - completion: 完成回调
+    func getChargeRecordsFromServer(limit: Int? = nil, completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
+        guard let vin = UserManager.shared.defaultVin,
+              let timaToken = UserManager.shared.timaToken else {
+            let error = NSError(domain: "ChargeRecordsError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        print("[getChargeRecordsFromServer] 准备请求 - VIN: \"\(vin)\", VIN长度: \(vin.count)")
+        
+        let url = "\(baseURL)/charge/records"
+        
+        var parameters: [String: Any] = [
+            "vin": vin
+        ]
+        
+        if let limit = limit {
+            parameters["limit"] = limit
+        }
+        
+        let headers: HTTPHeaders = [
+            "Content-Type": "application/json",
+            "Timatoken": timaToken
+        ]
+        
+        AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let json = try JSON(data: data)
+                        
+                        if json["code"].intValue == 200 {
+                            let chargesArray = json["data"]["charges"].arrayValue.map { $0.dictionaryObject ?? [:] }
+                            print("[getChargeRecordsFromServer] 成功获取 \(chargesArray.count) 条充电记录")
+                            completion(.success(chargesArray))
+                        } else {
+                            let errorMsg = json["message"].stringValue.isEmpty ? "获取充电记录失败" : json["message"].stringValue
+                            let error = NSError(domain: "ChargeRecordsError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+                            completion(.failure(error))
+                        }
+                    } catch {
+                        completion(.failure(error))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+    
+    /// 确认充电数据同步完成，通知服务器删除数据
+    /// - Parameters:
+    ///   - chargeIds: 已同步的充电记录ID数组
+    ///   - completion: 完成回调
+    func confirmChargeSyncComplete(chargeIds: [Int], completion: @escaping (Result<[String: Int], Error>) -> Void) {
+        guard let vin = UserManager.shared.defaultVin,
+              let timaToken = UserManager.shared.timaToken else {
+            let error = NSError(domain: "SyncCompleteError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/charge/sync-complete"
+        
+        let parameters: [String: Any] = [
+            "vin": vin,
+            "chargeIds": chargeIds
+        ]
+        
+        let headers: HTTPHeaders = [
+            "Content-Type": "application/json",
+            "Timatoken": timaToken
+        ]
+        
+        AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let json = try JSON(data: data)
+                        
+                        if json["code"].intValue == 200 {
+                            let deletedCharges = json["data"]["deletedCharges"].intValue
+                            let deletedDataPoints = json["data"]["deletedDataPoints"].intValue
+                            
+                            print("[confirmChargeSyncComplete] 服务器已删除 \(deletedCharges) 条充电记录, \(deletedDataPoints) 个数据点")
+                            
+                            let result = [
+                                "deletedCharges": deletedCharges,
+                                "deletedDataPoints": deletedDataPoints
+                            ]
+                            completion(.success(result))
+                        } else {
+                            let errorMsg = json["message"].stringValue.isEmpty ? "确认同步失败" : json["message"].stringValue
+                            let error = NSError(domain: "SyncCompleteError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+                            completion(.failure(error))
+                        }
+                    } catch {
+                        completion(.failure(error))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+    
+    // MARK: - 行程数据同步接口
+    
+    /// 从服务器获取行程记录（包含data_points）
+    /// - Parameters:
+    ///   - limit: 限制获取数量（可选）
+    ///   - completion: 完成回调
+    func getTripRecordsFromServer(limit: Int? = nil, completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
+        guard let vin = UserManager.shared.defaultVin,
+              let timaToken = UserManager.shared.timaToken else {
+            let error = NSError(domain: "TripRecordsError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        print("[getTripRecordsFromServer] 准备请求 - VIN: \"\(vin)\", VIN长度: \(vin.count)")
+        
+        let url = "\(baseURL)/trip/records"
+        
+        var parameters: [String: Any] = [
+            "vin": vin
+        ]
+        
+        if let limit = limit {
+            parameters["limit"] = limit
+        }
+        
+        let headers: HTTPHeaders = [
+            "Content-Type": "application/json",
+            "Timatoken": timaToken
+        ]
+        
+        AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let json = try JSON(data: data)
+                        
+                        if json["code"].intValue == 200 {
+                            let tripsArray = json["data"]["trips"].arrayValue.map { $0.dictionaryObject ?? [:] }
+                            print("[getTripRecordsFromServer] 成功获取 \(tripsArray.count) 条行程记录")
+                            completion(.success(tripsArray))
+                        } else {
+                            let errorMsg = json["message"].stringValue.isEmpty ? "获取行程记录失败" : json["message"].stringValue
+                            let error = NSError(domain: "TripRecordsError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+                            completion(.failure(error))
+                        }
+                    } catch {
+                        completion(.failure(error))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+    
+    /// 确认行程数据同步完成，通知服务器删除数据
+    /// - Parameters:
+    ///   - tripIds: 已同步的行程记录ID数组
+    ///   - completion: 完成回调
+    func confirmTripSyncComplete(tripIds: [Int], completion: @escaping (Result<[String: Int], Error>) -> Void) {
+        guard let vin = UserManager.shared.defaultVin,
+              let timaToken = UserManager.shared.timaToken else {
+            let error = NSError(domain: "TripSyncCompleteError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/trip/sync-complete"
+        
+        let parameters: [String: Any] = [
+            "vin": vin,
+            "tripIds": tripIds
+        ]
+        
+        let headers: HTTPHeaders = [
+            "Content-Type": "application/json",
+            "Timatoken": timaToken
+        ]
+        
+        AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let json = try JSON(data: data)
+                        
+                        if json["code"].intValue == 200 {
+                            let deletedTrips = json["data"]["deletedTrips"].intValue
+                            let deletedDataPoints = json["data"]["deletedDataPoints"].intValue
+                            
+                            print("[confirmTripSyncComplete] 服务器已删除 \(deletedTrips) 条行程记录, \(deletedDataPoints) 个数据点")
+                            
+                            let result = [
+                                "deletedTrips": deletedTrips,
+                                "deletedDataPoints": deletedDataPoints
+                            ]
+                            completion(.success(result))
+                        } else {
+                            let errorMsg = json["message"].stringValue.isEmpty ? "确认同步失败" : json["message"].stringValue
+                            let error = NSError(domain: "TripSyncCompleteError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+                            completion(.failure(error))
+                        }
+                    } catch {
+                        completion(.failure(error))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
     }
 }

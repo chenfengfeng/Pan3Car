@@ -12,5 +12,55 @@
         <attribute name="startKm" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="startSoc" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="startTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="dataPoints" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ChargeDataPoint" inverseName="chargeRecord" inverseEntity="ChargeDataPoint"/>
+    </entity>
+    <entity name="ChargeDataPoint" representedClassName="ChargeDataPoint" syncable="YES">
+        <attribute name="chgLeftTime" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="chgPlugStatus" optional="YES" attributeType="String"/>
+        <attribute name="chgStatus" optional="YES" attributeType="String"/>
+        <attribute name="keyStatus" optional="YES" attributeType="String"/>
+        <attribute name="lat" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="lon" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="mainLockStatus" optional="YES" attributeType="String"/>
+        <attribute name="remainingRangeKm" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="soc" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="totalMileage" optional="YES" attributeType="String"/>
+        <relationship name="chargeRecord" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ChargeRecord" inverseName="dataPoints" inverseEntity="ChargeRecord"/>
+    </entity>
+    <entity name="TripRecord" representedClassName="TripRecord" syncable="YES">
+        <attribute name="avgSpeed" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="consumedRange" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="endAddress" optional="YES" attributeType="String"/>
+        <attribute name="endCity" optional="YES" attributeType="String"/>
+        <attribute name="endLat" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="endLon" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="endRangeKm" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="endSoc" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="endTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="maxSpeed" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="recordID" optional="YES" attributeType="String"/>
+        <attribute name="startAddress" optional="YES" attributeType="String"/>
+        <attribute name="startCity" optional="YES" attributeType="String"/>
+        <attribute name="startLat" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="startLon" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="startRangeKm" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="startSoc" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="startTime" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="totalDistance" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <relationship name="dataPoints" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TripDataPoint" inverseName="tripRecord" inverseEntity="TripDataPoint"/>
+    </entity>
+    <entity name="TripDataPoint" representedClassName="TripDataPoint" syncable="YES">
+        <attribute name="calculatedSpeedKmh" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="keyStatus" optional="YES" attributeType="String"/>
+        <attribute name="lat" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="lon" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="mainLockStatus" optional="YES" attributeType="String"/>
+        <attribute name="remainingRangeKm" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="soc" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="totalMileage" optional="YES" attributeType="String"/>
+        <relationship name="tripRecord" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="TripRecord" inverseName="dataPoints" inverseEntity="TripRecord"/>
     </entity>
 </model>

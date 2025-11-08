@@ -23,11 +23,37 @@ struct CarWatchCircularWindowProvider: TimelineProvider {
         print("[CarWatchCircularWindow] getTimeline called")
         let currentDate = Date()
         
-        // 网络相关代码已删除，使用占位数据
+        // 从App Groups读取SharedCarModel数据
+        guard let userDefaults = UserDefaults(suiteName: "group.com.feng.pan3") else {
+            print("[CarWatchCircularWindow] 无法访问App Groups，使用占位数据")
+            let entry = CarWatchCircularWindowEntry(date: currentDate, carInfo: CarInfo.placeholder)
+            let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
+            let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+            completion(timeline)
+            return
+        }
+        
+        // 尝试从App Groups读取SharedCarModel数据
+        if let sharedCarModelDict = userDefaults.object(forKey: "SharedCarModelData") as? [String: Any],
+           let sharedCarModel = SharedCarModel(dictionary: sharedCarModelDict) {
+            
+            // 将SharedCarModel转换为CarInfo
+            let carInfo = CarInfo.from(sharedCarModel: sharedCarModel)
+            let entry = CarWatchCircularWindowEntry(date: currentDate, carInfo: carInfo)
+            
+            print("[CarWatchCircularWindow] 成功从App Groups加载SharedCarModel数据")
+            
+            let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
+            let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+            completion(timeline)
+        } else {
+            // 如果没有SharedCarModel数据，使用占位数据
+            print("[CarWatchCircularWindow] 未找到SharedCarModel数据，使用占位数据")
         let entry = CarWatchCircularWindowEntry(date: currentDate, carInfo: CarInfo.placeholder)
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)
+        }
     }
 }
 
@@ -68,7 +94,9 @@ struct CarWatchCircularWindowEntryView: View {
             }
         }
         
+        // 点击打开 Watch App 并自动弹出车窗确认对话框
         content
+            .widgetURL(URL(string: "pan3watch://control?action=window"))
     }
 
     // MARK: - 颜色适配函数
