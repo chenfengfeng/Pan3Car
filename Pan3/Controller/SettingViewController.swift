@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Alamofire
 import Kingfisher
 
 class SettingViewController: UIViewController {
@@ -31,7 +32,8 @@ class SettingViewController: UIViewController {
 //                ("切换服务器", "server", "server.rack"),
                 ("用户反馈", "feedback", "envelope.fill"),
                 ("常见问题", "help", "questionmark.circle.fill"),
-                ("APP使用教程", "tutorial", "book.fill")
+                ("APP使用教程", "tutorial", "book.fill"),
+                ("导入行程数据", "importTrips", "arrow.down.doc.fill")
             ],
             // 第二组：账户操作
             [
@@ -253,6 +255,8 @@ extension SettingViewController: UITableViewDelegate {
             showHelpViewController()
         case "tutorial":
             showAppTutorial()
+        case "importTrips":
+            showImportTripsConfirmation()
         case "logout":
             showLogoutConfirmation()
         case "exit":
@@ -563,6 +567,173 @@ private extension SettingViewController {
         versionClickCount = 0 // 重置点击计数
         QMUITips.show(withText: "已关闭开发者模式")
         tableView.reloadData()
+    }
+    
+    // MARK: - 导入行程数据相关方法
+    
+    func showImportTripsConfirmation() {
+        // 显示导入确认对话框
+        let alert = UIAlertController(
+            title: "导入行程数据",
+            message: "此功能将从旧服务器导入历史行程数据。\n\n✅ 系统会自动过滤已存在的记录，不会产生重复数据。\n\n⏱ 导入过程可能需要一些时间，请耐心等待。",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+        alert.addAction(UIAlertAction(title: "导入", style: .default) { [weak self] _ in
+            self?.importLegacyTrips()
+        })
+        
+        present(alert, animated: true)
+    }
+    
+    func importLegacyTrips() {
+        // 显示加载提示
+        QMUITips.showLoading("正在导入数据...", in: self.view)
+        
+        // 开始导入
+        importAllTripsFromLegacyServer { [weak self] result in
+            DispatchQueue.main.async {
+                QMUITips.hideAllTips()
+                
+                switch result {
+                case .success(let count):
+                    if count > 0 {
+                        QMUITips.showSucceed("成功导入 \(count) 条新的行程记录")
+                    } else {
+                        QMUITips.showInfo("所有行程记录已存在，无需重复导入")
+                    }
+                    
+                    // 发送数据导入完成通知（即使count为0也发送，以便刷新UI）
+                    NotificationCenter.default.post(name: NSNotification.Name("TripDataImported"), object: nil)
+                    
+                case .failure(let error):
+                    let alert = UIAlertController(
+                        title: "导入失败",
+                        message: error.localizedDescription,
+                        preferredStyle: .alert
+                    )
+                    alert.addAction(UIAlertAction(title: "确定", style: .default))
+                    self?.present(alert, animated: true)
+                }
+            }
+        }
+    }
+    
+    func importAllTripsFromLegacyServer(completion: @escaping (Result<Int, Error>) -> Void) {
+        guard let vin = UserManager.shared.defaultVin else {
+            completion(.failure(NSError(domain: "ImportError", code: -1, userInfo: [NSLocalizedDescriptionKey: "未找到车架号"])))
+            return
+        }
+        
+        var allTrips: [[String: Any]] = []
+        
+        // 递归获取所有分页数据
+        func fetchPage(_ page: Int) {
+            let urlString = "https://car.dreamforge.top/get_trip_records"
+            let parameters: [String: Any] = [
+                "vin": vin,
+                "page": page
+            ]
+            
+            AF.request(urlString, method: .post, parameters: parameters, encoding: JSONEncoding.default)
+                .validate()
+                .responseJSON { response in
+                    switch response.result {
+                    case .success(let value):
+                        guard let json = value as? [String: Any],
+                              let success = json["success"] as? Bool,
+                              success,
+                              let dataDict = json["data"] as? [String: Any],
+                              let trips = dataDict["trips"] as? [[String: Any]],
+                              let pagination = dataDict["pagination"] as? [String: Any] else {
+                            completion(.failure(NSError(domain: "ImportError", code: -1, userInfo: [NSLocalizedDescriptionKey: "数据格式错误"])))
+                            return
+                        }
+                        
+                        // 添加当前页的数据
+                        allTrips.append(contentsOf: trips)
+                        
+                        print("[导入] 第\(page)页: 获取了\(trips.count)条记录，总计\(allTrips.count)条")
+                        
+                        // 检查是否还有下一页
+//                        if let hasNext = pagination["has_next"] as? Bool, hasNext {
+//                            // 继续获取下一页
+//                            fetchPage(page + 1)
+//                        } else {
+                            // 所有数据获取完成，开始转换并保存
+                            print("[导入] 数据获取完成，共\(allTrips.count)条记录，开始转换格式...")
+                            
+                            let convertedTrips = self.convertLegacyTripsToNewFormat(allTrips)
+                            
+                            // 保存到CoreData
+                            let savedRecords = CoreDataManager.shared.syncTripRecordsFromServer(convertedTrips)
+                            
+                            print("[导入] 成功保存\(savedRecords.count)条记录到CoreData")
+                            
+                            completion(.success(savedRecords.count))
+//                        }
+                        
+                    case .failure(let error):
+                        completion(.failure(error))
+                    }
+                }
+        }
+        
+        // 从第1页开始
+        fetchPage(1)
+    }
+    
+    func convertLegacyTripsToNewFormat(_ legacyTrips: [[String: Any]]) -> [[String: Any]] {
+        var convertedTrips: [[String: Any]] = []
+        
+        for trip in legacyTrips {
+            var newTrip: [String: Any] = [:]
+            
+            // 基本字段映射
+            newTrip["id"] = trip["id"] as? Int ?? 0
+            newTrip["start_time"] = trip["startTime"] as? String ?? ""
+            newTrip["end_time"] = trip["endTime"] as? String ?? ""
+            newTrip["start_soc"] = trip["startSoc"] as? Int ?? 0
+            newTrip["end_soc"] = trip["endSoc"] as? Int ?? 0
+            newTrip["start_range_km"] = Int((trip["startRange"] as? Double ?? 0))
+            newTrip["end_range_km"] = Int((trip["endRange"] as? Double ?? 0))
+            newTrip["total_distance"] = trip["drivingMileage"] as? Double ?? 0.0
+            newTrip["consumed_range"] = Int((trip["consumedMileage"] as? Double ?? 0))
+            newTrip["avg_speed"] = Int((trip["averageSpeed"] as? Double ?? 0))
+            newTrip["max_speed"] = 0  // 旧数据没有最大速度，设为0
+            
+            // 解析经纬度 (旧服务器格式: "经度,纬度" 即 "lng,lat")
+            if let startLatLng = trip["startLatLng"] as? String {
+                let components = startLatLng.split(separator: ",")
+                if components.count == 2 {
+                    newTrip["start_lon"] = Double(components[0]) ?? 0.0  // 第一个是经度
+                    newTrip["start_lat"] = Double(components[1]) ?? 0.0  // 第二个是纬度
+                }
+            }
+            
+            if let endLatLng = trip["endLatLng"] as? String {
+                let components = endLatLng.split(separator: ",")
+                if components.count == 2 {
+                    newTrip["end_lon"] = Double(components[0]) ?? 0.0  // 第一个是经度
+                    newTrip["end_lat"] = Double(components[1]) ?? 0.0  // 第二个是纬度
+                }
+            }
+            
+            // 如果没有经纬度，设置默认值
+            if newTrip["start_lat"] == nil {
+                newTrip["start_lat"] = 0.0
+                newTrip["start_lon"] = 0.0
+            }
+            if newTrip["end_lat"] == nil {
+                newTrip["end_lat"] = 0.0
+                newTrip["end_lon"] = 0.0
+            }
+            
+            convertedTrips.append(newTrip)
+        }
+        
+        return convertedTrips
     }
     
     func performLogout() {

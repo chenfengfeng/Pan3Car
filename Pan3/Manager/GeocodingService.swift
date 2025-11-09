@@ -96,6 +96,94 @@ class GeocodingService {
         }
     }
     
+    /// 批量解析充电记录的地址
+    /// - Parameter records: 需要解析的充电记录数组
+    func geocodeChargeRecords(_ records: [ChargeTaskRecord]) {
+        guard !records.isEmpty else {
+            print("[GeocodingService] 没有需要解析的充电记录")
+            return
+        }
+        
+        print("[GeocodingService] 开始批量解析 \(records.count) 条充电记录")
+        
+        geocodingQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            self.isProcessing = true
+            
+            for (index, record) in records.enumerated() {
+                // 检查是否需要解析
+                if !record.needsGeocoding {
+                    print("[GeocodingService] 充电记录 \(index + 1)/\(records.count) 已有地址，跳过")
+                    continue
+                }
+                
+                print("[GeocodingService] 正在解析充电记录 \(index + 1)/\(records.count)")
+                
+                // 使用信号量实现同步等待
+                let semaphore = DispatchSemaphore(value: 0)
+                
+                self.geocodeSingleChargeRecord(record) { success in
+                    if success {
+                        print("[GeocodingService] 充电记录 \(index + 1)/\(records.count) 解析成功")
+                    } else {
+                        print("[GeocodingService] 充电记录 \(index + 1)/\(records.count) 解析失败")
+                    }
+                    semaphore.signal()
+                }
+                
+                // 等待解析完成
+                semaphore.wait()
+                
+                // 添加延迟，避免频率限制
+                if index < records.count - 1 {
+                    Thread.sleep(forTimeInterval: self.geocodingInterval)
+                }
+            }
+            
+            self.isProcessing = false
+            print("[GeocodingService] 充电记录批量解析完成")
+            
+            // 发送通知
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(
+                    name: GeocodingService.addressDidUpdateNotification,
+                    object: nil
+                )
+            }
+        }
+    }
+    
+    /// 解析单条充电记录的地址
+    /// - Parameters:
+    ///   - record: 充电记录
+    ///   - completion: 完成回调
+    private func geocodeSingleChargeRecord(_ record: ChargeTaskRecord, completion: @escaping (Bool) -> Void) {
+        // 解析充电位置
+        geocodeCoordinate(latitude: record.lat, longitude: record.lon) { components in
+            DispatchQueue.main.async {
+                if let components = components {
+                    // 格式化为充电地址（包含城市信息）
+                    let address = AddressFormatter.formatChargeAddress(components)
+                    
+                    // 更新数据库
+                    record.updateAddress(address)
+                    
+                    // 保存到 Core Data
+                    CoreDataManager.shared.saveContext()
+                    
+                    completion(true)
+                } else {
+                    // 解析失败，标记为"解析失败"
+                    record.updateAddress("解析失败")
+                    CoreDataManager.shared.saveContext()
+                    
+                    completion(false)
+                }
+            }
+        }
+    }
+    
     /// 解析单条行程记录的地址
     /// - Parameters:
     ///   - record: 行程记录

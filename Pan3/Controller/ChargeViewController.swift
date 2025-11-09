@@ -111,6 +111,14 @@ class ChargeViewController: UIViewController {
             name: NSNotification.Name("ChargeMonitoringTaskEnded"),
             object: nil
         )
+        
+        // 监听地址解析完成通知
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAddressDidUpdate),
+            name: GeocodingService.addressDidUpdateNotification,
+            object: nil
+        )
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -132,6 +140,9 @@ class ChargeViewController: UIViewController {
         
         // 检查并更新悬浮按钮状态
         updateFloatingButtonState()
+        
+        // 触发地理编码
+        triggerGeocodingIfNeeded()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -679,6 +690,26 @@ class ChargeViewController: UIViewController {
     
     private func hideEmptyState() {
         tableView.backgroundView = nil
+    }
+    
+    /// 触发地理编码（为没有地址的充电记录解析地址）
+    private func triggerGeocodingIfNeeded() {
+        // 筛选需要地理编码的记录
+        CoreDataManager.shared.performBackgroundTask { context in
+            let request = ChargeTaskRecord.fetchAllRequest()
+            request.predicate = NSPredicate(format: "(lat != 0.0 AND lon != 0.0) AND (address == nil OR address == '')")
+            request.fetchLimit = 50 // 限制一次最多解析50条
+            
+            let records = (try? context.fetch(request)) ?? []
+            
+            if !records.isEmpty {
+                print("[ChargeViewController] 发现 \(records.count) 条需要地理编码的充电记录")
+                // 在主线程调用地理编码服务
+                DispatchQueue.main.async {
+                    GeocodingService.shared.geocodeChargeRecords(records)
+                }
+            }
+        } completion: { _ in }
     }
     
     private func createEmptyStateView() -> UIView {
@@ -1633,6 +1664,14 @@ extension ChargeViewController {
             print("[performAutoSync] 距离上次同步时间过短，跳过自动同步")
         }
         */
+    }
+    
+    // MARK: - Address Update Handling
+    
+    @objc private func handleAddressDidUpdate() {
+        print("[ChargeViewController] 地址解析完成，刷新列表")
+        // 重新加载数据
+        loadChargeList(page: 1)
     }
 }
 

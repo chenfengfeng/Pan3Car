@@ -24,6 +24,12 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
     private var isGeocoding = false  // 标记是否正在进行地址解析
     private var addressVisibilityButton: UIButton!
     
+    // MARK: - 分页相关属性
+    private let pageSize = 20  // 每页加载20条
+    private var currentPage = 0  // 当前页码（从0开始）
+    private var hasMoreData = true  // 是否还有更多数据
+    private var isLoadingMore = false  // 是否正在加载更多
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupNavigationItems()
@@ -57,6 +63,14 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
             name: GeocodingService.addressDidUpdateNotification,
             object: nil
         )
+        
+        // 监听数据导入完成通知
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTripDataImported),
+            name: NSNotification.Name("TripDataImported"),
+            object: nil
+        )
     }
     
     @objc private func handleAddressUpdated() {
@@ -65,13 +79,23 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         // 重置解析标记
         isGeocoding = false
         
-        // 重新加载本地数据并刷新 UI
+        // 只刷新UI，不重新加载数据（因为tripRecords中的对象已经在CoreData中更新了）
+        // 这样可以保持用户当前的滚动位置和分页状态
+        groupTripRecordsByDate()
+        tableView.reloadData()
+    }
+    
+    @objc private func handleTripDataImported() {
+        print("[ShortcutsViewController] 收到数据导入完成通知，重新加载数据")
+        
+        // 重新加载第一页数据
         loadLocalTripRecords()
     }
     
     // MARK: - Geocoding Management
     
     /// 检查并触发地址解析（如果需要）
+    /// 只解析当前已加载的行程记录，而不是数据库中的所有记录
     private func checkAndTriggerGeocodingIfNeeded() {
         // 如果正在解析，跳过
         guard !isGeocoding else {
@@ -79,15 +103,15 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
             return
         }
         
-        // 获取所有需要解析地址的记录
-        let recordsNeedingGeocoding = CoreDataManager.shared.getTripRecordsNeedingGeocoding()
+        // 从当前已加载的记录中筛选需要解析的
+        let recordsNeedingGeocoding = tripRecords.filter { $0.needsGeocoding }
         
         guard !recordsNeedingGeocoding.isEmpty else {
-            print("[ShortcutsViewController] 没有需要解析地址的记录")
+            print("[ShortcutsViewController] 当前页面没有需要解析地址的记录")
             return
         }
         
-        print("[ShortcutsViewController] 发现 \(recordsNeedingGeocoding.count) 条记录需要解析地址，开始解析...")
+        print("[ShortcutsViewController] 当前页面发现 \(recordsNeedingGeocoding.count) 条记录需要解析地址，开始解析...")
         
         // 标记为正在解析
         isGeocoding = true
@@ -243,20 +267,47 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         }
         header.lastUpdatedTimeLabel?.isHidden = true
         tableView.mj_header = header
+        
+        // 添加上拉加载更多
+        let footer = MJRefreshAutoNormalFooter { [weak self] in
+            self?.loadMoreTripRecords()
+        }
+        tableView.mj_footer = footer
     }
     
-    /// 从CoreData加载本地行程记录
+    /// 从CoreData加载本地行程记录（首次加载或刷新）
     private func loadLocalTripRecords() {
-        tripRecords = CoreDataManager.shared.fetchTripRecords()
+        // 重置分页状态
+        currentPage = 0
+        hasMoreData = true
+        tripRecords.removeAll()
+        
+        // 加载第一页数据
+        let records = CoreDataManager.shared.fetchTripRecords(limit: pageSize, offset: 0)
+        tripRecords = records
+        
+        // 检查是否还有更多数据
+        if records.count < pageSize {
+            hasMoreData = false
+            tableView.mj_footer?.endRefreshingWithNoMoreData()
+        } else {
+            tableView.mj_footer?.resetNoMoreData()
+        }
+        
         groupTripRecordsByDate()
         tableView.reloadData()
-        print("[ShortcutsVC] 从CoreData加载了 \(tripRecords.count) 条行程记录")
+        print("[ShortcutsVC] 从CoreData加载了第\(currentPage + 1)页，共 \(self.tripRecords.count) 条行程记录")
         
         // 检查是否显示空状态
         if tripRecords.isEmpty {
             showEmptyState()
+            tableView.mj_footer?.isHidden = true
         } else {
             hideEmptyState()
+            tableView.mj_footer?.isHidden = false
+            
+            // 检查当前页面数据是否需要地址解析
+            checkAndTriggerGeocodingIfNeeded()
         }
     }
     
@@ -320,6 +371,46 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                 print("[ShortcutsVC] 确认同步失败: \(error.localizedDescription)")
             }
         }
+    }
+    
+    /// 加载更多行程记录
+    private func loadMoreTripRecords() {
+        // 如果没有更多数据或正在加载，直接返回
+        guard hasMoreData, !isLoadingMore else {
+            tableView.mj_footer?.endRefreshing()
+            return
+        }
+        
+        isLoadingMore = true
+        
+        // 加载下一页
+        currentPage += 1
+        let offset = currentPage * pageSize
+        let records = CoreDataManager.shared.fetchTripRecords(limit: pageSize, offset: offset)
+        
+        print("[ShortcutsVC] 加载第\(currentPage + 1)页，获取了 \(records.count) 条记录")
+        
+        // 追加数据
+        tripRecords.append(contentsOf: records)
+        
+        // 检查是否还有更多数据
+        if records.count < pageSize {
+            hasMoreData = false
+            tableView.mj_footer?.endRefreshingWithNoMoreData()
+        } else {
+            tableView.mj_footer?.endRefreshing()
+        }
+        
+        // 重新分组并刷新
+        groupTripRecordsByDate()
+        tableView.reloadData()
+        
+        isLoadingMore = false
+        
+        print("[ShortcutsVC] 当前共 \(self.tripRecords.count) 条行程记录")
+        
+        // 检查新加载的数据是否需要地址解析
+        checkAndTriggerGeocodingIfNeeded()
     }
     
     @objc private func refreshTripRecords() {

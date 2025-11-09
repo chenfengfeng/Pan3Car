@@ -37,6 +37,7 @@ export async function getVehicleDataInternal(vin, timaToken) {
             return jacData.data;
         } else {
             const errorMessage = jacData.msg || jacData.returnErrorMsg || '获取车辆信息失败，但未提供明确原因';
+            console.error(`[Internal Service] 获取车辆数据失败 - VIN: ${vin}, 错误: ${errorMessage}, 完整响应:`, JSON.stringify(jacData));
             throw new Error(`获取车辆数据失败: ${errorMessage}`);
         }
     });

@@ -43,6 +43,11 @@ public class ChargeTaskRecord: NSManagedObject {
         return endTime == nil
     }
     
+    /// 是否需要地理编码（有经纬度但没有地址）
+    var needsGeocoding: Bool {
+        return (lat != 0.0 && lon != 0.0) && (address == nil || address?.isEmpty == true)
+    }
+    
     /// SOC增量
     var socGain: Int16 {
         guard endTime != nil else { return 0 }

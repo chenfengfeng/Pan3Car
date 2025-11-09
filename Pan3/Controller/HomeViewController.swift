@@ -1016,7 +1016,11 @@ extension HomeViewController {
     @objc func handleAppDidBecomeActive() {
         print("APP重新进入前台了 - HomeViewController")
         if !isFirstDataLoad {
-            refreshCarData()
+            // 延迟1秒后再请求，给网络连接时间稳定
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                print("延迟后开始刷新车辆数据")
+                self?.refreshCarData()
+            }
         }
     }
     

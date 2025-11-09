@@ -193,13 +193,6 @@
 			);
 			target = B28A417A2E5B4FFD002B5AB2 /* CarWatchWidgetExtension */;
 		};
-		B29BF9C72EBE499600F03E31 /* Exceptions for "Car Watch App" folder in "Car Watch App" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"Car-Watch-App-Info.plist",
-			);
-			target = B2757A422E4DE25E00F03D8D /* Car Watch App */;
-		};
 		B2B568D22EBCAAEA0061849E /* Exceptions for "Car Watch App" folder in "CarWatchWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -269,7 +262,6 @@
 		B2757A442E4DE25E00F03D8D /* Car Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				B29BF9C72EBE499600F03E31 /* Exceptions for "Car Watch App" folder in "Car Watch App" target */,
 				B2B568D22EBCAAEA0061849E /* Exceptions for "Car Watch App" folder in "CarWatchWidgetExtension" target */,
 			);
 			path = "Car Watch App";
@@ -947,7 +939,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.0;
+				MARKETING_VERSION = 1.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -991,7 +983,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.0;
+				MARKETING_VERSION = 1.4.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.dream.pan3car;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

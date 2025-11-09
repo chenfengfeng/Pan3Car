@@ -219,6 +219,42 @@ class AddressFormatter {
     static func simplified(_ components: AddressComponents, level: DisplayLevel) -> String {
         return formatAddress(components, level: level)
     }
+    
+    // MARK: - Charge Address Format
+    
+    /// 格式化充电记录地址（始终显示完整信息：城市+区+地点）
+    /// - Parameter components: 地址组件
+    /// - Returns: 格式化后的完整地址字符串
+    static func formatChargeAddress(_ components: AddressComponents) -> String {
+        guard components.isValid else {
+            return formatFallback(components)
+        }
+        
+        var parts: [String] = []
+        
+        // 获取城市（处理直辖市）
+        if let city = getNormalizedCity(components) {
+            parts.append(city)
+        }
+        
+        // 添加区
+        if let district = components.district {
+            parts.append(district)
+        }
+        
+        // 添加具体位置
+        if let location = components.locationName {
+            parts.append(location)
+        }
+        
+        // 如果没有任何组件，使用后备方案
+        if parts.isEmpty {
+            return formatFallback(components)
+        }
+        
+        // 用空格分隔，清晰易读
+        return parts.joined(separator: " ")
+    }
 }
 
 

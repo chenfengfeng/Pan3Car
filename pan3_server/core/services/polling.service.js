@@ -198,14 +198,63 @@ async function pollSingleVehicle(vehicle) {
         let newDriveId = current_drive_id;
         let newChargeId = current_charge_id;
         
+        // 5.0 清理遗留记录（防止状态不一致，如服务器重启或错过状态转换）
+        // 5.0.1 清理遗留的充电记录
+        if (current_charge_id && currentChgStatus !== '3') {
+            // 存在未完成的充电记录，但当前不在充电状态，关闭它
+            console.log(`[Polling Service] ${vin} 发现遗留充电记录，自动关闭`);
+            
+            updateCharge(current_charge_id, {
+                end_time: new Date(currentTimestamp).toISOString(),
+                end_soc: currentSoc,
+                end_range_km: currentRangeKm
+            });
+            
+            newChargeId = null;
+            
+            // 发送充电结束推送通知
+            if (push_token) {
+                setImmediate(async () => {
+                    try {
+                        await sendPushNotificationInternal(
+                            push_token,
+                            '充电完成',
+                            `您的车辆充电已完成，当前电量 ${currentSoc}%，续航 ${currentRangeKm}km`,
+                            'charge_completed'
+                        );
+                        console.log(`[Polling Service] ${vin} 充电完成推送已发送（遗留记录）`);
+                    } catch (pushError) {
+                        console.error(`[Polling Service] ${vin} 充电完成推送失败:`, pushError.message);
+                    }
+                });
+            }
+        }
+        
+        // 5.0.2 清理遗留的行驶记录
+        if (current_drive_id && !(currentKeyStatus === '1' && currentMainLockStatus === '0')) {
+            // 存在未完成的行程记录，但当前不在行驶状态，关闭它
+            console.log(`[Polling Service] ${vin} 发现遗留行程记录，自动关闭`);
+            
+            updateDrive(current_drive_id, {
+                end_time: new Date(currentTimestamp).toISOString(),
+                end_lat: currentLat,
+                end_lon: currentLon,
+                end_soc: currentSoc,
+                end_range_km: currentRangeKm
+            });
+            
+            newDriveId = null;
+            console.log(`[Polling Service] ${vin} 结束行驶（遗留记录），摘要计算已加入队列`);
+        }
+        
         // 5.1 检测充电状态（优先级最高）
         if (currentChgStatus === '3' && last_chgStatus !== '3') {
             // 开始充电
             console.log(`[Polling Service] ${vin} 开始充电`);
             
             // 如果正在行驶，先结束行驶
-            if (current_drive_id) {
-                updateDrive(current_drive_id, {
+            if (newDriveId) {
+                updateDrive(newDriveId, {
                     end_time: new Date(currentTimestamp).toISOString(),
                     end_lat: currentLat,
                     end_lon: currentLon,
@@ -228,11 +277,11 @@ async function pollSingleVehicle(vehicle) {
             });
             
         } else if (currentChgStatus === '2' && last_chgStatus === '3') {
-            // 结束充电
+            // 结束充电（仅在未被遗留清理逻辑处理时执行）
             console.log(`[Polling Service] ${vin} 结束充电，摘要计算已加入队列`);
             
-            if (current_charge_id) {
-                updateCharge(current_charge_id, {
+            if (newChargeId) {
+                updateCharge(newChargeId, {
                     end_time: new Date(currentTimestamp).toISOString(),
                     end_soc: currentSoc,
                     end_range_km: currentRangeKm
@@ -266,9 +315,38 @@ async function pollSingleVehicle(vehicle) {
                 // 开始行驶
                 console.log(`[Polling Service] ${vin} 开始行驶`);
                 
+                // 如果正在充电，先结束充电记录
+                if (current_charge_id) {
+                    updateCharge(current_charge_id, {
+                        end_time: new Date(currentTimestamp).toISOString(),
+                        end_soc: currentSoc,
+                        end_range_km: currentRangeKm
+                    });
+                    
+                    newChargeId = null;
+                    console.log(`[Polling Service] ${vin} 结束充电（开始行驶），摘要计算已加入队列`);
+                    
+                    // 发送充电结束推送通知
+                    if (push_token) {
+                        setImmediate(async () => {
+                            try {
+                                await sendPushNotificationInternal(
+                                    push_token,
+                                    '充电完成',
+                                    `您的车辆充电已完成，当前电量 ${currentSoc}%，续航 ${currentRangeKm}km`,
+                                    'charge_completed'
+                                );
+                                console.log(`[Polling Service] ${vin} 充电完成推送已发送`);
+                            } catch (pushError) {
+                                console.error(`[Polling Service] ${vin} 充电完成推送失败:`, pushError.message);
+                            }
+                        });
+                    }
+                }
+                
                 // 如果已经有未结束的行程，先结束它
-                if (current_drive_id) {
-                    updateDrive(current_drive_id, {
+                if (newDriveId) {
+                    updateDrive(newDriveId, {
                         end_time: new Date(currentTimestamp).toISOString(),
                         end_lat: currentLat,
                         end_lon: currentLon,
@@ -288,11 +366,11 @@ async function pollSingleVehicle(vehicle) {
                 });
                 
             } else if (currentKeyStatus === '2' && currentMainLockStatus === '0' && 
-                       current_drive_id) {
-                // 结束行驶
+                       newDriveId) {
+                // 结束行驶（仅在未被遗留清理逻辑处理时执行）
                 console.log(`[Polling Service] ${vin} 结束行驶，摘要计算已加入队列`);
                 
-                updateDrive(current_drive_id, {
+                updateDrive(newDriveId, {
                     end_time: new Date(currentTimestamp).toISOString(),
                     end_lat: currentLat,
                     end_lon: currentLon,
@@ -376,6 +454,20 @@ async function pollSingleVehicle(vehicle) {
             // 403错误或认证失败：token失效，30天后重试
             delayMilliseconds = 43200 * 60 * 1000; // 30天
             newState = 'token_invalid';
+            
+            // 推送通知：登录失效
+            if (push_token) {
+                try {
+                    await sendPushNotificationInternal(
+                        push_token,
+                        '登录已失效',
+                        '您的账号登录信息已过期，请重新登录以继续使用车辆监控功能'
+                    );
+                    console.log(`[Polling Service] ${vin} 已发送登录失效通知`);
+                } catch (pushError) {
+                    console.error(`[Polling Service] ${vin} 发送登录失效通知失败:`, pushError.message);
+                }
+            }
         } else {
             // 其他错误：默认5分钟重试
             delayMilliseconds = 5 * 60 * 1000;
@@ -391,4 +483,3 @@ async function pollSingleVehicle(vehicle) {
         console.log(`[Polling Service] ${vin} 轮询失败 [${newState}] 下次: ${(delayMilliseconds/1000).toFixed(1)}秒后 (${nextPollTime})`);
     }
 }
-

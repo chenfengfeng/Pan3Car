@@ -1,6 +1,5 @@
 // /www/wwwroot/pan3/api/charge/charge.controller.js
 import schedule from 'node-schedule';
-import { VehicleDataCircuitBreaker } from '../../core/utils/circuit-breaker.js';
 import { 
     getVehicleDataInternal, 
     sendPushNotificationInternal, 
@@ -16,7 +15,8 @@ import {
     getPendingTimeChargeTasks,
     getVehicleByVin,
     getChargesWithDataPointsByVin,
-    deleteChargesByIds
+    deleteChargesByIds,
+    updateVehicleAfterPoll
 } from '../../core/database/operations.js';
 
 // 存储time模式的scheduled jobs，用于管理和取消
@@ -27,9 +27,6 @@ let rangeMonitoringInterval = null;
 let isRangeMonitoringActive = false;
 let isMonitoringExecuting = false; // 标记是否有监控任务正在执行
 let shouldStopMonitoring = false; // 标记是否应该停止监控
-
-// 车辆数据获取熔断器实例
-const vehicleDataCircuitBreaker = new VehicleDataCircuitBreaker();
 
 /**
  * 开始监听API
@@ -353,9 +350,7 @@ export async function updateLiveActivityToken(req, res) {
  * @returns {Promise<object>} - 车辆数据对象
  */
 async function getVehicleData(vin, timaToken) {
-    return await vehicleDataCircuitBreaker.executeVehicleDataFetch(async () => {
-        return await getVehicleDataInternal(vin, timaToken);
-    });
+    return await getVehicleDataInternal(vin, timaToken);
 }
 
 /**
@@ -481,12 +476,44 @@ async function startRangeMonitoring() {
                     
                 } catch (vehicleError) {
                     console.error(`[Range Monitor] 获取车辆数据失败，VIN: ${vin}`, vehicleError);
+                    
+                    // 检测认证失败：token过期，更新车辆状态为30天后重试
+                    if (vehicleError.message.includes('Authentication failure') || vehicleError.message.includes('403')) {
+                        console.log(`[Range Monitor] VIN ${vin} Token失效，更新车辆状态并移除监控任务`);
+                        
+                        // 推送通知：登录失效
+                        if (task.push_token) {
+                            try {
+                                await sendPushNotification(
+                                    task.push_token,
+                                    '登录已失效',
+                                    '您的账号登录信息已过期，充电监控已停止，请重新登录以继续使用'
+                                );
+                                console.log(`[Range Monitor] ${vin} 已发送登录失效通知`);
+                            } catch (pushError) {
+                                console.error(`[Range Monitor] ${vin} 发送登录失效通知失败:`, pushError.message);
+                            }
+                        }
+                        
+                        // 更新车辆轮询状态为30天后重试（与Polling Service保持一致）
+                        const delayMilliseconds = 43200 * 60 * 1000; // 30天
+                        const nextPollTime = new Date(Date.now() + delayMilliseconds).toISOString().replace('T', ' ').substring(0, 19);
+                        
+                        updateVehicleAfterPoll(vin, {
+                            internal_state: 'token_invalid',
+                            next_poll_time: nextPollTime
+                        });
+                        
+                        console.log(`[Range Monitor] ${vin} 已标记为token_invalid，下次轮询: ${nextPollTime} (30天后)`);
+                        
+                        // 删除充电监控任务（无法继续监控）
+                        deleteChargeTaskByVin(vin);
+                    }
                 }
             });
             
             // 等待所有车辆的监控任务完成
             await Promise.all(monitoringPromises);
-            console.log('[Range Monitor] 本轮监控完成');
             
         } catch (error) {
             console.error('[Range Monitor] 监控轮询异常:', error);
@@ -678,9 +705,7 @@ export async function getChargeRecords(req, res) {
     try {
         const timaToken = req.headers.timatoken;
         const { vin, limit } = req.body;
-        
-        console.log(`[getChargeRecords] 收到请求 - VIN: "${vin}", VIN长度: ${vin?.length}, limit: ${limit}`);
-        
+                
         if (!vin || !timaToken) {
             return res.status(400).json({
                 code: 400,
@@ -690,9 +715,6 @@ export async function getChargeRecords(req, res) {
         
         // 获取充电记录及其数据点
         const charges = getChargesWithDataPointsByVin(vin, limit || null);
-        
-        console.log(`[getChargeRecords] VIN: "${vin}", 获取到 ${charges.length} 条充电记录`);
-        console.log(`[getChargeRecords] 数据详情:`, charges.map(c => ({ id: c.id, vin: c.vin, dataPoints: c.data_points?.length })));
         
         return res.status(200).json({
             code: 200,

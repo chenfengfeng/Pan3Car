@@ -22,8 +22,6 @@ export async function getTripRecords(req, res) {
         // 从数据库获取已完成的行程记录（包含data_points）
         const trips = getDrivesWithDataPointsByVin(vin, limit);
         
-        console.log(`[getTripRecords] 成功获取 ${trips.length} 条行程记录`);
-        
         return res.status(200).json({
             code: 200,
             message: '获取行程记录成功',

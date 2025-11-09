@@ -68,9 +68,7 @@ class CircuitBreaker {
     onFailure(operationName, error) {
         this.failureCount++;
         this.lastFailureTime = Date.now();
-        
-        console.log(`[CircuitBreaker] ${operationName} - 失败计数: ${this.failureCount}/${this.failureThreshold}, 错误: ${error.message}`);
-        
+                
         if (this.state === 'HALF_OPEN') {
             // 半开状态下失败，立即开启熔断器
             this.state = 'OPEN';
