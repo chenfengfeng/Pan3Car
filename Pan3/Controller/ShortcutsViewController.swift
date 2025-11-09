@@ -251,6 +251,13 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         groupTripRecordsByDate()
         tableView.reloadData()
         print("[ShortcutsVC] 从CoreData加载了 \(tripRecords.count) 条行程记录")
+        
+        // 检查是否显示空状态
+        if tripRecords.isEmpty {
+            showEmptyState()
+        } else {
+            hideEmptyState()
+        }
     }
     
     /// 从服务器同步行程记录
@@ -426,6 +433,59 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         }
         
         return result
+    }
+    
+    // MARK: - Empty State
+    
+    private func showEmptyState() {
+        let emptyView = createEmptyStateView()
+        tableView.backgroundView = emptyView
+    }
+    
+    private func hideEmptyState() {
+        tableView.backgroundView = nil
+    }
+    
+    private func createEmptyStateView() -> UIView {
+        let containerView = UIView()
+        
+        let imageView = UIImageView(image: UIImage(systemName: "car.fill"))
+        imageView.tintColor = .systemGray3
+        imageView.contentMode = .scaleAspectFit
+        
+        let titleLabel = UILabel()
+        titleLabel.text = "暂无行程记录"
+        titleLabel.font = .systemFont(ofSize: 18, weight: .medium)
+        titleLabel.textColor = .systemGray2
+        titleLabel.textAlignment = .center
+        
+        let subtitleLabel = UILabel()
+        subtitleLabel.text = "开始您的第一次行程吧"
+        subtitleLabel.font = .systemFont(ofSize: 14)
+        subtitleLabel.textColor = .systemGray3
+        subtitleLabel.textAlignment = .center
+        
+        containerView.addSubview(imageView)
+        containerView.addSubview(titleLabel)
+        containerView.addSubview(subtitleLabel)
+        
+        imageView.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.centerY.equalToSuperview().offset(-40)
+            make.width.height.equalTo(80)
+        }
+        
+        titleLabel.snp.makeConstraints { make in
+            make.top.equalTo(imageView.snp.bottom).offset(20)
+            make.centerX.equalToSuperview()
+        }
+        
+        subtitleLabel.snp.makeConstraints { make in
+            make.top.equalTo(titleLabel.snp.bottom).offset(8)
+            make.centerX.equalToSuperview()
+        }
+        
+        return containerView
     }
 }
 
