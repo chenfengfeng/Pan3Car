@@ -34,6 +34,53 @@ struct Provider: TimelineProvider {
             return
         }
         
+        // 检查数据新鲜度，如果数据过期则尝试刷新
+        let lastUpdateTimestamp = userDefaults.double(forKey: "SharedCarModelLastUpdate")
+        var shouldRefresh = false
+        
+        if lastUpdateTimestamp > 0 {
+            let lastUpdate = Date(timeIntervalSince1970: lastUpdateTimestamp)
+            let timeSinceLastUpdate = Date().timeIntervalSince(lastUpdate)
+            // 如果数据超过10分钟，尝试刷新
+            if timeSinceLastUpdate > 600 {
+                shouldRefresh = true
+                print("[CarWatchWidget] 数据已过期（\(Int(timeSinceLastUpdate))秒前更新），尝试刷新")
+            }
+        } else {
+            // 没有时间戳，尝试刷新
+            shouldRefresh = true
+            print("[CarWatchWidget] 没有数据时间戳，尝试刷新")
+        }
+        
+        // 如果数据过期且有认证信息，尝试通过 App Intent 刷新
+        if shouldRefresh {
+            if let timaToken = userDefaults.string(forKey: "timaToken"),
+               let defaultVin = userDefaults.string(forKey: "defaultVin"),
+               !timaToken.isEmpty && !defaultVin.isEmpty {
+                print("[CarWatchWidget] 触发后台刷新")
+                if #available(watchOS 10.0, *) {
+                    // 先加载当前数据，然后异步刷新
+                    loadDataAndCreateTimeline(currentDate: currentDate, userDefaults: userDefaults, completion: completion)
+                    
+                    // 异步触发刷新（不阻塞当前时间线）
+                    Task {
+                        let intent = WatchRefreshCarInfoIntent()
+                        try? await intent.perform()
+                        print("[CarWatchWidget] 后台刷新完成")
+                    }
+                } else {
+                    // watchOS 10.0 以下，直接加载现有数据
+                    loadDataAndCreateTimeline(currentDate: currentDate, userDefaults: userDefaults, completion: completion)
+                }
+                return
+            }
+        }
+        
+        // 加载数据并创建时间线
+        loadDataAndCreateTimeline(currentDate: currentDate, userDefaults: userDefaults, completion: completion)
+    }
+    
+    private func loadDataAndCreateTimeline(currentDate: Date, userDefaults: UserDefaults, completion: @escaping (Timeline<Entry>) -> ()) {
         // 尝试从App Groups读取SharedCarModel数据
         if let sharedCarModelDict = userDefaults.object(forKey: "SharedCarModelData") as? [String: Any],
            let sharedCarModel = SharedCarModel(dictionary: sharedCarModelDict) {

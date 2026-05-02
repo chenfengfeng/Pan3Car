@@ -454,10 +454,20 @@ class TripRecordCell: UITableViewCell {
             achievementRateLabel.textColor = UIColor.systemRed
         }
         
-        // 设置底部数据（优化格式）
-        powerConsumptionLabel.text = "消耗电量\n\(String(format: "%.1f", tripData.powerConsumption))%"
-        averageSpeedLabel.text = "平均速度\n\(String(format: "%.1f", tripData.averageSpeed)) km/h"
-        energyEfficiencyLabel.text = "平均能耗\n\(String(format: "%.2f", tripData.energyEfficiency)) kWh/100km"
+        // 根据数据来源类型显示不同的数据
+        let isDeviceTrack = tripData.trackSource == "device"
+        
+        if isDeviceTrack, let energyKwh = tripData.energyConsumptionKwh, let energyPer100km = tripData.energyConsumptionPer100km {
+            // 车机GPS模式：显示准确的数据
+            powerConsumptionLabel.text = "消耗电量\n\(String(format: "%.2f", energyKwh))度"
+            averageSpeedLabel.text = "平均速度\n\(String(format: "%.1f", tripData.averageSpeed)) km/h"
+            energyEfficiencyLabel.text = "里程能耗\n\(String(format: "%.2f", energyPer100km)) kWh/100km"
+        } else {
+            // 轮询模式：保持原有显示方式
+            powerConsumptionLabel.text = "消耗电量\n\(String(format: "%.1f", tripData.powerConsumption))%"
+            averageSpeedLabel.text = "平均速度\n\(String(format: "%.1f", tripData.averageSpeed)) km/h"
+            energyEfficiencyLabel.text = "平均能耗\n\(String(format: "%.2f", tripData.energyEfficiency)) kWh/100km"
+        }
         
         let isBlurAddress = UserDefaults.standard.bool(forKey: "isBlurAddress")
         addressBlurContainer.isHidden = !isBlurAddress

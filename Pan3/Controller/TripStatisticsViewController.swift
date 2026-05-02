@@ -399,21 +399,57 @@ class TripStatisticsViewController: UIViewController {
     }
     
     private func setupTrendChart() {
-        // 按月统计行程次数
+        // 按筛选范围统计行程次数：本月=按日，本年=按月，全部=按年
         let calendar = Calendar.current
-        var monthlyData: [String: Int] = [:]
+        var bucketData: [String: Int] = [:]
+        var xLabels: [String] = []
         
-        for record in filteredRecords {
-            let month = calendar.component(.month, from: record.startTime)
-            let year = calendar.component(.year, from: record.startTime)
-            let key = "\(year)-\(String(format: "%02d", month))"
-            monthlyData[key, default: 0] += 1
+        switch currentFilter {
+        case .thisMonth:
+            trendChartTitleLabel.text = "📈 行程趋势（按日）"
+            for record in filteredRecords {
+                let day = calendar.component(.day, from: record.startTime)
+                let month = calendar.component(.month, from: record.startTime)
+                let year = calendar.component(.year, from: record.startTime)
+                let key = "\(year)-\(String(format: "%02d", month))-\(String(format: "%02d", day))"
+                bucketData[key, default: 0] += 1
+            }
+            let sortedKeys = bucketData.keys.sorted()
+            xLabels = sortedKeys.map { key in
+                let comps = key.split(separator: "-")
+                return String(comps.last ?? "")
+            }
+        case .thisYear:
+            trendChartTitleLabel.text = "📈 行程趋势（按月）"
+            for record in filteredRecords {
+                let month = calendar.component(.month, from: record.startTime)
+                let year = calendar.component(.year, from: record.startTime)
+                let key = "\(year)-\(String(format: "%02d", month))"
+                bucketData[key, default: 0] += 1
+            }
+            let sortedKeys = bucketData.keys.sorted()
+            xLabels = sortedKeys.map { key in
+                let comps = key.split(separator: "-")
+                if let monthStr = comps.last, let monthNum = Int(monthStr) {
+                    return "\(monthNum)月"
+                }
+                return String(comps.last ?? "")
+            }
+        case .all:
+            trendChartTitleLabel.text = "📈 行程趋势（按年）"
+            for record in filteredRecords {
+                let year = calendar.component(.year, from: record.startTime)
+                let key = "\(year)"
+                bucketData[key, default: 0] += 1
+            }
+            let sortedKeys = bucketData.keys.sorted()
+            xLabels = sortedKeys
         }
         
-        // 排序并准备图表数据
-        let sortedKeys = monthlyData.keys.sorted()
+        // 排序并准备图表数据（按照 key 升序）
+        let sortedKeys = bucketData.keys.sorted()
         let entries = sortedKeys.enumerated().map { index, key -> BarChartDataEntry in
-            return BarChartDataEntry(x: Double(index), y: Double(monthlyData[key] ?? 0))
+            return BarChartDataEntry(x: Double(index), y: Double(bucketData[key] ?? 0))
         }
         
         if entries.isEmpty {
@@ -427,22 +463,27 @@ class TripStatisticsViewController: UIViewController {
         let dataSet = BarChartDataSet(entries: entries, label: "行程次数")
         dataSet.colors = [.systemBlue]
         dataSet.valueFont = .systemFont(ofSize: 10)
-        dataSet.valueFormatter = DefaultValueFormatter(decimals: 0)
+        // 使用自定义整数格式化器
+        dataSet.valueFormatter = IntegerValueFormatter()
         
         let data = BarChartData(dataSet: dataSet)
         trendChartView.data = data
         
         // 配置X轴
         trendChartView.xAxis.labelPosition = .bottom
-        trendChartView.xAxis.valueFormatter = IndexAxisValueFormatter(values: sortedKeys.map { key in
-            let components = key.split(separator: "-")
-            return String(components.last ?? "")
-        })
+        trendChartView.xAxis.valueFormatter = IndexAxisValueFormatter(values: xLabels)
         trendChartView.xAxis.granularity = 1
         trendChartView.xAxis.labelFont = .systemFont(ofSize: 10)
         
         // 配置Y轴
         trendChartView.leftAxis.axisMinimum = 0
+        // 仅显示整数刻度与数值
+        let yNumberFormatter = NumberFormatter()
+        yNumberFormatter.minimumFractionDigits = 0
+        yNumberFormatter.maximumFractionDigits = 0
+        trendChartView.leftAxis.valueFormatter = DefaultAxisValueFormatter(formatter: yNumberFormatter)
+        trendChartView.leftAxis.granularityEnabled = true
+        trendChartView.leftAxis.granularity = 1
         trendChartView.rightAxis.enabled = false
         
         trendChartView.animate(yAxisDuration: 1.0, easingOption: .easeOutBack)
@@ -450,29 +491,35 @@ class TripStatisticsViewController: UIViewController {
     
     private func setupEnergyDistributionChart() {
         // 按能耗范围分类
-        var ranges: [String: Int] = [
-            "优秀 <12": 0,
-            "良好 12-15": 0,
-            "一般 15-18": 0,
-            "较高 >18": 0
-        ]
+        var excellentCount = 0   // 优秀 <12
+        var goodCount = 0        // 良好 12-15
+        var averageCount = 0     // 一般 15-18
+        var highCount = 0        // 较高 >18
         
         for record in filteredRecords {
             let efficiency = record.energyEfficiency
             if efficiency < 12 {
-                ranges["优秀 <12"]! += 1
+                excellentCount += 1
             } else if efficiency < 15 {
-                ranges["良好 12-15"]! += 1
+                goodCount += 1
             } else if efficiency < 18 {
-                ranges["一般 15-18"]! += 1
+                averageCount += 1
             } else {
-                ranges["较高 >18"]! += 1
+                highCount += 1
             }
         }
         
-        let entries = ranges.map { key, value -> PieChartDataEntry in
-            return PieChartDataEntry(value: Double(value), label: key)
-        }.filter { $0.value > 0 }
+        // 固定顺序：优秀 -> 良好 -> 一般 -> 较高（与颜色、图例一致）
+        let orderedItems: [(label: String, count: Int)] = [
+            ("优秀 <12", excellentCount),
+            ("良好 12-15", goodCount),
+            ("一般 15-18", averageCount),
+            ("较高 >18", highCount)
+        ]
+        
+        let entries = orderedItems
+            .filter { $0.count > 0 }
+            .map { PieChartDataEntry(value: Double($0.count), label: $0.label) }
         
         if entries.isEmpty {
             energyDistributionChartView.data = nil
@@ -483,6 +530,7 @@ class TripStatisticsViewController: UIViewController {
         }
         
         let dataSet = PieChartDataSet(entries: entries, label: "")
+        // 颜色顺序需与 orderedItems 一致
         dataSet.colors = [
             .systemGreen,
             .systemYellow,
@@ -491,7 +539,8 @@ class TripStatisticsViewController: UIViewController {
         ]
         dataSet.valueFont = .systemFont(ofSize: 12, weight: .medium)
         dataSet.valueTextColor = .white
-        dataSet.valueFormatter = DefaultValueFormatter(decimals: 0)
+        // 使用自定义整数格式化器
+        dataSet.valueFormatter = IntegerValueFormatter()
         
         let data = PieChartData(dataSet: dataSet)
         energyDistributionChartView.data = data
@@ -516,13 +565,13 @@ class TripStatisticsViewController: UIViewController {
         // 计算统计数据
         let avgEnergy = filteredRecords.isEmpty ? 0 : filteredRecords.reduce(0.0) { $0 + $1.energyEfficiency } / Double(filteredRecords.count)
         let avgAchievement = filteredRecords.isEmpty ? 0 : filteredRecords.reduce(0.0) { $0 + $1.achievementRate } / Double(filteredRecords.count)
-        let maxSpeed = filteredRecords.map { Int($0.maxSpeed) }.max() ?? 0
+        let avgTripDistance = filteredRecords.isEmpty ? 0 : filteredRecords.reduce(0.0) { $0 + $1.totalDistance } / Double(filteredRecords.count)
         
         // 创建数据行
         let data = [
             ("平均能耗", String(format: "%.2f kWh/100km", avgEnergy)),
             ("平均达成率", String(format: "%.1f%%", avgAchievement)),
-            ("最高车速", "\(maxSpeed) km/h")
+            ("平均单次里程", String(format: "%.1f km", avgTripDistance))
         ]
         
         var lastView: UIView = titleLabel

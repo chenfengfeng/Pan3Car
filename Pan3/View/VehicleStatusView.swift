@@ -196,7 +196,7 @@ class VehicleStatusView: UIStackView {
     }
     func updateTPStatusInfo() {
         guard let model = UserManager.shared.carModel else { return }
-        // 胎压状态（数据为0时显示--）
+        // 胎压状态（数据为0时显示--，服务端会自动将车机上传的胎压数据替换 JAC 返回的数据）
         leftTopTPStatus.text = "左前胎压：\(model.lfTirePresure == 0 ? "--" : "\(model.lfTirePresure)")"
         rightTopTPStatus.text = "右前胎压：\(model.rfTirePresure == 0 ? "--" : "\(model.rfTirePresure)")"
         leftBottomTPStatus.text = "左后胎压：\(model.lrTirePresure == 0 ? "--" : "\(model.lrTirePresure)")"

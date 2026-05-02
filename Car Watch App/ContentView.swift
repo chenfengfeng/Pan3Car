@@ -9,6 +9,7 @@ import SwiftUI
 import CoreLocation
 import WatchKit
 import WidgetKit
+import WatchConnectivity
 
 // 使用自定义Button样式以保持视觉一致性
 
@@ -53,7 +54,10 @@ struct ContentView: View {
                                 print("[Watch Debug] 用户点击背景图片，开始刷新车辆数据")
                                 // 防止重复点击
                                 guard !isLoading else { return }
-                                loadCarData()
+                                // 直接触发网络刷新
+                                Task {
+                                    await refreshCarData()
+                                }
                             }
                         }
                     
@@ -94,10 +98,16 @@ struct ContentView: View {
         }
         .edgesIgnoringSafeArea(.all) // watchOS全屏设置
         .onAppear {
+            // 先加载本地缓存数据（快速显示）
             loadCarData()
             requestAuthDataIfNeeded()
             
-            // 监听数据更新通知
+            // 然后尝试从服务器刷新数据（如果数据过期）
+            Task {
+                await refreshCarData()
+            }
+            
+            // 监听数据更新通知（来自 WatchConnectivity）
             NotificationCenter.default.addObserver(
                 forName: NSNotification.Name("WatchCarDataDidUpdate"),
                 object: nil,
@@ -108,8 +118,15 @@ struct ContentView: View {
             }
         }
         .onChange(of: watchConnectivityManager.lastUpdateTime) { _ in
-            print("[Watch Debug] lastUpdateTime改变，重新加载数据")
+            print("[Watch Debug] lastUpdateTime改变，重新加载数据（来自 WatchConnectivity）")
             loadCarData()
+        }
+        .onChange(of: watchConnectivityManager.isConnected) { isConnected in
+            if isConnected {
+                print("[Watch Debug] WatchConnectivity 已连接，可以接收手机APP推送")
+            } else {
+                print("[Watch Debug] WatchConnectivity 未连接，将使用网络请求")
+            }
         }
         .onOpenURL { url in
             handleURLScheme(url)
@@ -670,12 +687,99 @@ struct ContentView: View {
         }
     }
     
-    /// 刷新车辆数据（异步版本）
+    /// 刷新车辆数据（异步版本）- 智能选择数据源
+    /// 优先级：1. WatchConnectivity（如果手机APP打开） 2. 网络请求（如果数据过期）
     private func refreshCarData() async {
-        // 网络相关代码已删除
-        // 使用默认数据或占位数据
-//        carModel = SharedCarModel()
-//        updateUIFromCarModel(carModel)
+        // 检查认证信息
+        guard let timaToken = watchConnectivityManager.getCurrentToken(),
+              let defaultVin = watchConnectivityManager.getCurrentVin() else {
+            print("[Watch Debug] 缺少认证信息，无法刷新数据")
+            // 尝试从手机APP获取认证信息
+            requestAuthDataIfNeeded()
+            return
+        }
+        
+        // 检查 WatchConnectivity 是否可用（手机APP打开时）
+        // 注意：在 Watch 端，isReachable 表示手机APP是否可达
+        if watchConnectivityManager.isConnected && WCSession.default.isReachable {
+            print("[Watch Debug] WatchConnectivity 可用，等待手机APP推送数据")
+            // 如果 WatchConnectivity 可用，优先使用它（更省电）
+            // 但也会检查数据新鲜度，如果数据过期则主动请求
+            if let lastUpdate = watchConnectivityManager.getLastUpdateTime() {
+                let timeSinceLastUpdate = Date().timeIntervalSince(lastUpdate)
+                if timeSinceLastUpdate < 300 { // 5分钟内，等待推送
+                    print("[Watch Debug] 数据仍然新鲜（\(Int(timeSinceLastUpdate))秒前更新），等待 WatchConnectivity 推送")
+                    return
+                }
+            }
+        }
+        
+        // 检查数据新鲜度（如果数据在5分钟内，不刷新）
+        if let lastUpdate = watchConnectivityManager.getLastUpdateTime() {
+            let timeSinceLastUpdate = Date().timeIntervalSince(lastUpdate)
+            if timeSinceLastUpdate < 300 { // 5分钟
+                print("[Watch Debug] 数据仍然新鲜（\(Int(timeSinceLastUpdate))秒前更新），跳过刷新")
+                return
+            }
+        }
+        
+        print("[Watch Debug] 开始从服务器获取车辆信息")
+        
+        // 显示加载状态
+        await MainActor.run {
+            isLoading = true
+        }
+        
+        // 调用网络请求获取车辆信息（带重试机制）
+        await performNetworkRequestWithRetry(maxRetries: 2)
+    }
+    
+    /// 执行网络请求（带重试机制）
+    private func performNetworkRequestWithRetry(maxRetries: Int, currentRetry: Int = 0) async {
+        SharedNetworkManager.shared.getCarInfo { result in
+            Task { @MainActor in
+                self.isLoading = false
+                
+                switch result {
+                case .success(let data):
+                    print("[Watch Debug] 成功获取车辆信息")
+                    
+                    // 将数据转换为 SharedCarModel
+                    if let sharedCarModel = SharedCarModel(dictionary: data) {
+                        // 更新本地数据
+                        self.carModel = sharedCarModel
+                        
+                        // 保存到 App Groups
+                        self.saveCarModelToAppGroups(sharedCarModel)
+                        
+                        // 更新UI
+                        self.updateUIFromCarModel(sharedCarModel)
+                        
+                        print("[Watch Debug] 车辆数据已更新")
+                    } else {
+                        print("[Watch Debug] 数据转换失败")
+                        // 数据转换失败时，尝试加载缓存数据
+                        self.loadCarData()
+                    }
+                    
+                case .failure(let error):
+                    print("[Watch Debug] 获取车辆信息失败: \(error.localizedDescription)")
+                    
+                    // 如果还有重试次数，延迟后重试
+                    if currentRetry < maxRetries {
+                        let retryDelay = Double(currentRetry + 1) * 2.0 // 递增延迟：2秒、4秒
+                        print("[Watch Debug] \(retryDelay)秒后重试（\(currentRetry + 1)/\(maxRetries)）")
+                        
+                        try? await Task.sleep(nanoseconds: UInt64(retryDelay * 1_000_000_000))
+                        await self.performNetworkRequestWithRetry(maxRetries: maxRetries, currentRetry: currentRetry + 1)
+                    } else {
+                        // 重试次数用完，加载缓存数据
+                        print("[Watch Debug] 重试次数用完，使用缓存数据")
+                        self.loadCarData()
+                    }
+                }
+            }
+        }
     }
     
     /// 从车辆模型更新UI状态

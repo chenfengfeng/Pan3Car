@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CoreData
 import CoreLocation
 
 /// 地理编码服务
@@ -106,37 +107,30 @@ class GeocodingService {
         
         print("[GeocodingService] 开始批量解析 \(records.count) 条充电记录")
         
+        // 仅传递 objectID，避免跨线程直接操作 NSManagedObject
+        let objectIDs = records.map { $0.objectID }
+        
         geocodingQueue.async { [weak self] in
             guard let self = self else { return }
             
             self.isProcessing = true
             
-            for (index, record) in records.enumerated() {
-                // 检查是否需要解析
-                if !record.needsGeocoding {
-                    print("[GeocodingService] 充电记录 \(index + 1)/\(records.count) 已有地址，跳过")
-                    continue
-                }
-                
-                print("[GeocodingService] 正在解析充电记录 \(index + 1)/\(records.count)")
-                
-                // 使用信号量实现同步等待
+            for (index, objectID) in objectIDs.enumerated() {
+                // 使用信号量串行化，避免频率限制
                 let semaphore = DispatchSemaphore(value: 0)
                 
-                self.geocodeSingleChargeRecord(record) { success in
+                self.geocodeSingleChargeRecord(objectID: objectID) { success in
                     if success {
-                        print("[GeocodingService] 充电记录 \(index + 1)/\(records.count) 解析成功")
+                        print("[GeocodingService] 充电记录 \(index + 1)/\(objectIDs.count) 解析成功")
                     } else {
-                        print("[GeocodingService] 充电记录 \(index + 1)/\(records.count) 解析失败")
+                        print("[GeocodingService] 充电记录 \(index + 1)/\(objectIDs.count) 解析失败")
                     }
                     semaphore.signal()
                 }
                 
-                // 等待解析完成
                 semaphore.wait()
                 
-                // 添加延迟，避免频率限制
-                if index < records.count - 1 {
+                if index < objectIDs.count - 1 {
                     Thread.sleep(forTimeInterval: self.geocodingInterval)
                 }
             }
@@ -154,31 +148,51 @@ class GeocodingService {
         }
     }
     
-    /// 解析单条充电记录的地址
+    /// 解析单条充电记录的地址（通过 objectID 保证线程安全）
     /// - Parameters:
-    ///   - record: 充电记录
+    ///   - objectID: 充电记录的 NSManagedObjectID
     ///   - completion: 完成回调
-    private func geocodeSingleChargeRecord(_ record: ChargeTaskRecord, completion: @escaping (Bool) -> Void) {
-        // 解析充电位置
-        geocodeCoordinate(latitude: record.lat, longitude: record.lon) { components in
-            DispatchQueue.main.async {
-                if let components = components {
-                    // 格式化为充电地址（包含城市信息）
-                    let address = AddressFormatter.formatChargeAddress(components)
+    private func geocodeSingleChargeRecord(objectID: NSManagedObjectID, completion: @escaping (Bool) -> Void) {
+        // 在独立后台上下文中获取对象，保证线程安全
+        let context = CoreDataManager.shared.newBackgroundContext()
+        
+        context.perform {
+            guard let record = try? context.existingObject(with: objectID) as? ChargeTaskRecord else {
+                print("[GeocodingService] 无法通过 objectID 获取 ChargeTaskRecord")
+                completion(false)
+                return
+            }
+            
+            // 如果不需要地理编码，直接返回成功
+            guard record.needsGeocoding else {
+                completion(true)
+                return
+            }
+            
+            let latitude = record.lat
+            let longitude = record.lon
+            
+            self.geocodeCoordinate(latitude: latitude, longitude: longitude) { components in
+                context.perform {
+                    if let components = components {
+                        let address = AddressFormatter.formatChargeAddress(components)
+                        record.updateAddress(address)
+                    } else {
+                        record.updateAddress("解析失败")
+                    }
                     
-                    // 更新数据库
-                    record.updateAddress(address)
-                    
-                    // 保存到 Core Data
-                    CoreDataManager.shared.saveContext()
-                    
-                    completion(true)
-                } else {
-                    // 解析失败，标记为"解析失败"
-                    record.updateAddress("解析失败")
-                    CoreDataManager.shared.saveContext()
-                    
-                    completion(false)
+                    // 保存到对应的后台上下文
+                    if context.hasChanges {
+                        do {
+                            try context.save()
+                            completion(true)
+                        } catch {
+                            print("[GeocodingService] 保存地址到 Core Data 失败: \(error)")
+                            completion(false)
+                        }
+                    } else {
+                        completion(true)
+                    }
                 }
             }
         }

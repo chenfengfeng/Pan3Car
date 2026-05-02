@@ -63,12 +63,12 @@ class TripDetailViewController: UIViewController {
         return stack
     }()
     
-    // 左侧容器（行驶里程 + 能耗）
+    // 左侧容器（行驶里程 + 能耗 + 达成率）
     private lazy var leftVerticalStack: UIStackView = {
         let stack = UIStackView()
-        stack.alignment = .center
+        stack.alignment = .leading
         stack.axis = .vertical
-        stack.spacing = 4
+        stack.spacing = 8
         return stack
     }()
     
@@ -81,8 +81,17 @@ class TripDetailViewController: UIViewController {
         return label
     }()
     
-    // 左侧：平均能耗标签
+    // 左侧：能耗标签
     private lazy var energyLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14, weight: .regular)
+        label.textColor = .white.withAlphaComponent(0.8)
+        label.textAlignment = .left
+        return label
+    }()
+    
+    // 左侧：达成率标签
+    private lazy var achievementRateLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 14, weight: .regular)
         label.textColor = .white.withAlphaComponent(0.8)
@@ -181,6 +190,7 @@ class TripDetailViewController: UIViewController {
         // 添加左侧组件
         leftVerticalStack.addArrangedSubview(distanceLabel)
         leftVerticalStack.addArrangedSubview(energyLabel)
+        leftVerticalStack.addArrangedSubview(achievementRateLabel)
         mainHorizontalStack.addArrangedSubview(leftVerticalStack)
         
         // 添加右侧网格容器
@@ -300,9 +310,23 @@ class TripDetailViewController: UIViewController {
     // MARK: - Info Setup
     
     private func setupInfo() {
-        // 设置左侧数据
+        // 判断数据来源类型
+        let isDeviceTrack = tripRecord.trackSource == "device"
+        
+        // 设置左侧数据：行驶里程
         distanceLabel.text = String(format: "%.1f km", tripRecord.totalDistance)
-        energyLabel.text = String(format: "%.2f kWh/100km", tripRecord.energyEfficiency)
+        
+        // 设置左侧数据：能耗（根据数据来源显示不同内容）
+        if isDeviceTrack, let energyPer100km = tripRecord.energyConsumptionPer100km {
+            // 车机GPS模式：显示准确的里程能耗
+            energyLabel.text = String(format: "%.1f kWh/100km", energyPer100km)
+        } else {
+            // 轮询模式：显示原有能耗计算
+            energyLabel.text = String(format: "%.2f kWh/100km", tripRecord.energyEfficiency)
+        }
+        
+        // 设置左侧数据：达成率
+        achievementRateLabel.text = String(format: "%.1f%% 达成率", tripRecord.achievementRate)
         
         // 清空右侧网格现有内容
         rightGridStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
@@ -337,13 +361,13 @@ class TripDetailViewController: UIViewController {
             title: "平均速度",
             value: "\(tripRecord.avgSpeed)km/h"
         )
-        let achievementRateView = createDataItemView(
-            title: "达成率",
-            value: String(format: "%.1f%%", tripRecord.achievementRate)
+        let maxSpeedView = createDataItemView(
+            title: "最高速度",
+            value: "\(tripRecord.maxSpeed)km/h"
         )
         
         bottomRowStack.addArrangedSubview(avgSpeedView)
-        bottomRowStack.addArrangedSubview(achievementRateView)
+        bottomRowStack.addArrangedSubview(maxSpeedView)
         
         // 添加到右侧网格
         rightGridStack.addArrangedSubview(topRowStack)
@@ -539,6 +563,77 @@ class TripDetailViewController: UIViewController {
     }
 }
 
+// MARK: - Custom Annotation View
+
+class StartPointAnnotationView: MKAnnotationView {
+    override init(annotation: MKAnnotation?, reuseIdentifier: String?) {
+        super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
+        setupView()
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func setupView() {
+        // 背景大小
+        let backgroundSize: CGFloat = 36
+        let imageSize: CGFloat = 30
+        
+        // 创建浅蓝色背景容器
+        let backgroundView = UIView()
+        backgroundView.frame = CGRect(x: 0, y: 0, width: backgroundSize, height: backgroundSize)
+        backgroundView.backgroundColor = UIColor(red: 0.7, green: 0.85, blue: 1.0, alpha: 1.0) // 浅蓝色
+        backgroundView.layer.cornerRadius = backgroundSize / 2
+        backgroundView.layer.borderWidth = 2
+        backgroundView.layer.borderColor = UIColor.white.cgColor
+        backgroundView.clipsToBounds = true
+        addSubview(backgroundView)
+        
+        // 添加车辆图片到背景中心
+        let imageView = UIImageView()
+        if let image = UIImage(named: "start_car") {
+            // 确保使用原始渲染模式
+            imageView.image = image.withRenderingMode(.alwaysOriginal)
+            imageView.contentMode = .scaleAspectFit
+            let imagePadding = (backgroundSize - imageSize) / 2
+            imageView.frame = CGRect(x: imagePadding, y: imagePadding, width: imageSize, height: imageSize)
+            backgroundView.addSubview(imageView)
+        } else {
+            // 如果图片加载失败，显示备用文本
+            let label = UILabel()
+            label.text = "🚗"
+            label.font = .systemFont(ofSize: 24)
+            label.textAlignment = .center
+            let imagePadding = (backgroundSize - imageSize) / 2
+            label.frame = CGRect(x: imagePadding, y: imagePadding, width: imageSize, height: imageSize)
+            backgroundView.addSubview(label)
+        }
+        
+        // 创建标签容器
+        let labelContainer = UIView()
+        labelContainer.frame = CGRect(x: -15, y: backgroundSize + 2, width: backgroundSize + 30, height: 16)
+        
+        // 创建"起点"标签
+        let label = UILabel()
+        label.text = "起点"
+        label.font = .systemFont(ofSize: 11, weight: .semibold)
+        label.textColor = .white
+        label.textAlignment = .center
+        label.frame = labelContainer.bounds
+        labelContainer.addSubview(label)
+        
+        // 添加到视图
+        addSubview(labelContainer)
+        
+        // 设置视图大小
+        frame = CGRect(x: 0, y: 0, width: backgroundSize, height: backgroundSize + 20)
+        
+        // 设置锚点（标注点在背景中心）
+        centerOffset = CGPoint(x: 0, y: -backgroundSize / 2)
+    }
+}
+
 // MARK: - MKMapViewDelegate
 
 extension TripDetailViewController: MKMapViewDelegate {
@@ -558,27 +653,36 @@ extension TripDetailViewController: MKMapViewDelegate {
     }
     
     func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-        let identifier = "TripAnnotation"
-        
-        var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
-        
-        if annotationView == nil {
-            annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
-            annotationView?.canShowCallout = true
-        } else {
-            annotationView?.annotation = annotation
-        }
-        
-        if let markerView = annotationView as? MKMarkerAnnotationView {
-            if annotation.title == "起点" {
-                markerView.markerTintColor = .systemGreen
-                markerView.glyphText = "🚗"
-            } else if annotation.title == "终点" {
+        if annotation.title == "起点" {
+            let identifier = "StartAnnotation"
+            var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? StartPointAnnotationView
+            
+            if annotationView == nil {
+                annotationView = StartPointAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+            } else {
+                annotationView?.annotation = annotation
+            }
+            
+            return annotationView
+        } else if annotation.title == "终点" {
+            let identifier = "EndAnnotation"
+            var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+            
+            if annotationView == nil {
+                annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+                annotationView?.canShowCallout = true
+            } else {
+                annotationView?.annotation = annotation
+            }
+            
+            if let markerView = annotationView {
                 markerView.markerTintColor = .systemRed
                 markerView.glyphText = "🏁"
             }
+            
+            return annotationView
         }
         
-        return annotationView
+        return nil
     }
 }

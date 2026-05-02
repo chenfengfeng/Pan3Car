@@ -43,6 +43,25 @@ struct ChargeTaskModel {
         self.address = record.address
     }
 
+    // MARK: - 显示用地址（支持与行程页一致的“隐藏地址”开关）
+    var displayAddress: String {
+        let fallback = "胖3充电站"
+        guard let raw = address, !raw.isEmpty else { return fallback }
+        
+        let isBlur = UserDefaults.standard.bool(forKey: "isBlurAddress")
+        guard isBlur else { return raw }
+        
+        // 简单的中间模糊：保留首尾各最多3个字符
+        let visibleHead = 3
+        let visibleTail = 3
+        if raw.count <= visibleHead + visibleTail {
+            return String(repeating: "*", count: raw.count)
+        }
+        let head = raw.prefix(visibleHead)
+        let tail = raw.suffix(visibleTail)
+        return "\(head)***\(tail)"
+    }
+
     // 兼容网络返回的初始化方法（不保存多余属性，仅映射到数据库字段）
     // 注意：此初始化仅用于兼容已有调用，参数中的 vin/status/message 等不作为模型属性保存
     init(id: Int,

@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>需要使用相机来扫描二维码</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>需要访问本地网络来连接和绑定设备</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

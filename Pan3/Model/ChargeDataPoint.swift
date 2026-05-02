@@ -27,6 +27,10 @@ public class ChargeDataPoint: NSManagedObject {
     @NSManaged public var chgPlugStatus: String?
     @NSManaged public var chgStatus: String?
     @NSManaged public var chgLeftTime: Int32
+    // 车机上传模式字段
+    @NSManaged public var voltage: Double  // 电压 (V)
+    @NSManaged public var current: Double   // 电流 (A)
+    @NSManaged public var power: Double     // 功率 (kW)
     
     // MARK: - Relationships
     
@@ -152,17 +156,44 @@ extension ChargeDataPoint {
             return nil
         }
         
-        // 解析其他字段
-        dataPoint.lat = json["lat"] as? Double ?? 0.0
-        dataPoint.lon = json["lon"] as? Double ?? 0.0
-        dataPoint.soc = Int16(json["soc"] as? Int ?? 0)
-        dataPoint.remainingRangeKm = Int32(json["remaining_range_km"] as? Int ?? 0)
-        dataPoint.totalMileage = json["total_mileage"] as? String
-        dataPoint.keyStatus = json["keyStatus"] as? String
-        dataPoint.mainLockStatus = json["mainLockStatus"] as? String
-        dataPoint.chgPlugStatus = json["chgPlugStatus"] as? String
-        dataPoint.chgStatus = json["chgStatus"] as? String
-        dataPoint.chgLeftTime = Int32(json["chgLeftTime"] as? Int ?? 0)
+        // 根据数据来源解析不同字段
+        let dataSource = chargeRecord.dataSource ?? "jac"  // 默认为jac模式（兼容旧数据）
+        
+        if dataSource == "device" {
+            // 车机上传模式：包含电压、电流、功率等详细充电参数
+            dataPoint.voltage = json["voltage"] as? Double ?? 0.0
+            dataPoint.current = json["current"] as? Double ?? 0.0
+            dataPoint.power = json["power"] as? Double ?? 0.0
+            dataPoint.soc = Int16(json["soc"] as? Int ?? 0)
+            
+            // 车机模式没有位置和状态信息，设为默认值
+            dataPoint.lat = 0.0
+            dataPoint.lon = 0.0
+            dataPoint.remainingRangeKm = 0
+            dataPoint.totalMileage = nil
+            dataPoint.keyStatus = nil
+            dataPoint.mainLockStatus = nil
+            dataPoint.chgPlugStatus = nil
+            dataPoint.chgStatus = nil
+            dataPoint.chgLeftTime = 0
+        } else {
+            // JAC轮询模式：包含位置、状态等完整信息
+            dataPoint.lat = json["lat"] as? Double ?? 0.0
+            dataPoint.lon = json["lon"] as? Double ?? 0.0
+            dataPoint.soc = Int16(json["soc"] as? Int ?? 0)
+            dataPoint.remainingRangeKm = Int32(json["remaining_range_km"] as? Int ?? 0)
+            dataPoint.totalMileage = json["total_mileage"] as? String
+            dataPoint.keyStatus = json["keyStatus"] as? String
+            dataPoint.mainLockStatus = json["mainLockStatus"] as? String
+            dataPoint.chgPlugStatus = json["chgPlugStatus"] as? String
+            dataPoint.chgStatus = json["chgStatus"] as? String
+            dataPoint.chgLeftTime = Int32(json["chgLeftTime"] as? Int ?? 0)
+            
+            // JAC模式没有电压、电流、功率信息，设为默认值
+            dataPoint.voltage = 0.0
+            dataPoint.current = 0.0
+            dataPoint.power = 0.0
+        }
         
         // 关联充电记录
         dataPoint.chargeRecord = chargeRecord

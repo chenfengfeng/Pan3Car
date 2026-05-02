@@ -617,9 +617,16 @@ extension HomeViewController {
     
     // MARK: - 打开高德地图查看位置
     private func openAmapNavigation(model: SharedCarModel) {
-        let amapURLString = "iosamap://viewMap?sourceApplication=胖3汽车&backScheme=pan3&lat=\(model.latitude)&lon=\(model.longitude)&poiname=我的车&dev=0"
+        let appName = "胖3汽车".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Pan3"
+        let poiName = "我的车".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "MyCar"
+        let amapURLString = "iosamap://viewMap?sourceApplication=\(appName)&backScheme=pan3&lat=\(model.latitude)&lon=\(model.longitude)&poiname=\(poiName)&dev=0"
         if let amapURL = URL(string: amapURLString) {
             UIApplication.shared.open(amapURL, options: [:], completionHandler: nil)
+        } else {
+            // 如果URL创建失败，跳转到App Store
+            if let appStoreURL = URL(string: "https://apps.apple.com/cn/app/id461703208") {
+                UIApplication.shared.open(appStoreURL, options: [:], completionHandler: nil)
+            }
         }
     }
     
@@ -638,17 +645,23 @@ extension HomeViewController {
     private func openBaiduMapNavigation(model: SharedCarModel) {
         // 将GCJ02坐标转换为BD09坐标
         let convertedCoordinate = convertGCJ02ToBD09(lat: model.latitude, lon: model.longitude)
+        let appName = "胖3汽车".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Pan3"
         
-        let baiduURLString = "baidumap://map/direction?destination=\(convertedCoordinate.lat),\(convertedCoordinate.lon)&mode=driving&coord_type=bd09ll&src=胖3汽车"
+        let baiduURLString = "baidumap://map/direction?destination=\(convertedCoordinate.lat),\(convertedCoordinate.lon)&mode=driving&coord_type=bd09ll&src=\(appName)"
         
         if let baiduURL = URL(string: baiduURLString) {
             UIApplication.shared.open(baiduURL, options: [:]) { success in
                 if !success {
                     // 如果打开失败，跳转到App Store
-                    if let appStoreURL = URL(string: "https://apps.apple.com/cn/app/百度地图/id452186370") {
+                    if let appStoreURL = URL(string: "https://apps.apple.com/cn/app/id452186370") {
                         UIApplication.shared.open(appStoreURL, options: [:], completionHandler: nil)
                     }
                 }
+            }
+        } else {
+            // 如果URL创建失败，跳转到App Store
+            if let appStoreURL = URL(string: "https://apps.apple.com/cn/app/id452186370") {
+                UIApplication.shared.open(appStoreURL, options: [:], completionHandler: nil)
             }
         }
     }

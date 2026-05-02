@@ -335,12 +335,8 @@ class ChargeListCell: UITableViewCell {
             socLabel.text = "SOC：\(task.startSoc)% → --"
         }
         
-        // 地址信息
-        if let address = task.address, !address.isEmpty {
-            addressLabel.text = "地址：\(address)"
-        } else {
-            addressLabel.text = "地址：胖3充电站"
-        }
+        // 地址信息（参考行程页的“隐藏地址”处理）
+        addressLabel.text = "地址：\(task.displayAddress)"
     }
     
     override func prepareForReuse() {

@@ -18,6 +18,8 @@ public class ChargeTaskRecord: NSManagedObject {
     @NSManaged public var lon: Double
     @NSManaged public var address: String?
     @NSManaged public var recordID: String?
+    @NSManaged public var dataSource: String?      // 数据来源：device（车机上传）或 jac（轮询）
+    @NSManaged public var summaryStatus: String?  // 摘要状态：pending/completed/failed
     
     // MARK: - Relationships
     

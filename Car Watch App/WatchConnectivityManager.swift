@@ -7,6 +7,11 @@ class WatchConnectivityManager: NSObject, ObservableObject {
     @Published var isConnected = false
     @Published var lastUpdateTime: Date?
     
+    /// Watch 是否可达（手机APP打开时）
+    var isWatchReachable: Bool {
+        return WCSession.default.isReachable
+    }
+    
     private override init() {
         super.init()
         setupWatchConnectivity()

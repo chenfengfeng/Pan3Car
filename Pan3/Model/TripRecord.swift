@@ -29,6 +29,9 @@ public class TripRecord: NSManagedObject {
     @NSManaged public var consumedRange: Int32
     @NSManaged public var maxSpeed: Int32
     @NSManaged public var avgSpeed: Int32
+    @NSManaged public var summaryStatus: String?
+    @NSManaged public var trackSource: String?
+    @NSManaged public var dataPointsCount: Int32
     @NSManaged public var dataPoints: NSSet?
     
     // MARK: - Address Properties
@@ -114,6 +117,67 @@ public class TripRecord: NSManagedObject {
     /// 计算电量消耗百分比
     var powerConsumption: Double {
         return Double(startSoc - endSoc)
+    }
+    
+    /// 判断行程是否已完成摘要计算
+    var isSummaryCompleted: Bool {
+        return summaryStatus == "completed"
+    }
+    
+    /// 判断是否为车机GPS模式
+    var isDeviceTrackSource: Bool {
+        return trackSource == "device"
+    }
+    
+    /// 获取实际数据点数量（优先使用保存的count，否则从关系获取）
+    var actualDataPointsCount: Int {
+        if dataPointsCount > 0 {
+            return Int(dataPointsCount)
+        }
+        return dataPoints?.count ?? 0
+    }
+    
+    /// 计算综合耗电（kWh）- 仅适用于车机GPS模式（有power_kw数据）
+    var totalEnergyConsumptionKwh: Double? {
+        guard isDeviceTrackSource,
+              let points = dataPoints?.allObjects as? [TripDataPoint],
+              points.count > 1 else {
+            return nil
+        }
+        
+        let sortedPoints = points.sorted { ($0.timestamp ?? Date()) < ($1.timestamp ?? Date()) }
+        var totalEnergy: Double = 0.0
+        
+        for i in 0..<sortedPoints.count - 1 {
+            let currentPoint = sortedPoints[i]
+            let nextPoint = sortedPoints[i + 1]
+            
+            guard let currentTime = currentPoint.timestamp,
+                  let nextTime = nextPoint.timestamp else {
+                continue
+            }
+            
+            // 计算时间间隔（小时）
+            let timeIntervalHours = nextTime.timeIntervalSince(currentTime) / 3600.0
+            
+            // 计算平均功率
+            let avgPower = (currentPoint.powerKw + nextPoint.powerKw) / 2.0
+            
+            // 累加能量消耗（kW × 小时 = kWh）
+            totalEnergy += avgPower * timeIntervalHours
+        }
+        
+        return totalEnergy
+    }
+    
+    /// 计算动态综合能耗（度/百公里）- 仅适用于车机GPS模式
+    var energyConsumptionPer100km: Double? {
+        guard let totalEnergy = totalEnergyConsumptionKwh,
+              totalDistance > 0 else {
+            return nil
+        }
+        
+        return (totalEnergy / totalDistance) * 100.0
     }
     
     // MARK: - Address Helper Methods

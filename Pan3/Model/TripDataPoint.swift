@@ -22,6 +22,8 @@ public class TripDataPoint: NSManagedObject {
     @NSManaged public var keyStatus: String?
     @NSManaged public var mainLockStatus: String?
     @NSManaged public var calculatedSpeedKmh: Int32
+    @NSManaged public var direction: Double
+    @NSManaged public var powerKw: Double
     @NSManaged public var tripRecord: TripRecord?
     
     // MARK: - Convenience Initializer
@@ -37,7 +39,9 @@ public class TripDataPoint: NSManagedObject {
         totalMileage: String?,
         keyStatus: String?,
         mainLockStatus: String?,
-        calculatedSpeedKmh: Int32
+        calculatedSpeedKmh: Int32,
+        direction: Double = 0.0,
+        powerKw: Double = 0.0
     ) {
         self.init(context: context)
         self.timestamp = timestamp
@@ -49,6 +53,8 @@ public class TripDataPoint: NSManagedObject {
         self.keyStatus = keyStatus
         self.mainLockStatus = mainLockStatus
         self.calculatedSpeedKmh = calculatedSpeedKmh
+        self.direction = direction
+        self.powerKw = powerKw
     }
     
     /// 从服务器数据创建数据点
@@ -106,6 +112,23 @@ public class TripDataPoint: NSManagedObject {
         dataPoint.keyStatus = data["keyStatus"] as? String
         dataPoint.mainLockStatus = data["mainLockStatus"] as? String
         dataPoint.calculatedSpeedKmh = Int32(data["calculated_speed_kmh"] as? Int ?? 0)
+        
+        // 解析新字段（车机GPS模式特有）
+        if let directionValue = data["direction"] as? Double {
+            dataPoint.direction = directionValue
+        } else if let directionValue = data["direction"] as? Int {
+            dataPoint.direction = Double(directionValue)
+        } else {
+            dataPoint.direction = 0.0
+        }
+        
+        if let powerKwValue = data["power_kw"] as? Double {
+            dataPoint.powerKw = powerKwValue
+        } else if let powerKwValue = data["power_kw"] as? Float {
+            dataPoint.powerKw = Double(powerKwValue)
+        } else {
+            dataPoint.powerKw = 0.0
+        }
         
         // 关联到行程记录
         dataPoint.tripRecord = tripRecord

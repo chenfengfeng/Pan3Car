@@ -34,16 +34,30 @@ class CoreDataManager {
         description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
         description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
         
+        // 配置轻量级迁移（适配版本升级）
+        description.shouldMigrateStoreAutomatically = true
+        description.shouldInferMappingModelAutomatically = true
+        
         // 配置CloudKit容器标识符
         description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
             containerIdentifier: "iCloud.com.dream.pan3car"
         )
         
-        container.loadPersistentStores { _, error in
+        container.loadPersistentStores { storeDescription, error in
             if let error = error as NSError? {
                 // 在生产环境中，应该有更好的错误处理
                 print("Core Data error: \(error), \(error.userInfo)")
+                
+                // 如果是迁移错误，尝试删除并重建（仅用于开发调试）
+                #if DEBUG
+                if error.code == NSPersistentStoreIncompatibleVersionHashError {
+                    print("[CoreData] 检测到模型版本不兼容，尝试自动迁移...")
+                }
+                #endif
+                
                 fatalError("Unresolved error \(error), \(error.userInfo)")
+            } else {
+                print("[CoreData] 成功加载持久化存储: \(storeDescription.url?.lastPathComponent ?? "unknown")")
             }
         }
         
@@ -390,18 +404,28 @@ extension CoreDataManager {
                 record.lat = chargeJson["lat"] as? Double ?? 0.0
                 record.lon = chargeJson["lon"] as? Double ?? 0.0
                 record.address = chargeJson["address"] as? String
+                // 保存数据来源和状态
+                record.dataSource = chargeJson["data_source"] as? String
+                record.summaryStatus = chargeJson["summary_status"] as? String
                 
                 // 解析并创建数据点
                 if let dataPointsArray = chargeJson["data_points"] as? [[String: Any]] {
                     print("[CoreDataManager] 正在保存 \(dataPointsArray.count) 个数据点...")
                     
+                    // 打印第一个数据点的原始数据用于调试
+                    if let firstPoint = dataPointsArray.first {
+                        print("[CoreDataManager] 第一个数据点原始数据: \(firstPoint)")
+                    }
+                    
                     for dataPointJson in dataPointsArray {
                         if let dataPoint = ChargeDataPoint.create(from: dataPointJson, context: context, chargeRecord: record) {
                             // 数据点已自动关联到record
                         } else {
-                            print("[CoreDataManager] 数据点创建失败")
+                            print("[CoreDataManager] 数据点创建失败，原始数据: \(dataPointJson)")
                         }
                     }
+                } else {
+                    print("[CoreDataManager] data_points 字段不存在或格式错误，原始值: \(chargeJson["data_points"] ?? "nil")")
                 }
                 
                 savedRecords.append(record)
@@ -621,6 +645,14 @@ extension CoreDataManager {
         let context = newBackgroundContext()
         
         context.performAndWait {
+            // Any -> Double 解析（兼容 JSONSerialization/SwiftyJSON 可能产生的 NSNumber/Double/String）
+            func toDouble(_ value: Any?) -> Double? {
+                if let d = value as? Double { return d }
+                if let n = value as? NSNumber { return n.doubleValue }
+                if let s = value as? String { return Double(s) }
+                return nil
+            }
+
             for tripJson in tripsData {
                 // 解析行程记录基本信息
                 guard let startTimeString = tripJson["start_time"] as? String else {
@@ -700,9 +732,35 @@ extension CoreDataManager {
                 record.maxSpeed = Int32(tripJson["max_speed"] as? Int ?? 0)
                 record.avgSpeed = Int32(tripJson["avg_speed"] as? Int ?? 0)
                 
+                // 解析新字段
+                if let summaryStatus = tripJson["summary_status"] as? String {
+                    record.summaryStatus = summaryStatus
+                }
+                if let trackSource = tripJson["track_source"] as? String {
+                    record.trackSource = trackSource
+                }
+                if let dataPointsCount = tripJson["data_points_count"] as? Int {
+                    record.dataPointsCount = Int32(dataPointsCount)
+                } else {
+                    // 如果没有提供，稍后从实际数据点数量计算
+                    record.dataPointsCount = 0
+                }
+                
                 // 解析并创建数据点
                 if let dataPointsArray = tripJson["data_points"] as? [[String: Any]] {
                     print("[CoreDataManager] 正在保存 \(dataPointsArray.count) 个数据点...")
+
+                    // bug1(iOS兜底)：车机轨迹行程以“轨迹最早点”为起点坐标（用于修复历史数据 start_lat/start_lon 不准）
+                    if record.trackSource == "device" {
+                        // data_points 已按时间排序（后端也会排序），这里取第一个有效点即可
+                        if let first = dataPointsArray.first,
+                           let lat = toDouble(first["lat"]),
+                           let lon = toDouble(first["lon"]),
+                           lat != 0, lon != 0 {
+                            record.startLat = lat
+                            record.startLon = lon
+                        }
+                    }
                     
                     for dataPointJson in dataPointsArray {
                         if let dataPoint = TripDataPoint.create(from: dataPointJson, context: context, tripRecord: record) {
@@ -711,10 +769,15 @@ extension CoreDataManager {
                             print("[CoreDataManager] 数据点创建失败")
                         }
                     }
+                    
+                    // 更新实际数据点数量（如果之前没有从API获取）
+                    if record.dataPointsCount == 0 {
+                        record.dataPointsCount = Int32(dataPointsArray.count)
+                    }
                 }
                 
                 savedRecords.append(record)
-                print("[CoreDataManager] 成功保存行程记录：ID=\(recordID), 数据点数量=\(record.dataPoints?.count ?? 0)")
+                print("[CoreDataManager] 成功保存行程记录：ID=\(recordID), 数据点数量=\(record.dataPoints?.count ?? 0), trackSource=\(record.trackSource ?? "nil"), summaryStatus=\(record.summaryStatus ?? "nil")")
             }
             
             // 批量保存

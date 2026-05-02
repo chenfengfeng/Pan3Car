@@ -34,12 +34,14 @@ struct PaginationInfo {
     let hasPrev: Bool
 }
 
-class NetworkManager {
+class NetworkManager: NSObject {
     static let shared = NetworkManager()
     
     private let baseURL = "https://pan3.dreamforge.top/api"
     
-    private init() {}
+    private override init() {
+        super.init()
+    }
     
     // MARK: - 登录接口
     func login(userCode: String, password: String, completion: @escaping (Result<AuthResponseModel, Error>) -> Void) {
@@ -527,6 +529,9 @@ class NetworkManager {
                                 powerConsumption: tripJson["powerConsumption"].doubleValue,
                                 averageSpeed: tripJson["averageSpeed"].doubleValue,
                                 energyEfficiency: tripJson["energyEfficiency"].doubleValue,
+                                trackSource: tripJson["trackSource"].string,
+                                energyConsumptionKwh: tripJson["energyConsumptionKwh"].double,
+                                energyConsumptionPer100km: tripJson["energyConsumptionPer100km"].double,
                                 startTime: tripJson["startTime"].stringValue,
                                 endTime: tripJson["endTime"].stringValue,
                                 startLocation: tripJson["startLocation"].stringValue,
@@ -717,6 +722,114 @@ class NetworkManager {
             }
     }
     
+    // MARK: - 充电数据 V2 同步接口
+    
+    /// V2: 从服务器获取增量充电记录（包含data_points）
+    /// - Parameters:
+    ///   - after: 获取此时间戳之后的记录
+    ///   - completion: 完成回调
+    func getChargeRecordsFromServerV2(after: String? = nil, completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
+        guard let vin = UserManager.shared.defaultVin else {
+            let error = NSError(domain: "ChargeRecordsError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        // V2使用GET请求
+        let url = "\(baseURL)/charge/sync-v2"
+        
+        var parameters: [String: Any] = [
+            "vin": vin
+        ]
+        
+        if let after = after {
+            parameters["after"] = after
+        }
+        
+        let headers: HTTPHeaders = [
+            "Content-Type": "application/json"
+        ]
+        
+        print("[Charge V2 Sync] 拉取请求: \(url) parameters: \(parameters)")
+        
+        AF.request(url, method: .get, parameters: parameters, encoding: URLEncoding.default, headers: headers)
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let json = try JSON(data: data)
+                        
+                        if json["code"].intValue == 200 {
+                            let chargesArray = json["data"]["charges"].arrayValue.map { $0.dictionaryObject ?? [:] }
+                            print("[Charge V2 Sync] 成功获取 \(chargesArray.count) 条增量充电记录")
+                            completion(.success(chargesArray))
+                        } else {
+                            let errorMsg = json["message"].stringValue.isEmpty ? "获取充电记录失败" : json["message"].stringValue
+                            let error = NSError(domain: "ChargeRecordsError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+                            completion(.failure(error))
+                        }
+                    } catch {
+                        completion(.failure(error))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+    
+    /// V2: 确认充电数据同步完成，通知服务器标记指定ID的充电记录为已同步
+    /// - Parameters:
+    ///   - chargeIDs: 已同步的充电记录ID数组
+    ///   - completion: 完成回调
+    func confirmChargeSyncCompleteV2(chargeIDs: [Int], completion: @escaping (Result<[String: Int], Error>) -> Void) {
+        guard let vin = UserManager.shared.defaultVin else {
+            let error = NSError(domain: "ChargeSyncCompleteError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/charge/sync-v2/confirm"
+        
+        let parameters: [String: Any] = [
+            "vin": vin,
+            "charge_ids": chargeIDs
+        ]
+        
+        let headers: HTTPHeaders = [
+            "Content-Type": "application/json"
+        ]
+        
+        print("[Charge V2 Confirm] 确认请求 (按ID): \(chargeIDs)")
+        
+        AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let json = try JSON(data: data)
+                        
+                        if json["code"].intValue == 200 {
+                            let syncedCount = json["data"]["synced_count"].intValue
+                            print("[Charge V2 Confirm] 服务器已标记 \(syncedCount) 条充电记录为已同步")
+                            
+                            let result = [
+                                "syncedCharges": syncedCount
+                            ]
+                            completion(.success(result))
+                        } else {
+                            let errorMsg = json["message"].stringValue.isEmpty ? "确认同步失败" : json["message"].stringValue
+                            let error = NSError(domain: "ChargeSyncCompleteError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+                            completion(.failure(error))
+                        }
+                    } catch {
+                        completion(.failure(error))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+    
     // MARK: - 行程数据同步接口
     
     /// 从服务器获取行程记录（包含data_points）
@@ -727,13 +840,17 @@ class NetworkManager {
         guard let vin = UserManager.shared.defaultVin,
               let timaToken = UserManager.shared.timaToken else {
             let error = NSError(domain: "TripRecordsError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            print("[getTripRecordsFromServer] 错误: 用户未登录或未绑定车辆")
             completion(.failure(error))
             return
         }
         
-        print("[getTripRecordsFromServer] 准备请求 - VIN: \"\(vin)\", VIN长度: \(vin.count)")
+        print("[getTripRecordsFromServer] ========== 开始请求 ==========")
+        print("[getTripRecordsFromServer] VIN: \"\(vin)\", VIN长度: \(vin.count)")
+        print("[getTripRecordsFromServer] TimaToken: \(timaToken.prefix(20))...")
         
         let url = "\(baseURL)/trip/records"
+        print("[getTripRecordsFromServer] URL: \(url)")
         
         var parameters: [String: Any] = [
             "vin": vin
@@ -742,18 +859,28 @@ class NetworkManager {
         if let limit = limit {
             parameters["limit"] = limit
         }
+        print("[getTripRecordsFromServer] 请求参数: \(parameters)")
         
         let headers: HTTPHeaders = [
             "Content-Type": "application/json",
             "Timatoken": timaToken
         ]
+        print("[getTripRecordsFromServer] 请求头: \(headers)")
         
         AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
             .responseData { response in
+                print("[getTripRecordsFromServer] ========== 收到响应 ==========")
+                print("[getTripRecordsFromServer] HTTP状态码: \(response.response?.statusCode ?? -1)")
+                
                 switch response.result {
                 case .success(let data):
+                    print("[getTripRecordsFromServer] 响应数据大小: \(data.count) bytes")
+                    if let rawString = String(data: data, encoding: .utf8) {
+                        print("[getTripRecordsFromServer] 原始响应: \(rawString.prefix(500))...")
+                    }
                     do {
                         let json = try JSON(data: data)
+                        print("[getTripRecordsFromServer] JSON解析成功 - code: \(json["code"].intValue), message: \(json["message"].stringValue)")
                         
                         if json["code"].intValue == 200 {
                             let tripsArray = json["data"]["trips"].arrayValue.map { $0.dictionaryObject ?? [:] }
@@ -761,13 +888,17 @@ class NetworkManager {
                             completion(.success(tripsArray))
                         } else {
                             let errorMsg = json["message"].stringValue.isEmpty ? "获取行程记录失败" : json["message"].stringValue
+                            print("[getTripRecordsFromServer] 服务器返回错误: \(errorMsg)")
                             let error = NSError(domain: "TripRecordsError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
                             completion(.failure(error))
                         }
                     } catch {
+                        print("[getTripRecordsFromServer] JSON解析失败: \(error)")
                         completion(.failure(error))
                     }
                 case .failure(let error):
+                    print("[getTripRecordsFromServer] 网络请求失败: \(error)")
+                    print("[getTripRecordsFromServer] 错误详情: \(error.localizedDescription)")
                     completion(.failure(error))
                 }
             }
@@ -827,5 +958,156 @@ class NetworkManager {
                     completion(.failure(error))
                 }
             }
+    }
+    
+    // MARK: - V2 Sync API
+    
+    /// V2: 从服务器获取增量行程记录（包含data_points）
+    /// - Parameters:
+    ///   - after: 获取此时间戳之后的记录
+    ///   - completion: 完成回调
+    func getTripRecordsFromServerV2(after: String? = nil, completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
+        guard let vin = UserManager.shared.defaultVin else {
+            let error = NSError(domain: "TripRecordsError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        // V2使用GET请求
+        let url = "\(baseURL)/trip/sync-v2"
+        
+        var parameters: [String: Any] = [
+            "vin": vin
+        ]
+        
+        if let after = after {
+            parameters["after"] = after
+        }
+        
+        // V2不需要Timatoken，或者如果需要也可带上
+        let headers: HTTPHeaders = [
+            "Content-Type": "application/json"
+        ]
+        
+        print("[V2 Sync] 拉取请求: \(url) parameters: \(parameters)")
+        
+        AF.request(url, method: .get, parameters: parameters, encoding: URLEncoding.default, headers: headers)
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let json = try JSON(data: data)
+                        
+                        // 打印完整JSON以便调试
+                        // print("[V2 Sync] Response: \(json)")
+                        
+                        if json["code"].intValue == 200 {
+                            let tripsArray = json["data"]["trips"].arrayValue.map { $0.dictionaryObject ?? [:] }
+                            print("[V2 Sync] 成功获取 \(tripsArray.count) 条增量行程记录")
+                            completion(.success(tripsArray))
+                        } else {
+                            let errorMsg = json["message"].stringValue.isEmpty ? "获取行程记录失败" : json["message"].stringValue
+                            let error = NSError(domain: "TripRecordsError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+                            completion(.failure(error))
+                        }
+                    } catch {
+                        completion(.failure(error))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+    
+    /// V2: 确认行程数据同步完成，通知服务器标记指定ID的行程为已同步
+    /// - Parameters:
+    ///   - tripIDs: 已同步的行程ID数组
+    ///   - completion: 完成回调
+    func confirmTripSyncCompleteV2(tripIDs: [Int], completion: @escaping (Result<[String: Int], Error>) -> Void) {
+        guard let vin = UserManager.shared.defaultVin else {
+            let error = NSError(domain: "TripSyncCompleteError", code: -1, userInfo: [NSLocalizedDescriptionKey: "用户未登录或未绑定车辆"])
+            completion(.failure(error))
+            return
+        }
+        
+        let url = "\(baseURL)/trip/sync-v2/confirm"
+        
+        let parameters: [String: Any] = [
+            "vin": vin,
+            "trip_ids": tripIDs
+        ]
+        
+        let headers: HTTPHeaders = [
+            "Content-Type": "application/json"
+        ]
+        
+        print("[V2 Confirm] 确认请求 (按ID): \(tripIDs)")
+        
+        AF.request(url, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
+            .responseData { response in
+                switch response.result {
+                case .success(let data):
+                    do {
+                        let json = try JSON(data: data)
+                        
+                        if json["code"].intValue == 200 {
+                            let syncedCount = json["data"]["synced_count"].intValue
+                            print("[V2 Confirm] 服务器已标记 \(syncedCount) 条行程记录为已同步")
+                            
+                            let result = [
+                                "syncedTrips": syncedCount
+                            ]
+                            completion(.success(result))
+                        } else {
+                            let errorMsg = json["message"].stringValue.isEmpty ? "确认同步失败" : json["message"].stringValue
+                            let error = NSError(domain: "TripSyncCompleteError", code: json["code"].intValue, userInfo: [NSLocalizedDescriptionKey: errorMsg])
+                            completion(.failure(error))
+                        }
+                    } catch {
+                        completion(.failure(error))
+                    }
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+    }
+}
+
+// MARK: - DNS 解析协议监控
+extension NetworkManager: URLSessionTaskDelegate {
+    func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        for metric in metrics.transactionMetrics {
+            let dnsProtocol = metric.domainResolutionProtocol
+            let protocolName: String
+            switch dnsProtocol {
+            case .unknown: protocolName = "未知"
+            case .udp: protocolName = "UDP (传统DNS)"
+            case .tcp: protocolName = "TCP"
+            case .tls: protocolName = "TLS (DoT)"
+            case .https: protocolName = "HTTPS (DoH) ✅"
+            @unknown default: protocolName = "未知(\(dnsProtocol.rawValue))"
+            }
+            
+            if let url = task.originalRequest?.url?.host {
+                print("[DNS监控] \(url) -> \(protocolName)")
+            }
+        }
+    }
+    
+    /// 测试 DNS 解析协议（调试用）
+    func testDNSResolution() {
+        let config = URLSessionConfiguration.default
+        let session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+        
+        guard let url = URL(string: "https://pan3.dreamforge.top/api/health") else { return }
+        
+        let task = session.dataTask(with: url) { _, _, error in
+            if let error = error {
+                print("[DNS测试] 请求失败: \(error.localizedDescription)")
+            } else {
+                print("[DNS测试] 请求成功")
+            }
+        }
+        task.resume()
     }
 }

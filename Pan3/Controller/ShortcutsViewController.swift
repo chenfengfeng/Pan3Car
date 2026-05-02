@@ -311,13 +311,17 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         }
     }
     
-    /// 从服务器同步行程记录
+    /// 从服务器同步行程记录 (V2)
     private func syncTripRecordsFromServer() {
         guard !isSyncing else { return }
         
         isSyncing = true
         
-        NetworkManager.shared.getTripRecordsFromServer { [weak self] result in
+        // 获取上次同步时间
+        let lastSyncTime = UserDefaults.standard.string(forKey: "LastTripSyncTime")
+        print("[ShortcutsVC] V2同步开始，上次同步时间: \(lastSyncTime ?? "无")")
+        
+        NetworkManager.shared.getTripRecordsFromServerV2(after: lastSyncTime) { [weak self] result in
             DispatchQueue.main.async {
                 self?.isSyncing = false
                 self?.tableView.mj_header?.endRefreshing()
@@ -334,22 +338,55 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
                     // 保存到CoreData
                     let savedRecords = CoreDataManager.shared.syncTripRecordsFromServer(tripsData)
                     
-                    if !savedRecords.isEmpty {
-                        print("[ShortcutsVC] 成功同步 \(savedRecords.count) 条行程记录到CoreData")
-                        
-                        // ⚠️ 修复：只提取实际保存成功的记录ID，通知服务器删除
-                        let tripIds = savedRecords.compactMap { record -> Int? in
-                            return Int(record.recordID ?? "0")
-                        }.filter { $0 > 0 }
-                        
-                        if !tripIds.isEmpty {
-                            print("[ShortcutsVC] 通知服务器删除 \(tripIds.count) 条已同步的行程记录")
-                            self?.confirmSyncComplete(tripIds: tripIds)
-                        } else {
-                            print("[ShortcutsVC] 警告：没有有效的recordID可确认")
+                    // 收集服务器返回的所有行程ID
+                    var tripIDs: [Int] = []
+                    for trip in tripsData {
+                        if let id = trip["id"] as? Int {
+                            tripIDs.append(id)
+                        } else if let id = trip["id"] as? Int64 {
+                            tripIDs.append(Int(id))
                         }
+                    }
+                    
+                    // 找出最新的end_time用于更新本地同步游标
+                    var latestEndTime: String?
+                    
+                    // 辅助函数：解析时间字符串
+                    func parseTime(_ timeStr: String) -> Date? {
+                        let iso8601Formatter = ISO8601DateFormatter()
+                        iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                        if let date = iso8601Formatter.date(from: timeStr) { return date }
                         
-                        // 重新加载本地数据
+                        iso8601Formatter.formatOptions = [.withInternetDateTime]
+                        return iso8601Formatter.date(from: timeStr)
+                    }
+                    
+                    // 寻找最大时间戳
+                    var maxDate: Date?
+                    var maxDateStr: String?
+                    
+                    for trip in tripsData {
+                        if let endTimeStr = trip["end_time"] as? String,
+                           let date = parseTime(endTimeStr) {
+                            if maxDate == nil || date > maxDate! {
+                                maxDate = date
+                                maxDateStr = endTimeStr
+                            }
+                        }
+                    }
+                    
+                    latestEndTime = maxDateStr
+                    
+                    // 按ID列表确认同步完成
+                    if !tripIDs.isEmpty {
+                        print("[ShortcutsVC] 准备确认同步，行程IDs: \(tripIDs)")
+                        self?.confirmSyncCompleteV2(tripIDs: tripIDs, latestEndTime: latestEndTime)
+                    } else {
+                        print("[ShortcutsVC] 警告：无法从返回数据中提取有效行程ID")
+                    }
+                        
+                    // 重新加载本地数据 (如果保存了新数据)
+                    if !savedRecords.isEmpty {
                         self?.loadLocalTripRecords()
                     }
                     
@@ -361,14 +398,20 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         }
     }
     
-    /// 确认同步完成，通知服务器删除数据
-    private func confirmSyncComplete(tripIds: [Int]) {
-        NetworkManager.shared.confirmTripSyncComplete(tripIds: tripIds) { result in
+    /// V2: 确认同步完成（按ID列表标记已同步）
+    private func confirmSyncCompleteV2(tripIDs: [Int], latestEndTime: String?) {
+        NetworkManager.shared.confirmTripSyncCompleteV2(tripIDs: tripIDs) { [weak self] result in
             switch result {
             case .success(let stats):
-                print("[ShortcutsVC] 服务器已删除 \(stats["deletedTrips"] ?? 0) 条行程记录")
+                print("[ShortcutsVC] V2确认成功，服务器已标记 \(stats["syncedTrips"] ?? 0) 条行程记录为已同步")
+                
+                // 更新本地LastSyncTime（用于下次增量拉取）
+                if let latestTime = latestEndTime {
+                    UserDefaults.standard.set(latestTime, forKey: "LastTripSyncTime")
+                }
+                
             case .failure(let error):
-                print("[ShortcutsVC] 确认同步失败: \(error.localizedDescription)")
+                print("[ShortcutsVC] V2确认同步失败: \(error.localizedDescription)")
             }
         }
     }
@@ -616,6 +659,43 @@ extension ShortcutsViewController: UITableViewDataSource {
         let startTime = dateFormatter.string(from: record.startTime)
         let endTime = dateFormatter.string(from: record.endTime ?? Date())
         
+        // 判断数据来源类型
+        let trackSource = record.trackSource
+        let isDeviceTrack = trackSource == "device"
+        
+        // 根据数据来源计算不同的数据
+        var powerConsumption: Double
+        var energyEfficiency: Double
+        var energyConsumptionKwh: Double?
+        var energyConsumptionPer100km: Double?
+        
+        if isDeviceTrack {
+            // 车机GPS模式：使用power_kw计算准确数据
+            if let totalEnergy = record.totalEnergyConsumptionKwh {
+                energyConsumptionKwh = totalEnergy
+                powerConsumption = totalEnergy // 显示消耗电量（度）
+            } else {
+                // 如果无法计算，回退到SOC消耗
+                energyConsumptionKwh = nil
+                powerConsumption = record.powerConsumption
+            }
+            
+            if let energyPer100km = record.energyConsumptionPer100km {
+                energyConsumptionPer100km = energyPer100km
+                energyEfficiency = energyPer100km // 显示里程能耗（kWh/100km）
+            } else {
+                // 如果无法计算，回退到原有计算方式
+                energyConsumptionPer100km = nil
+                energyEfficiency = record.energyEfficiency
+            }
+        } else {
+            // 轮询模式：保持原有计算方式
+            powerConsumption = record.powerConsumption
+            energyEfficiency = record.energyEfficiency
+            energyConsumptionKwh = nil
+            energyConsumptionPer100km = nil
+        }
+        
         return TripRecordData(
             id: Int(record.id),
             vin: "",
@@ -626,9 +706,12 @@ extension ShortcutsViewController: UITableViewDataSource {
             drivingMileage: record.totalDistance,
             consumedMileage: Double(record.consumedRange),
             achievementRate: record.achievementRate,
-            powerConsumption: record.powerConsumption,
+            powerConsumption: powerConsumption,
             averageSpeed: Double(record.avgSpeed),
-            energyEfficiency: record.energyEfficiency,
+            energyEfficiency: energyEfficiency,
+            trackSource: trackSource,
+            energyConsumptionKwh: energyConsumptionKwh,
+            energyConsumptionPer100km: energyConsumptionPer100km,
             startTime: startTime,
             endTime: endTime,
             startLocation: "",

@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import Network
 import CoreData
 import WidgetKit
 import AppIntents
@@ -19,6 +20,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // 配置阿里云 HTTPDNS (DoH)
+        configureHTTPDNS()
+        
         // 初始化Core Data + CloudKit
         _ = CoreDataManager.shared
         print("[AppDelegate] Core Data + CloudKit 初始化完成")
@@ -45,6 +49,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     self.handlePushNotificationUpdate(userInfo: remoteNotification)
                 }
+            }
+            
+            // 自动同步充电和行程数据
+            // 延迟执行，确保APP完全初始化后再进行网络请求
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.startAutoDataSync()
             }
         } else {
             // 未登录，显示登录界面
@@ -88,6 +98,43 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // 应用即将终止时保存Core Data上下文
         CoreDataManager.shared.saveContext()
         print("[AppDelegate] 应用终止前已保存Core Data上下文")
+    }
+    
+    // MARK: - 自动数据同步
+    
+    /// 启动自动数据同步
+    /// 按顺序同步：1. 充电数据 -> 2. 行程数据
+    private func startAutoDataSync() {
+        print("[AppDelegate] 开始自动数据同步...")
+        
+        DataSyncManager.shared.startAutoSync { result in
+            if result.isSuccess {
+                print("[AppDelegate] 自动同步成功 - 充电记录: \(result.chargeRecordsCount) 条, 行程记录: \(result.tripRecordsCount) 条")
+            } else {
+                if let chargeError = result.chargeError {
+                    print("[AppDelegate] 充电数据同步失败: \(chargeError.localizedDescription)")
+                }
+                if let tripError = result.tripError {
+                    print("[AppDelegate] 行程数据同步失败: \(tripError.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    // MARK: - HTTPDNS 配置
+    private func configureHTTPDNS() {
+        let dohEndpoint = nw_endpoint_create_url("https://764341-hgflez0p6dicwj2a.alidns.com/dns-query")
+        let resolverConfig = nw_resolver_config_create_https(dohEndpoint)
+        
+        // 添加备用 DNS 服务器
+        nw_resolver_config_add_server_address(resolverConfig, nw_endpoint_create_host("223.5.5.5", "443"))
+        nw_resolver_config_add_server_address(resolverConfig, nw_endpoint_create_host("223.6.6.6", "443"))
+        
+        // 获取默认隐私上下文并配置加密 DNS
+        let defaultContext: nw_privacy_context_t = _nw_privacy_context_default_context
+        nw_privacy_context_require_encrypted_name_resolution(defaultContext, true, resolverConfig)
+        
+        print("[AppDelegate] HTTPDNS (DoH) 配置完成")
     }
     
     private func updateLiveActivityToken(_ token: String, type: LiveActivityType) {

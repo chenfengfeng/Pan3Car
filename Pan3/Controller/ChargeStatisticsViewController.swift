@@ -425,21 +425,53 @@ class ChargeStatisticsViewController: UIViewController {
     }
     
     private func setupTrendChart() {
-        // 按月统计充电次数
         let calendar = Calendar.current
-        var monthlyData: [String: Int] = [:]
+        var entries: [BarChartDataEntry] = []
+        var xLabels: [String] = []
         
-        for record in filteredRecords {
-            let month = calendar.component(.month, from: record.startTime)
-            let year = calendar.component(.year, from: record.startTime)
-            let key = "\(year)-\(String(format: "%02d", month))"
-            monthlyData[key, default: 0] += 1
-        }
-        
-        // 排序并准备图表数据
-        let sortedKeys = monthlyData.keys.sorted()
-        let entries = sortedKeys.enumerated().map { index, key -> BarChartDataEntry in
-            return BarChartDataEntry(x: Double(index), y: Double(monthlyData[key] ?? 0))
+        switch currentFilter {
+        case .thisMonth, .thisYear:
+            // 本月/本年：按月显示，只显示有数据的月份
+            trendChartTitleLabel.text = "📈 充电趋势（按月）"
+            
+            var monthlyData: [Int: Int] = [:]
+            
+            // 统计每个月的充电次数
+            for record in filteredRecords {
+                let month = calendar.component(.month, from: record.startTime)
+                monthlyData[month, default: 0] += 1
+            }
+            
+            // 只显示有数据的月份，并按月份排序
+            let sortedMonths = monthlyData.keys.sorted()
+            entries = sortedMonths.enumerated().map { index, month -> BarChartDataEntry in
+                return BarChartDataEntry(x: Double(index), y: Double(monthlyData[month] ?? 0))
+            }
+            
+            // X轴标签：只显示有数据的月份
+            xLabels = sortedMonths.map { "\($0)月" }
+            
+        case .all:
+            // 全部：按年份显示
+            trendChartTitleLabel.text = "📈 充电趋势（按年）"
+            
+            var yearlyData: [String: Int] = [:]
+            
+            // 统计每年的充电次数
+            for record in filteredRecords {
+                let year = calendar.component(.year, from: record.startTime)
+                let key = "\(year)"
+                yearlyData[key, default: 0] += 1
+            }
+            
+            // 排序年份
+            let sortedKeys = yearlyData.keys.sorted()
+            entries = sortedKeys.enumerated().map { index, key -> BarChartDataEntry in
+                return BarChartDataEntry(x: Double(index), y: Double(yearlyData[key] ?? 0))
+            }
+            
+            // X轴标签：年份
+            xLabels = sortedKeys
         }
         
         if entries.isEmpty {
@@ -454,22 +486,27 @@ class ChargeStatisticsViewController: UIViewController {
         let dataSet = BarChartDataSet(entries: entries, label: "充电次数")
         dataSet.colors = [.systemGreen]
         dataSet.valueFont = .systemFont(ofSize: 10)
-        dataSet.valueFormatter = DefaultValueFormatter(decimals: 0)
+        // 使用自定义整数格式化器
+        dataSet.valueFormatter = IntegerValueFormatter()
         
         let data = BarChartData(dataSet: dataSet)
         trendChartView.data = data
         
         // 配置X轴
         trendChartView.xAxis.labelPosition = .bottom
-        trendChartView.xAxis.valueFormatter = IndexAxisValueFormatter(values: sortedKeys.map { key in
-            let components = key.split(separator: "-")
-            return String(components.last ?? "")
-        })
+        trendChartView.xAxis.valueFormatter = IndexAxisValueFormatter(values: xLabels)
         trendChartView.xAxis.granularity = 1
         trendChartView.xAxis.labelFont = .systemFont(ofSize: 10)
         
         // 配置Y轴
         trendChartView.leftAxis.axisMinimum = 0
+        // 仅显示整数刻度与数值
+        let yNumberFormatter = NumberFormatter()
+        yNumberFormatter.minimumFractionDigits = 0
+        yNumberFormatter.maximumFractionDigits = 0
+        trendChartView.leftAxis.valueFormatter = DefaultAxisValueFormatter(formatter: yNumberFormatter)
+        trendChartView.leftAxis.granularityEnabled = true
+        trendChartView.leftAxis.granularity = 1
         trendChartView.rightAxis.enabled = false
         
         trendChartView.animate(yAxisDuration: 1.0, easingOption: .easeOutBack)
@@ -520,7 +557,8 @@ class ChargeStatisticsViewController: UIViewController {
         ]
         dataSet.valueFont = .systemFont(ofSize: 12, weight: .medium)
         dataSet.valueTextColor = .white
-        dataSet.valueFormatter = DefaultValueFormatter(decimals: 0)
+        // 使用自定义整数格式化器
+        dataSet.valueFormatter = IntegerValueFormatter()
         
         let data = PieChartData(dataSet: dataSet)
         timeDistributionChartView.data = data

@@ -75,6 +75,7 @@ class ChargeDetailViewController: UIViewController {
         return stack
     }()
     
+    
     // MARK: - Initialization
     
     init(chargeRecord: ChargeTaskRecord) {
@@ -149,6 +150,7 @@ class ChargeDetailViewController: UIViewController {
         view.addSubview(mapView)
         view.addSubview(chartView)
         view.addSubview(statsContainerView)
+        // 先添加statsStackView，后续根据模式动态切换
         statsContainerView.addSubview(statsStackView)
         
         // MapView - 延伸到状态栏顶部（占50%屏幕高度）
@@ -169,7 +171,7 @@ class ChargeDetailViewController: UIViewController {
         statsContainerView.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview().inset(16)
             make.bottom.equalTo(view.safeAreaLayoutGuide.snp.bottom).offset(-16)
-            make.height.equalTo(100)
+            make.height.equalTo(70)
         }
         
         statsStackView.snp.makeConstraints { make in
@@ -218,34 +220,60 @@ class ChargeDetailViewController: UIViewController {
             return
         }
         
-        // 准备数据
-        var socEntries: [ChartDataEntry] = []
-        var rangeEntries: [ChartDataEntry] = []
+        // 判断数据源
+        let isDeviceMode = chargeRecord.dataSource == "device"
         
+        // 准备数据
         let startTime = dataPoints.first?.timestamp?.timeIntervalSince1970 ?? 0
         
-        for (_, point) in dataPoints.enumerated() {
+        if isDeviceMode {
+            // 车机模式：显示功率线
+            setupDeviceModeChart(startTime: startTime)
+        } else {
+            // 传统轮询模式：显示续航线
+            setupJACModeChart(startTime: startTime)
+        }
+        
+        // 配置坐标轴（两种模式都使用SOC和续航作为基点）
+        configureAxes(isDeviceMode: isDeviceMode)
+    }
+    
+    private func setupJACModeChart(startTime: TimeInterval) {
+        // 传统轮询模式：显示续航轨迹线
+        var rangeEntries: [ChartDataEntry] = []
+        
+        for point in dataPoints {
             let timeOffset = (point.timestamp?.timeIntervalSince1970 ?? 0) - startTime
             let minutes = timeOffset / 60.0
-            
-            socEntries.append(ChartDataEntry(x: minutes, y: Double(point.soc)))
             rangeEntries.append(ChartDataEntry(x: minutes, y: Double(point.remainingRangeKm)))
         }
         
-        // SOC数据集（主曲线）
-        let socDataSet = LineChartDataSet(entries: socEntries, label: "电量 (%)")
-        configureSocDataSet(socDataSet)
-        
-        // 续航数据集（辅助曲线）
+        // 续航数据集
         let rangeDataSet = LineChartDataSet(entries: rangeEntries, label: "续航 (km)")
         configureRangeDataSet(rangeDataSet)
         
         // 设置数据
-        let data = LineChartData(dataSets: [socDataSet, rangeDataSet])
+        let data = LineChartData(dataSets: [rangeDataSet])
         chartView.data = data
+    }
+    
+    private func setupDeviceModeChart(startTime: TimeInterval) {
+        // 车机模式：显示功率线
+        var powerEntries: [ChartDataEntry] = []
         
-        // 配置坐标轴
-        configureAxes()
+        for point in dataPoints {
+            let timeOffset = (point.timestamp?.timeIntervalSince1970 ?? 0) - startTime
+            let minutes = timeOffset / 60.0
+            powerEntries.append(ChartDataEntry(x: minutes, y: point.power))
+        }
+        
+        // 功率数据集
+        let powerDataSet = LineChartDataSet(entries: powerEntries, label: "功率 (kW)")
+        configurePowerDataSet(powerDataSet)
+        
+        // 设置数据
+        let data = LineChartData(dataSets: [powerDataSet])
+        chartView.data = data
     }
     
     private func configureSocDataSet(_ dataSet: LineChartDataSet) {
@@ -290,20 +318,70 @@ class ChargeDetailViewController: UIViewController {
         dataSet.cubicIntensity = smoothness
         
         // 线条样式
-        dataSet.lineWidth = 2.0
+        dataSet.lineWidth = 3.0
         dataSet.colors = [.systemOrange]
         dataSet.drawCirclesEnabled = false
         dataSet.drawValuesEnabled = false
-        dataSet.drawFilledEnabled = false
+        
+        // 渐变填充
+        dataSet.drawFilledEnabled = true
+        dataSet.fillAlpha = 0.3
+        let gradientColors = [
+            UIColor.systemOrange.withAlphaComponent(0.5).cgColor,
+            UIColor.systemOrange.withAlphaComponent(0.0).cgColor
+        ] as CFArray
+        let colorLocations: [CGFloat] = [1.0, 0.0]
+        if let gradient = CGGradient(
+            colorsSpace: CGColorSpaceCreateDeviceRGB(),
+            colors: gradientColors,
+            locations: colorLocations
+        ) {
+            dataSet.fill = LinearGradientFill(gradient: gradient, angle: 90)
+        }
         
         // 禁用高亮
         dataSet.highlightEnabled = false
         
-        // 使用右轴
+        // 使用右轴（续航）
         dataSet.axisDependency = .right
     }
     
-    private func configureAxes() {
+    private func configurePowerDataSet(_ dataSet: LineChartDataSet) {
+        // 圆滑曲线 - 数据点少时降低平滑度
+        dataSet.mode = .cubicBezier
+        let smoothness: CGFloat = dataPoints.count < 10 ? 0.1 : 0.25
+        dataSet.cubicIntensity = smoothness
+        
+        // 线条样式
+        dataSet.lineWidth = 3.0
+        dataSet.colors = [.systemBlue]
+        dataSet.drawCirclesEnabled = false
+        dataSet.drawValuesEnabled = false
+        
+        // 渐变填充
+        dataSet.drawFilledEnabled = true
+        dataSet.fillAlpha = 0.3
+        let gradientColors = [
+            UIColor.systemBlue.withAlphaComponent(0.5).cgColor,
+            UIColor.systemBlue.withAlphaComponent(0.0).cgColor
+        ] as CFArray
+        let colorLocations: [CGFloat] = [1.0, 0.0]
+        if let gradient = CGGradient(
+            colorsSpace: CGColorSpaceCreateDeviceRGB(),
+            colors: gradientColors,
+            locations: colorLocations
+        ) {
+            dataSet.fill = LinearGradientFill(gradient: gradient, angle: 90)
+        }
+        
+        // 禁用高亮
+        dataSet.highlightEnabled = false
+        
+        // 使用右轴（功率值会映射到右轴范围）
+        dataSet.axisDependency = .right
+    }
+    
+    private func configureAxes(isDeviceMode: Bool) {
         // X轴（时间）
         let xAxis = chartView.xAxis
         xAxis.labelPosition = .bottom
@@ -315,8 +393,9 @@ class ChargeDetailViewController: UIViewController {
         xAxis.valueFormatter = TimeAxisValueFormatter()
         xAxis.granularity = 10 // 每10分钟一个标签
         
-        // Y轴左（SOC%）
+        // Y轴左（SOC%）- 两种模式都显示
         let leftAxis = chartView.leftAxis
+        leftAxis.enabled = true
         leftAxis.labelFont = .systemFont(ofSize: 12, weight: .medium)
         leftAxis.labelTextColor = .systemGreen
         leftAxis.axisMinimum = Double(chargeRecord.startSoc) - 5
@@ -325,15 +404,30 @@ class ChargeDetailViewController: UIViewController {
         leftAxis.gridColor = .systemGray6
         leftAxis.valueFormatter = PercentAxisValueFormatter()
         
-        // Y轴右（续航km）
+        // Y轴右
         let rightAxis = chartView.rightAxis
         rightAxis.enabled = true
-        rightAxis.labelFont = .systemFont(ofSize: 12)
-        rightAxis.labelTextColor = .systemOrange
-        rightAxis.axisMinimum = Double(chargeRecord.startKm) - 10
-        rightAxis.axisMaximum = Double(chargeRecord.endKm) + 10
         rightAxis.drawGridLinesEnabled = false
-        rightAxis.valueFormatter = RangeAxisValueFormatter()
+        
+        if isDeviceMode {
+            // 车机模式：右轴显示功率范围（功率线使用右轴）
+            rightAxis.labelFont = .systemFont(ofSize: 12)
+            rightAxis.labelTextColor = .systemBlue
+            // 计算功率范围
+            let powerValues = dataPoints.map { $0.power }
+            let minPower = powerValues.min() ?? 0
+            let maxPower = powerValues.max() ?? 0
+            rightAxis.axisMinimum = max(0, minPower - 2)
+            rightAxis.axisMaximum = maxPower + 2
+            rightAxis.valueFormatter = PowerAxisValueFormatter()
+        } else {
+            // JAC模式：右轴显示续航范围
+            rightAxis.labelFont = .systemFont(ofSize: 12)
+            rightAxis.labelTextColor = .systemOrange
+            rightAxis.axisMinimum = Double(chargeRecord.startKm) - 10
+            rightAxis.axisMaximum = Double(chargeRecord.endKm) + 10
+            rightAxis.valueFormatter = RangeAxisValueFormatter()
+        }
     }
     
     private func animateChart() {
@@ -352,75 +446,162 @@ class ChargeDetailViewController: UIViewController {
     // MARK: - Stats Setup
     
     private func setupStats() {
+        // 判断数据源
+        let isDeviceMode = chargeRecord.dataSource == "device"
+        
         // 计算统计数据
         let socGain = chargeRecord.endSoc - chargeRecord.startSoc
         let rangeGain = chargeRecord.endKm - chargeRecord.startKm
         let duration = chargeRecord.chargeDuration
         
-        // 创建统计项
+        if isDeviceMode {
+            // 车机模式：显示4个数据项
+            setupDeviceModeStats(socGain: socGain, rangeGain: rangeGain, duration: duration)
+        } else {
+            // 传统轮询模式：显示3个数据项
+            setupJACModeStats(socGain: socGain, rangeGain: rangeGain, duration: duration)
+        }
+    }
+    
+    private func setupJACModeStats(socGain: Int16, rangeGain: Int64, duration: String) {
+        // 传统轮询模式：3个数据项，单行显示
+        
         let socStat = createStatView(
             icon: "bolt.fill",
             iconColor: .systemGreen,
             title: "SOC增加",
-            value: "\(chargeRecord.startSoc)% → \(chargeRecord.endSoc)%",
-            subtitle: "+\(socGain)%"
+            value: "+\(socGain)%"
         )
         
         let rangeStat = createStatView(
             icon: "speedometer",
             iconColor: .systemOrange,
             title: "续航增加",
-            value: "+\(rangeGain) km",
-            subtitle: "\(chargeRecord.startKm) → \(chargeRecord.endKm)"
+            value: "+\(rangeGain) km"
         )
         
         let timeStat = createStatView(
             icon: "clock.fill",
             iconColor: .systemBlue,
             title: "充电时长",
-            value: duration,
-            subtitle: dataPoints.isEmpty ? "" : "\(dataPoints.count) 个数据点"
+            value: duration
         )
+        
+        // 清除旧视图
+        statsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
         statsStackView.addArrangedSubview(socStat)
         statsStackView.addArrangedSubview(rangeStat)
         statsStackView.addArrangedSubview(timeStat)
     }
     
-    private func createStatView(icon: String, iconColor: UIColor, title: String, value: String, subtitle: String) -> UIView {
+    private func setupDeviceModeStats(socGain: Int16, rangeGain: Int64, duration: String) {
+        // 车机模式：4个数据项，单行显示
+        
+        // 计算电量增加（度电）
+        let energyGain = calculateEnergyGain()
+        
+        let socStat = createStatView(
+            icon: "bolt.fill",
+            iconColor: .systemGreen,
+            title: "SOC增加",
+            value: "+\(socGain)%"
+        )
+        
+        let energyStat = createStatView(
+            icon: "battery.100",
+            iconColor: .systemBlue,
+            title: "电量增加",
+            value: "+\(String(format: "%.2f", energyGain))度电"
+        )
+        
+        let rangeStat = createStatView(
+            icon: "speedometer",
+            iconColor: .systemOrange,
+            title: "续航增加",
+            value: "+\(rangeGain) km"
+        )
+        
+        let timeStat = createStatView(
+            icon: "clock.fill",
+            iconColor: .systemPurple,
+            title: "充电时长",
+            value: duration
+        )
+        
+        // 清除旧视图
+        statsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        
+        statsStackView.addArrangedSubview(socStat)
+        statsStackView.addArrangedSubview(energyStat)
+        statsStackView.addArrangedSubview(rangeStat)
+        statsStackView.addArrangedSubview(timeStat)
+    }
+    
+    /// 计算电量增加（度电）- 累加功率×时间间隔
+    private func calculateEnergyGain() -> Double {
+        guard dataPoints.count >= 2 else { return 0.0 }
+        
+        var totalEnergy: Double = 0.0
+        
+        for i in 0..<(dataPoints.count - 1) {
+            let currentPoint = dataPoints[i]
+            let nextPoint = dataPoints[i + 1]
+            
+            guard let currentTime = currentPoint.timestamp,
+                  let nextTime = nextPoint.timestamp else {
+                continue
+            }
+            
+            // 计算时间间隔（小时）
+            let timeIntervalHours = nextTime.timeIntervalSince(currentTime) / 3600.0
+            
+            // 使用平均功率
+            let avgPower = (currentPoint.power + nextPoint.power) / 2.0
+            
+            // 累加能量：功率(kW) × 时间(小时) = 能量(kWh)
+            totalEnergy += avgPower * timeIntervalHours
+        }
+        
+        return max(0.0, totalEnergy)
+    }
+    
+    private func createStatView(icon: String, iconColor: UIColor, title: String, value: String) -> UIView {
         let container = UIView()
         
+        // 图标
         let iconView = UIImageView()
         iconView.image = UIImage(systemName: icon)
         iconView.tintColor = iconColor
         iconView.contentMode = .scaleAspectFit
         
+        // 标题
         let titleLabel = UILabel()
         titleLabel.text = title
-        titleLabel.font = .systemFont(ofSize: 11)
+        titleLabel.font = .systemFont(ofSize: 12)
         titleLabel.textColor = .secondaryLabel
-        titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 1
         
+        // 第一行：图标 + 标题
+        let topStack = UIStackView(arrangedSubviews: [iconView, titleLabel])
+        topStack.axis = .horizontal
+        topStack.spacing = 4
+        topStack.alignment = .center
+        
+        // 数值
         let valueLabel = UILabel()
         valueLabel.text = value
-        valueLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        valueLabel.font = .systemFont(ofSize: 15, weight: .semibold)
         valueLabel.textColor = .label
         valueLabel.textAlignment = .center
-        valueLabel.numberOfLines = 0
+        valueLabel.numberOfLines = 1
         valueLabel.adjustsFontSizeToFitWidth = true
         valueLabel.minimumScaleFactor = 0.7
         
-        let subtitleLabel = UILabel()
-        subtitleLabel.text = subtitle
-        subtitleLabel.font = .systemFont(ofSize: 10)
-        subtitleLabel.textColor = .tertiaryLabel
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 1
-        
-        let stack = UIStackView(arrangedSubviews: [iconView, titleLabel, valueLabel, subtitleLabel])
+        // 整体垂直布局：第一行（图标+标题）+ 第二行（数值）
+        let stack = UIStackView(arrangedSubviews: [topStack, valueLabel])
         stack.axis = .vertical
-        stack.spacing = 3
+        stack.spacing = 4
         stack.alignment = .center
         
         container.addSubview(stack)
@@ -429,7 +610,7 @@ class ChargeDetailViewController: UIViewController {
         }
         
         iconView.snp.makeConstraints { make in
-            make.height.width.equalTo(24)
+            make.height.width.equalTo(20)
         }
         
         return container
@@ -508,6 +689,12 @@ class PercentAxisValueFormatter: AxisValueFormatter {
 class RangeAxisValueFormatter: AxisValueFormatter {
     func stringForValue(_ value: Double, axis: AxisBase?) -> String {
         return String(format: "%.0fkm", value)
+    }
+}
+
+class PowerAxisValueFormatter: AxisValueFormatter {
+    func stringForValue(_ value: Double, axis: AxisBase?) -> String {
+        return String(format: "%.1fkW", value)
     }
 }
 
