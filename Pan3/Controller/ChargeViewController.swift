@@ -1572,105 +1572,76 @@ extension ChargeViewController {
 
 extension ChargeViewController {
     
-    /// 同步服务器上的充电记录到本地（V2版本，基于时间戳增量同步）
+    /// 同步服务器上的充电记录到本地（V3摘要同步）
     /// 该方法会：
-    /// 1. 从服务器获取上次同步时间之后的充电记录（包含data_points）
+    /// 1. 从服务器获取充电摘要 upserts/deletes
     /// 2. 保存到本地Core Data数据库
-    /// 3. 通知服务器删除已同步的数据
+    /// 3. 确认已结束和已删除的记录
     func syncChargeDataFromServer() {
         // 检查是否已登录
         guard UserManager.shared.defaultVin != nil else {
             print("[syncChargeData] 用户未登录，跳过同步")
             return
         }
-        
-        print("[syncChargeData] 开始同步服务器充电记录(V2)...")
-        
-        // 获取上次同步时间
-        let lastSyncTime = UserDefaults.standard.string(forKey: "lastChargeSyncTimeV2")
-        print("[syncChargeData] 上次同步时间: \(lastSyncTime ?? "无")")
-        
-        // 步骤1：从服务器获取增量充电记录
-        NetworkManager.shared.getChargeRecordsFromServerV2(after: lastSyncTime) { [weak self] result in
+
+        print("[syncChargeData] 开始同步服务器充电记录(V3)...")
+
+        NetworkManager.shared.getChargeSyncV3 { [weak self] result in
             guard let self = self else { return }
-            
+
             switch result {
-            case .success(let chargesData):
-                if chargesData.isEmpty {
-                    print("[syncChargeData] 服务器没有需要同步的充电记录")
+            case .success(let syncResponse):
+                if syncResponse.upserts.isEmpty && syncResponse.deletes.isEmpty {
+                    print("[syncChargeData] 服务器没有需要同步的V3充电摘要")
                     return
                 }
-                
-                print("[syncChargeData] 收到 \(chargesData.count) 条充电记录，开始保存到本地...")
-                
-                // 步骤2：在后台线程保存数据到Core Data
+
+                print("[syncChargeData] 收到V3充电摘要：upserts=\(syncResponse.upserts.count), deletes=\(syncResponse.deletes.count)")
+
                 DispatchQueue.global(qos: .userInitiated).async {
-                    let savedRecords = CoreDataManager.shared.syncChargeRecordsFromServer(chargesData)
-                    
-                    print("[syncChargeData] 成功保存 \(savedRecords.count) 条充电记录到本地数据库")
-                    
-                    // 步骤3：收集服务器返回的所有充电记录ID
-                    var chargeIDs: [Int] = []
-                    for chargeData in chargesData {
-                        if let id = chargeData["id"] as? Int {
-                            chargeIDs.append(id)
-                        } else if let id = chargeData["id"] as? Int64 {
-                            chargeIDs.append(Int(id))
-                        }
-                    }
-                    
-                    // 找出最新的 end_time 用于更新本地同步游标
-                    var latestEndTime: String? = nil
-                    for chargeData in chargesData {
-                        if let endTime = chargeData["end_time"] as? String {
-                            if latestEndTime == nil || endTime > latestEndTime! {
-                                latestEndTime = endTime
-                            }
-                        }
-                    }
-                    
-                    // 按ID列表确认同步完成
-                    if !chargeIDs.isEmpty {
-                        print("[syncChargeData] 通知服务器标记 \(chargeIDs.count) 条充电记录为已同步")
-                        NetworkManager.shared.confirmChargeSyncCompleteV2(chargeIDs: chargeIDs) { result in
-                            switch result {
-                            case .success(let deletionResult):
-                                print("[syncChargeData] 同步完成！服务器已标记 \(deletionResult["syncedCharges"] ?? 0) 条充电记录为已同步")
-                                
-                                // 更新本地同步游标
-                                if let latestTime = latestEndTime {
-                                    UserDefaults.standard.set(latestTime, forKey: "lastChargeSyncTimeV2")
-                                }
-                                
-                                // 刷新UI
-                                DispatchQueue.main.async {
-                                    self.currentPage = 1
-                                    self.tableView.mj_footer?.resetNoMoreData()
-                                    self.loadChargeList(page: 1)
-                                }
-                                
-                            case .failure(let error):
-                                print("[syncChargeData] 通知服务器标记同步失败: \(error.localizedDescription)")
-                                // 即使通知失败，本地数据已经保存成功，所以也刷新UI
-                                DispatchQueue.main.async {
-                                    self.currentPage = 1
-                                    self.tableView.mj_footer?.resetNoMoreData()
-                                    self.loadChargeList(page: 1)
-                                }
-                            }
-                        }
-                    } else {
-                        // 没有有效的 ID，直接刷新UI
+                    let changedCount = CoreDataManager.shared.syncChargeSummariesV3(
+                        upserts: syncResponse.upserts,
+                        deletes: syncResponse.deletes
+                    )
+
+                    let ackIDs = syncResponse.deletes + syncResponse.upserts
+                        .filter { $0.status == 1 }
+                        .map { $0.clientChargeID }
+
+                    let refreshList = {
                         DispatchQueue.main.async {
                             self.currentPage = 1
                             self.tableView.mj_footer?.resetNoMoreData()
                             self.loadChargeList(page: 1)
                         }
                     }
+
+                    guard !ackIDs.isEmpty else {
+                        print("[syncChargeData] V3充电摘要保存完成，更新 \(changedCount) 条，本次无需确认")
+                        if changedCount > 0 {
+                            refreshList()
+                        }
+                        return
+                    }
+
+                    print("[syncChargeData] 通知服务器确认 \(ackIDs.count) 条V3充电记录")
+                    NetworkManager.shared.ackChargeSyncV3(clientChargeIDs: ackIDs) { result in
+                        switch result {
+                        case .success:
+                            print("[syncChargeData] V3确认完成，服务器已处理 \(ackIDs.count) 条充电记录")
+                            refreshList()
+
+                        case .failure(let error):
+                            print("[syncChargeData] V3确认同步失败: \(error.localizedDescription)")
+                            if changedCount > 0 {
+                                refreshList()
+                            }
+                        }
+                    }
                 }
-                
+
             case .failure(let error):
-                print("[syncChargeData] 从服务器获取充电记录失败: \(error.localizedDescription)")
+                print("[syncChargeData] 从服务器获取V3充电摘要失败: \(error.localizedDescription)")
             }
         }
     }
@@ -1705,4 +1676,3 @@ extension ChargeViewController {
         loadChargeList(page: 1)
     }
 }
-

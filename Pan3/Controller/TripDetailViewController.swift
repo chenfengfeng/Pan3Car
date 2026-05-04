@@ -23,6 +23,7 @@ class TripDetailViewController: UIViewController {
     private var isAnimating: Bool = false
     private var fullRouteCoordinates: [CLLocationCoordinate2D] = []
     private var pointsPerStep: Int = 1  // 每步增加的点数
+    private var hasRenderedMap = false
     
     // MARK: - UI Components
     
@@ -108,6 +109,30 @@ class TripDetailViewController: UIViewController {
         stack.distribution = .fillEqually
         return stack
     }()
+
+    private lazy var loadingContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.black.withAlphaComponent(0.55)
+        view.layer.cornerRadius = 8
+        view.isHidden = true
+        return view
+    }()
+
+    private lazy var loadingLabel: UILabel = {
+        let label = UILabel()
+        label.text = "轨迹加载中 0%"
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = .white
+        label.textAlignment = .center
+        return label
+    }()
+
+    private lazy var progressView: UIProgressView = {
+        let view = UIProgressView(progressViewStyle: .default)
+        view.trackTintColor = UIColor.white.withAlphaComponent(0.25)
+        view.progressTintColor = .systemGreen
+        return view
+    }()
     
     // MARK: - Initialization
     
@@ -131,10 +156,9 @@ class TripDetailViewController: UIViewController {
         title = ""
         
         setupUI()
-        loadDataPoints()
-        setupMap()
         setupInfo()
         setupNavigationBar()
+        loadAndRenderRoute()
     }
     
     // MARK: - Navigation Bar Setup
@@ -177,6 +201,7 @@ class TripDetailViewController: UIViewController {
     private func setupUI() {
         view.addSubview(mapView)
         view.addSubview(bottomInfoView)
+        view.addSubview(loadingContainerView)
         
         // 添加渐变层
         bottomInfoView.az_setGradientBackground(with: [.clear, .black.withAlphaComponent(0.5), .black.withAlphaComponent(0.8), .black], start: CGPoint(), end: CGPoint(x: 0, y: 1))
@@ -186,6 +211,9 @@ class TripDetailViewController: UIViewController {
         
         // 添加APP名称标签（用于分享截图）
         bottomInfoView.addSubview(appNameLabel)
+
+        loadingContainerView.addSubview(loadingLabel)
+        loadingContainerView.addSubview(progressView)
         
         // 添加左侧组件
         leftVerticalStack.addArrangedSubview(distanceLabel)
@@ -218,11 +246,28 @@ class TripDetailViewController: UIViewController {
             make.centerX.equalToSuperview()
             make.bottom.equalToSuperview().offset(-20)
         }
+
+        loadingContainerView.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top).offset(24)
+            make.width.equalTo(180)
+            make.height.equalTo(56)
+        }
+
+        loadingLabel.snp.makeConstraints { make in
+            make.top.leading.trailing.equalToSuperview().inset(10)
+        }
+
+        progressView.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview().inset(14)
+            make.top.equalTo(loadingLabel.snp.bottom).offset(8)
+        }
     }
     
     // MARK: - Map Setup
     
     private func setupMap() {
+        hasRenderedMap = true
         // 设置地图代理
         mapView.delegate = self
         
@@ -300,11 +345,51 @@ class TripDetailViewController: UIViewController {
     // MARK: - Data Loading
     
     private func loadDataPoints() {
-        // 从Core Data获取数据点
-        if let points = tripRecord.dataPoints?.allObjects as? [TripDataPoint] {
-            dataPoints = points.sorted { ($0.timestamp ?? Date()) < ($1.timestamp ?? Date()) }
-            print("[TripDetail] 加载了 \(dataPoints.count) 个数据点")
+        dataPoints = CoreDataManager.shared.fetchTripDataPoints(for: tripRecord)
+        print("[TripDetail] 加载了 \(dataPoints.count) 个数据点")
+    }
+
+    private func loadAndRenderRoute() {
+        loadDataPoints()
+        guard dataPoints.isEmpty, let clientTripID = tripRecord.clientTripID, !clientTripID.isEmpty else {
+            setupMap()
+            return
         }
+
+        setLoadingProgress(0)
+        loadingContainerView.isHidden = false
+        print("[TripDetail] 本地无轨迹点，开始按需导入：\(clientTripID)")
+
+        DataSyncManager.shared.importTripPoints(
+            clientTripID: clientTripID,
+            progress: { [weak self] progress in
+                self?.setLoadingProgress(progress)
+            },
+            completion: { [weak self] result in
+                guard let self = self else { return }
+                self.loadingContainerView.isHidden = true
+
+                switch result {
+                case .success(let count):
+                    CoreDataManager.shared.viewContext.refresh(self.tripRecord, mergeChanges: true)
+                    self.loadDataPoints()
+                    print("[TripDetail] 按需导入轨迹点完成：\(count) 个，当前本地 \(self.dataPoints.count) 个")
+                case .failure(let error):
+                    print("[TripDetail] 按需导入轨迹点失败：\(error.localizedDescription)")
+                    QMUITips.showError("轨迹加载失败")
+                }
+
+                if !self.hasRenderedMap {
+                    self.setupMap()
+                }
+            }
+        )
+    }
+
+    private func setLoadingProgress(_ progress: Double) {
+        let clamped = max(0, min(1, progress))
+        progressView.setProgress(Float(clamped), animated: true)
+        loadingLabel.text = "轨迹加载中 \(Int((clamped * 100).rounded()))%"
     }
     
     // MARK: - Info Setup

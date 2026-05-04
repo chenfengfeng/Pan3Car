@@ -13,14 +13,16 @@ import CoreData
 /// 存储充电过程中的详细数据点信息
 @objc(ChargeDataPoint)
 public class ChargeDataPoint: NSManagedObject {
-    
+
     // MARK: - Core Data Properties
-    
+
     @NSManaged public var timestamp: Date?
+    @NSManaged public var timestampMs: Int64
     @NSManaged public var lat: Double
     @NSManaged public var lon: Double
     @NSManaged public var soc: Int16
     @NSManaged public var remainingRangeKm: Int32
+    @NSManaged public var remainingRangeKmDouble: Double
     @NSManaged public var totalMileage: String?
     @NSManaged public var keyStatus: String?
     @NSManaged public var mainLockStatus: String?
@@ -31,13 +33,13 @@ public class ChargeDataPoint: NSManagedObject {
     @NSManaged public var voltage: Double  // 电压 (V)
     @NSManaged public var current: Double   // 电流 (A)
     @NSManaged public var power: Double     // 功率 (kW)
-    
+
     // MARK: - Relationships
-    
+
     @NSManaged public var chargeRecord: ChargeTaskRecord?
-    
+
     // MARK: - Computed Properties
-    
+
     /// 格式化的时间戳字符串
     var formattedTimestamp: String {
         guard let timestamp = timestamp else { return "--" }
@@ -45,20 +47,20 @@ public class ChargeDataPoint: NSManagedObject {
         formatter.dateFormat = "HH:mm:ss"
         return formatter.string(from: timestamp)
     }
-    
+
     /// 是否正在充电
     var isCharging: Bool {
         // chgStatus != "2" 表示正在充电
         return chgStatus != nil && chgStatus != "2"
     }
-    
+
     /// 剩余充电时间（分钟）
     var remainingChargeMinutes: Int {
         return Int(chgLeftTime)
     }
-    
+
     // MARK: - Convenience Initializers
-    
+
     /// 创建新的充电数据点
     convenience init(
         context: NSManagedObjectContext,
@@ -75,7 +77,7 @@ public class ChargeDataPoint: NSManagedObject {
         chgLeftTime: Int32
     ) {
         self.init(context: context)
-        
+
         self.timestamp = timestamp ?? Date()
         self.lat = lat
         self.lon = lon
@@ -93,11 +95,11 @@ public class ChargeDataPoint: NSManagedObject {
 // MARK: - Core Data Fetch Request
 
 extension ChargeDataPoint {
-    
+
     @nonobjc public class func fetchRequest() -> NSFetchRequest<ChargeDataPoint> {
         return NSFetchRequest<ChargeDataPoint>(entityName: "ChargeDataPoint")
     }
-    
+
     /// 获取指定充电记录的所有数据点，按时间升序排列
     @nonobjc public class func fetchRequest(for chargeRecord: ChargeTaskRecord) -> NSFetchRequest<ChargeDataPoint> {
         let request = fetchRequest()
@@ -105,7 +107,7 @@ extension ChargeDataPoint {
         request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: true)]
         return request
     }
-    
+
     /// 获取指定时间范围内的数据点
     @nonobjc public class func fetchRequest(from startDate: Date, to endDate: Date) -> NSFetchRequest<ChargeDataPoint> {
         let request = fetchRequest()
@@ -126,7 +128,7 @@ extension ChargeDataPoint: Identifiable {
 // MARK: - JSON Conversion
 
 extension ChargeDataPoint {
-    
+
     /// 从服务器返回的JSON数据创建数据点
     /// - Parameters:
     ///   - json: JSON字典
@@ -135,7 +137,7 @@ extension ChargeDataPoint {
     /// - Returns: 创建的数据点对象
     static func create(from json: [String: Any], context: NSManagedObjectContext, chargeRecord: ChargeTaskRecord) -> ChargeDataPoint? {
         let dataPoint = ChargeDataPoint(context: context)
-        
+
         // 解析时间戳
         if let timestampString = json["timestamp"] as? String {
             let formatter = ISO8601DateFormatter()
@@ -155,17 +157,17 @@ extension ChargeDataPoint {
         } else {
             return nil
         }
-        
+
         // 根据数据来源解析不同字段
         let dataSource = chargeRecord.dataSource ?? "jac"  // 默认为jac模式（兼容旧数据）
-        
+
         if dataSource == "device" {
             // 车机上传模式：包含电压、电流、功率等详细充电参数
             dataPoint.voltage = json["voltage"] as? Double ?? 0.0
             dataPoint.current = json["current"] as? Double ?? 0.0
             dataPoint.power = json["power"] as? Double ?? 0.0
             dataPoint.soc = Int16(json["soc"] as? Int ?? 0)
-            
+
             // 车机模式没有位置和状态信息，设为默认值
             dataPoint.lat = 0.0
             dataPoint.lon = 0.0
@@ -188,17 +190,16 @@ extension ChargeDataPoint {
             dataPoint.chgPlugStatus = json["chgPlugStatus"] as? String
             dataPoint.chgStatus = json["chgStatus"] as? String
             dataPoint.chgLeftTime = Int32(json["chgLeftTime"] as? Int ?? 0)
-            
+
             // JAC模式没有电压、电流、功率信息，设为默认值
             dataPoint.voltage = 0.0
             dataPoint.current = 0.0
             dataPoint.power = 0.0
         }
-        
+
         // 关联充电记录
         dataPoint.chargeRecord = chargeRecord
-        
+
         return dataPoint
     }
 }
-

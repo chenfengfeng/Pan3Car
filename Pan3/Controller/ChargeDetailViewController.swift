@@ -16,6 +16,7 @@ class ChargeDetailViewController: UIViewController {
     
     private var chargeRecord: ChargeTaskRecord
     private var dataPoints: [ChargeDataPoint] = []
+    private var chartReadyForAnimation = false
     
     // MARK: - UI Components
     
@@ -74,6 +75,31 @@ class ChargeDetailViewController: UIViewController {
         stack.spacing = 8
         return stack
     }()
+
+    private lazy var loadingContainerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.92)
+        view.layer.cornerRadius = 8
+        view.layer.borderWidth = 1
+        view.layer.borderColor = UIColor.separator.cgColor
+        view.isHidden = true
+        return view
+    }()
+
+    private lazy var loadingLabel: UILabel = {
+        let label = UILabel()
+        label.text = "曲线加载中 0%"
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = .label
+        label.textAlignment = .center
+        return label
+    }()
+
+    private lazy var progressView: UIProgressView = {
+        let view = UIProgressView(progressViewStyle: .default)
+        view.progressTintColor = .systemGreen
+        return view
+    }()
     
     
     // MARK: - Initialization
@@ -97,13 +123,12 @@ class ChargeDetailViewController: UIViewController {
         
         setupNavigationBar()
         setupUI()
-        loadDataPoints()
         setupMap()
-        setupChart()
         setupStats()
-        
+
         // 初始时隐藏图表，等待动画
         chartView.alpha = 0
+        loadAndRenderChart()
     }
     
     // MARK: - Navigation Bar Setup
@@ -135,6 +160,7 @@ class ChargeDetailViewController: UIViewController {
         super.viewDidAppear(animated)
         // 延迟执行动画，让页面先显示
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            guard self.chartReadyForAnimation else { return }
             // 先显示图表
             UIView.animate(withDuration: 0.3) {
                 self.chartView.alpha = 1.0
@@ -150,8 +176,11 @@ class ChargeDetailViewController: UIViewController {
         view.addSubview(mapView)
         view.addSubview(chartView)
         view.addSubview(statsContainerView)
+        view.addSubview(loadingContainerView)
         // 先添加statsStackView，后续根据模式动态切换
         statsContainerView.addSubview(statsStackView)
+        loadingContainerView.addSubview(loadingLabel)
+        loadingContainerView.addSubview(progressView)
         
         // MapView - 延伸到状态栏顶部（占50%屏幕高度）
         mapView.snp.makeConstraints { make in
@@ -176,6 +205,22 @@ class ChargeDetailViewController: UIViewController {
         
         statsStackView.snp.makeConstraints { make in
             make.edges.equalToSuperview().inset(12)
+        }
+
+        loadingContainerView.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.centerY.equalTo(chartView)
+            make.width.equalTo(180)
+            make.height.equalTo(56)
+        }
+
+        loadingLabel.snp.makeConstraints { make in
+            make.top.leading.trailing.equalToSuperview().inset(10)
+        }
+
+        progressView.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview().inset(14)
+            make.top.equalTo(loadingLabel.snp.bottom).offset(8)
         }
     }
     
@@ -205,11 +250,60 @@ class ChargeDetailViewController: UIViewController {
     // MARK: - Data Loading
     
     private func loadDataPoints() {
-        // 从Core Data获取数据点
-        if let points = chargeRecord.dataPoints?.allObjects as? [ChargeDataPoint] {
-            dataPoints = points.sorted { ($0.timestamp ?? Date()) < ($1.timestamp ?? Date()) }
-            print("[ChargeDetail] 加载了 \(dataPoints.count) 个数据点")
+        dataPoints = CoreDataManager.shared.fetchChargeDataPoints(for: chargeRecord)
+        print("[ChargeDetail] 加载了 \(dataPoints.count) 个数据点")
+    }
+
+    private func loadAndRenderChart() {
+        loadDataPoints()
+        guard dataPoints.isEmpty, let clientChargeID = chargeRecord.clientChargeID, !clientChargeID.isEmpty else {
+            renderChartIfPossible()
+            return
         }
+
+        setLoadingProgress(0)
+        loadingContainerView.isHidden = false
+        print("[ChargeDetail] 本地无过程点，开始按需导入：\(clientChargeID)")
+
+        DataSyncManager.shared.importChargePoints(
+            clientChargeID: clientChargeID,
+            progress: { [weak self] progress in
+                self?.setLoadingProgress(progress)
+            },
+            completion: { [weak self] result in
+                guard let self = self else { return }
+                self.loadingContainerView.isHidden = true
+
+                switch result {
+                case .success(let count):
+                    CoreDataManager.shared.viewContext.refresh(self.chargeRecord, mergeChanges: true)
+                    self.loadDataPoints()
+                    print("[ChargeDetail] 按需导入过程点完成：\(count) 个，当前本地 \(self.dataPoints.count) 个")
+                case .failure(let error):
+                    print("[ChargeDetail] 按需导入过程点失败：\(error.localizedDescription)")
+                    QMUITips.showError("曲线加载失败")
+                }
+
+                self.renderChartIfPossible()
+            }
+        )
+    }
+
+    private func renderChartIfPossible() {
+        setupChart()
+        chartReadyForAnimation = !dataPoints.isEmpty
+        guard chartReadyForAnimation else { return }
+
+        UIView.animate(withDuration: 0.3) {
+            self.chartView.alpha = 1.0
+        }
+        animateChart()
+    }
+
+    private func setLoadingProgress(_ progress: Double) {
+        let clamped = max(0, min(1, progress))
+        progressView.setProgress(Float(clamped), animated: true)
+        loadingLabel.text = "曲线加载中 \(Int((clamped * 100).rounded()))%"
     }
     
     // MARK: - Chart Setup
@@ -697,4 +791,3 @@ class PowerAxisValueFormatter: AxisValueFormatter {
         return String(format: "%.1fkW", value)
     }
 }
-

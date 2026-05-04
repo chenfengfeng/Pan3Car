@@ -10,14 +10,17 @@ import CoreData
 
 @objc(TripDataPoint)
 public class TripDataPoint: NSManagedObject {
-    
+
     // MARK: - Core Data Properties
-    
+
     @NSManaged public var timestamp: Date?
+    @NSManaged public var timestampMs: Int64
     @NSManaged public var lat: Double
     @NSManaged public var lon: Double
+    @NSManaged public var speed: Double
     @NSManaged public var soc: Int16
     @NSManaged public var remainingRangeKm: Int32
+    @NSManaged public var tripDistanceKm: Double
     @NSManaged public var totalMileage: String?
     @NSManaged public var keyStatus: String?
     @NSManaged public var mainLockStatus: String?
@@ -25,9 +28,9 @@ public class TripDataPoint: NSManagedObject {
     @NSManaged public var direction: Double
     @NSManaged public var powerKw: Double
     @NSManaged public var tripRecord: TripRecord?
-    
+
     // MARK: - Convenience Initializer
-    
+
     /// 便捷初始化方法
     convenience init(
         context: NSManagedObjectContext,
@@ -56,7 +59,7 @@ public class TripDataPoint: NSManagedObject {
         self.direction = direction
         self.powerKw = powerKw
     }
-    
+
     /// 从服务器数据创建数据点
     /// - Parameters:
     ///   - data: 服务器返回的数据字典
@@ -69,7 +72,7 @@ public class TripDataPoint: NSManagedObject {
             print("[TripDataPoint] 缺少timestamp字段")
             return nil
         }
-        
+
         // 解析时间 - 支持多种格式
         func parseDate(_ dateString: String) -> Date? {
             // 尝试ISO8601格式
@@ -78,13 +81,13 @@ public class TripDataPoint: NSManagedObject {
             if let date = iso8601Formatter.date(from: dateString) {
                 return date
             }
-            
+
             // 尝试不带毫秒的ISO8601格式
             iso8601Formatter.formatOptions = [.withInternetDateTime]
             if let date = iso8601Formatter.date(from: dateString) {
                 return date
             }
-            
+
             // 尝试标准格式
             let standardFormatter = DateFormatter()
             standardFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -92,15 +95,15 @@ public class TripDataPoint: NSManagedObject {
             if let date = standardFormatter.date(from: dateString) {
                 return date
             }
-            
+
             return nil
         }
-        
+
         guard let timestamp = parseDate(timestampString) else {
             print("[TripDataPoint] 时间解析失败：\(timestampString)")
             return nil
         }
-        
+
         // 创建数据点
         let dataPoint = TripDataPoint(context: context)
         dataPoint.timestamp = timestamp
@@ -112,7 +115,7 @@ public class TripDataPoint: NSManagedObject {
         dataPoint.keyStatus = data["keyStatus"] as? String
         dataPoint.mainLockStatus = data["mainLockStatus"] as? String
         dataPoint.calculatedSpeedKmh = Int32(data["calculated_speed_kmh"] as? Int ?? 0)
-        
+
         // 解析新字段（车机GPS模式特有）
         if let directionValue = data["direction"] as? Double {
             dataPoint.direction = directionValue
@@ -121,7 +124,7 @@ public class TripDataPoint: NSManagedObject {
         } else {
             dataPoint.direction = 0.0
         }
-        
+
         if let powerKwValue = data["power_kw"] as? Double {
             dataPoint.powerKw = powerKwValue
         } else if let powerKwValue = data["power_kw"] as? Float {
@@ -129,18 +132,18 @@ public class TripDataPoint: NSManagedObject {
         } else {
             dataPoint.powerKw = 0.0
         }
-        
+
         // 关联到行程记录
         dataPoint.tripRecord = tripRecord
-        
+
         return dataPoint
     }
-    
+
     /// 创建fetch request
     @nonobjc public class func fetchRequest() -> NSFetchRequest<TripDataPoint> {
         return NSFetchRequest<TripDataPoint>(entityName: "TripDataPoint")
     }
-    
+
     /// 创建fetch request（获取指定行程的数据点）
     public class func fetchRequest(for tripRecord: TripRecord) -> NSFetchRequest<TripDataPoint> {
         let request: NSFetchRequest<TripDataPoint> = fetchRequest()
@@ -148,7 +151,7 @@ public class TripDataPoint: NSManagedObject {
         request.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: true)]
         return request
     }
-    
+
     /// 创建fetch request（获取指定时间范围的数据点）
     public class func fetchRequest(from startDate: Date, to endDate: Date) -> NSFetchRequest<TripDataPoint> {
         let request: NSFetchRequest<TripDataPoint> = fetchRequest()
@@ -159,6 +162,5 @@ public class TripDataPoint: NSManagedObject {
 }
 
 extension TripDataPoint : Identifiable {
-    
-}
 
+}

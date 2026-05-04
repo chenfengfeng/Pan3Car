@@ -311,107 +311,64 @@ class ShortcutsViewController: UIViewController, NFCNDEFReaderSessionDelegate {
         }
     }
     
-    /// 从服务器同步行程记录 (V2)
+    /// 从服务器同步行程记录 (V3)
     private func syncTripRecordsFromServer() {
         guard !isSyncing else { return }
-        
+
         isSyncing = true
-        
-        // 获取上次同步时间
-        let lastSyncTime = UserDefaults.standard.string(forKey: "LastTripSyncTime")
-        print("[ShortcutsVC] V2同步开始，上次同步时间: \(lastSyncTime ?? "无")")
-        
-        NetworkManager.shared.getTripRecordsFromServerV2(after: lastSyncTime) { [weak self] result in
+
+        print("[ShortcutsVC] V3同步开始")
+
+        NetworkManager.shared.getTripSyncV3 { [weak self] result in
             DispatchQueue.main.async {
                 self?.isSyncing = false
                 self?.tableView.mj_header?.endRefreshing()
-                
+
                 switch result {
-                case .success(let tripsData):
-                    guard !tripsData.isEmpty else {
-                        print("[ShortcutsVC] 服务器没有新的行程记录")
+                case .success(let syncResponse):
+                    guard !syncResponse.upserts.isEmpty || !syncResponse.deletes.isEmpty else {
+                        print("[ShortcutsVC] 服务器没有新的V3行程摘要")
                         return
                     }
-                    
-                    print("[ShortcutsVC] 从服务器获取了 \(tripsData.count) 条行程记录，开始同步到CoreData...")
-                    
-                    // 保存到CoreData
-                    let savedRecords = CoreDataManager.shared.syncTripRecordsFromServer(tripsData)
-                    
-                    // 收集服务器返回的所有行程ID
-                    var tripIDs: [Int] = []
-                    for trip in tripsData {
-                        if let id = trip["id"] as? Int {
-                            tripIDs.append(id)
-                        } else if let id = trip["id"] as? Int64 {
-                            tripIDs.append(Int(id))
-                        }
-                    }
-                    
-                    // 找出最新的end_time用于更新本地同步游标
-                    var latestEndTime: String?
-                    
-                    // 辅助函数：解析时间字符串
-                    func parseTime(_ timeStr: String) -> Date? {
-                        let iso8601Formatter = ISO8601DateFormatter()
-                        iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                        if let date = iso8601Formatter.date(from: timeStr) { return date }
-                        
-                        iso8601Formatter.formatOptions = [.withInternetDateTime]
-                        return iso8601Formatter.date(from: timeStr)
-                    }
-                    
-                    // 寻找最大时间戳
-                    var maxDate: Date?
-                    var maxDateStr: String?
-                    
-                    for trip in tripsData {
-                        if let endTimeStr = trip["end_time"] as? String,
-                           let date = parseTime(endTimeStr) {
-                            if maxDate == nil || date > maxDate! {
-                                maxDate = date
-                                maxDateStr = endTimeStr
-                            }
-                        }
-                    }
-                    
-                    latestEndTime = maxDateStr
-                    
-                    // 按ID列表确认同步完成
-                    if !tripIDs.isEmpty {
-                        print("[ShortcutsVC] 准备确认同步，行程IDs: \(tripIDs)")
-                        self?.confirmSyncCompleteV2(tripIDs: tripIDs, latestEndTime: latestEndTime)
+
+                    print("[ShortcutsVC] 从服务器获取V3行程摘要：upserts=\(syncResponse.upserts.count), deletes=\(syncResponse.deletes.count)")
+
+                    let changedCount = CoreDataManager.shared.syncTripSummariesV3(
+                        upserts: syncResponse.upserts,
+                        deletes: syncResponse.deletes
+                    )
+
+                    let ackIDs = syncResponse.deletes + syncResponse.upserts
+                        .filter { $0.status == 2 }
+                        .map { $0.clientTripID }
+
+                    if !ackIDs.isEmpty {
+                        print("[ShortcutsVC] 准备V3确认同步，clientTripIDs: \(ackIDs)")
+                        self?.confirmSyncCompleteV3(clientTripIDs: ackIDs)
                     } else {
-                        print("[ShortcutsVC] 警告：无法从返回数据中提取有效行程ID")
+                        print("[ShortcutsVC] 本次没有需要最终确认的V3行程")
                     }
-                        
-                    // 重新加载本地数据 (如果保存了新数据)
-                    if !savedRecords.isEmpty {
+
+                    if changedCount > 0 {
                         self?.loadLocalTripRecords()
                     }
-                    
+
                 case .failure(let error):
-                    print("[ShortcutsVC] 同步失败: \(error.localizedDescription)")
+                    print("[ShortcutsVC] V3同步失败: \(error.localizedDescription)")
                     QMUITips.showError("同步失败: \(error.localizedDescription)")
                 }
             }
         }
     }
-    
-    /// V2: 确认同步完成（按ID列表标记已同步）
-    private func confirmSyncCompleteV2(tripIDs: [Int], latestEndTime: String?) {
-        NetworkManager.shared.confirmTripSyncCompleteV2(tripIDs: tripIDs) { [weak self] result in
+
+    /// V3: 确认已处理的结束/删除行程
+    private func confirmSyncCompleteV3(clientTripIDs: [String]) {
+        NetworkManager.shared.ackTripSyncV3(clientTripIDs: clientTripIDs) { result in
             switch result {
-            case .success(let stats):
-                print("[ShortcutsVC] V2确认成功，服务器已标记 \(stats["syncedTrips"] ?? 0) 条行程记录为已同步")
-                
-                // 更新本地LastSyncTime（用于下次增量拉取）
-                if let latestTime = latestEndTime {
-                    UserDefaults.standard.set(latestTime, forKey: "LastTripSyncTime")
-                }
-                
+            case .success:
+                print("[ShortcutsVC] V3确认成功，服务器已处理 \(clientTripIDs.count) 条行程")
             case .failure(let error):
-                print("[ShortcutsVC] V2确认同步失败: \(error.localizedDescription)")
+                print("[ShortcutsVC] V3确认同步失败: \(error.localizedDescription)")
             }
         }
     }
