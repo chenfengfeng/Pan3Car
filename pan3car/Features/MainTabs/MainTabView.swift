@@ -70,11 +70,11 @@ private enum AppTab: Hashable {
     var systemImage: String {
         switch self {
         case .vehicle:
-            "car.fill"
+            "gauge.with.dots.needle.33percent"
         case .trips:
-            "map.fill"
+            "car.rear.road.lane.dashed"
         case .charge:
-            "bolt.car.fill"
+            "ev.charger"
         case .profile:
             "person.crop.circle.fill"
         }

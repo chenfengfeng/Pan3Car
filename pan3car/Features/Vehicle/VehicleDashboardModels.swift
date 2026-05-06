@@ -54,7 +54,7 @@ extension VehicleDashboardSnapshot {
             VehicleControlItem(id: "lock", title: "已锁车", systemImage: "lock.fill", isActive: true, tint: .green),
             VehicleControlItem(id: "ac", title: "空调关", systemImage: "fan.fill", isActive: false, tint: .cyan),
             VehicleControlItem(id: "window", title: "窗已关", systemImage: "rectangle.split.3x1.fill", isActive: true, tint: .teal),
-            VehicleControlItem(id: "honk", title: "鸣笛", systemImage: "speaker.wave.2.fill", isActive: false, tint: .orange)
+            VehicleControlItem(id: "honk", title: "鸣笛", systemImage: "car.front.waves.up", isActive: false, tint: .orange)
         ],
         windows: [
             VehicleStatusItem(id: "window-lf", title: "左前", value: "关闭", systemImage: "window.vertical.closed", tint: .green),
@@ -66,13 +66,32 @@ extension VehicleDashboardSnapshot {
             VehicleStatusItem(id: "door-lf", title: "左前", value: "关闭", systemImage: "car.side.front.open", tint: .green),
             VehicleStatusItem(id: "door-rf", title: "右前", value: "关闭", systemImage: "car.side.front.open", tint: .green),
             VehicleStatusItem(id: "door-lr", title: "左后", value: "关闭", systemImage: "car.side.rear.open", tint: .green),
-            VehicleStatusItem(id: "door-rr", title: "右后", value: "关闭", systemImage: "car.side.rear.open", tint: .green)
+            VehicleStatusItem(id: "door-rr", title: "右后", value: "关闭", systemImage: "car.side.rear.open", tint: .green),
+            VehicleStatusItem(id: "door-trunk", title: "后尾箱", value: "关闭", systemImage: "car.side.rear.open", tint: .green)
         ],
         tirePressures: [
-            VehicleStatusItem(id: "tire-lf", title: "左前", value: "2.5 bar", systemImage: "gauge.with.dots.needle.50percent", tint: .blue),
-            VehicleStatusItem(id: "tire-rf", title: "右前", value: "2.5 bar", systemImage: "gauge.with.dots.needle.50percent", tint: .blue),
-            VehicleStatusItem(id: "tire-lr", title: "左后", value: "2.4 bar", systemImage: "gauge.with.dots.needle.50percent", tint: .blue),
-            VehicleStatusItem(id: "tire-rr", title: "右后", value: "2.4 bar", systemImage: "gauge.with.dots.needle.50percent", tint: .blue)
+            VehicleStatusItem(id: "tire-lf", title: "左前", value: "257", systemImage: "gauge.with.dots.needle.50percent", tint: .blue),
+            VehicleStatusItem(id: "tire-rf", title: "右前", value: "256", systemImage: "gauge.with.dots.needle.50percent", tint: .blue),
+            VehicleStatusItem(id: "tire-lr", title: "左后", value: "248", systemImage: "gauge.with.dots.needle.50percent", tint: .blue),
+            VehicleStatusItem(id: "tire-rr", title: "右后", value: "249", systemImage: "gauge.with.dots.needle.50percent", tint: .blue)
         ]
+    )
+
+    static let mockDoorsOpen = VehicleDashboardSnapshot(
+        availableRangeKm: mock.availableRangeKm,
+        soc: mock.soc,
+        totalMileageKm: mock.totalMileageKm,
+        location: mock.location,
+        cabinTemperature: mock.cabinTemperature,
+        controls: mock.controls,
+        windows: mock.windows,
+        doors: [
+            VehicleStatusItem(id: "door-lf", title: "左前", value: "关闭", systemImage: "car.top.door.front.left.open", tint: .green),
+            VehicleStatusItem(id: "door-rf", title: "右前", value: "关闭", systemImage: "car.top.door.front.right.open", tint: .green),
+            VehicleStatusItem(id: "door-lr", title: "左后", value: "开启", systemImage: "car.top.door.rear.left.open", tint: .orange),
+            VehicleStatusItem(id: "door-rr", title: "右后", value: "开启", systemImage: "car.top.door.rear.right.open", tint: .orange),
+            VehicleStatusItem(id: "door-trunk", title: "后尾箱", value: "关闭", systemImage: "car.side.rear.open", tint: .green)
+        ],
+        tirePressures: mock.tirePressures
     )
 }
