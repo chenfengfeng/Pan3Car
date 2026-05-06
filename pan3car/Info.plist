@@ -7,6 +7,8 @@
 		<string>iosamap</string>
 		<string>baidumap</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>用于获取你当前的位置，帮助计算到车辆位置的步行导航路线。</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

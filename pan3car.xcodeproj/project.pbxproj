@@ -152,6 +152,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "胖3助手";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "此应用需要NFC功能来写入卡实现快捷方式使用";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于获取你当前的位置，帮助计算到车辆位置的步行导航路线。";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "通过保存相册的权限可以保存二维码到你的相册";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -194,6 +195,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "胖3助手";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NFCReaderUsageDescription = "此应用需要NFC功能来写入卡实现快捷方式使用";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于获取你当前的位置，帮助计算到车辆位置的步行导航路线。";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "通过保存相册的权限可以保存二维码到你的相册";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

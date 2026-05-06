@@ -355,7 +355,13 @@ struct VehicleDashboardView: View {
 
     private var quickInfoGrid: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 16)], spacing: 16) {
-            LocationMapCard(location: snapshot.location)
+            NavigationLink {
+                VehicleLocationMapView(location: snapshot.location)
+            } label: {
+                LocationMapCard(location: snapshot.location)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("打开地图，获取当前位置并开始步行导航")
 
             InfoCard(
                 title: "车内温度",
