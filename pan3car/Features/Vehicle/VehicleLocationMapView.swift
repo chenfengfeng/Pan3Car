@@ -91,6 +91,7 @@ struct VehicleLocationMapView: View {
         }
         .navigationTitle("车辆位置")
         .navigationBarTitleDisplayMode(.inline)
+        .pan3SecondaryPage()
         .task {
             locationService.requestCurrentLocation()
         }
@@ -209,7 +210,7 @@ private final class VehicleLocationService: NSObject, CLLocationManagerDelegate 
         case .restricted, .denied:
             return "定位权限未开启，请在系统设置中允许胖3助手访问位置"
         case .authorizedAlways, .authorizedWhenInUse:
-            if let detailedAddress {
+            if detailedAddress != nil {
                 return "已获取当前位置"
             }
             return isLocating ? "正在获取详细定位..." : "可以获取当前位置"

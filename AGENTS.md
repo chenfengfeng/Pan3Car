@@ -34,6 +34,7 @@
 ## SwiftUI 与状态
 
 - 页面使用 `NavigationStack`、`TabView`、typed routing、`.sheet(item:)` 或明确的局部 sheet state。
+- 从 Tab 首页进入的二级页面必须隐藏 TabBar，统一使用 `pan3SecondaryPage()` modifier。
 - 视图保持声明式，小组件优先抽成专用 `View`，避免巨大 `body` 或复杂 computed view 堆叠。
 - 视图内副作用放在 `.task`、`.task(id:)`、显式 action 方法中，避免在 `body` 中触发副作用。
 - 异步任务必须可取消、生命周期感知；UI 绑定对象标记 `@MainActor`。
