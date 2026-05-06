@@ -386,7 +386,12 @@ struct VehicleDashboardView: View {
     }
 
     private func controlHighlightState(for control: VehicleControlItem, isActive: Bool) -> Bool {
-        control.id == "lock" ? !isActive : isActive
+        switch control.id {
+        case "lock", "window":
+            !isActive
+        default:
+            isActive
+        }
     }
 
     private func toggleControl(_ control: VehicleControlItem) {
