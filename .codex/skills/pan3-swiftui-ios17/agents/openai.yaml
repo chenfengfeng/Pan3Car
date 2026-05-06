@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pan3 SwiftUI Liquid Glass"
+  short_description: "Pan3 iOS 17+ 与 iOS 26 Liquid Glass 重构规则"
+  default_prompt: "Use $pan3-swiftui-ios17 to refactor the Pan3 main iOS app with SwiftUI, SwiftData, iOS 17+ compatibility, and iOS 26 Liquid Glass APIs."
