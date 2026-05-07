@@ -257,7 +257,7 @@ struct VehicleDashboardView: View {
                 systemImage: "bolt.fill",
                 tint: .green,
                 supplementalMetrics: [
-                    ActiveSessionSupplementalMetric(value: "1:25", label: "距离充满"),
+                    ActiveSessionSupplementalMetric(value: "1小时25分", label: "还需充电", usesMonospacedDigits: false),
                     ActiveSessionSupplementalMetric(value: "20:35", label: "预计充满")
                 ],
                 accessibilityID: "vehicle.activeCharging"
@@ -752,6 +752,7 @@ private struct ActiveSessionSupplementalMetric: Identifiable {
     let id = UUID()
     let value: String
     let label: String
+    var usesMonospacedDigits = true
 }
 
 private struct ActiveSessionCard: View {
@@ -808,7 +809,11 @@ private struct ActiveSessionCard: View {
 
                 HStack(spacing: 14) {
                     ForEach(supplementalMetrics) { metric in
-                        supplementalMetric(value: metric.value, label: metric.label)
+                        supplementalMetric(
+                            value: metric.value,
+                            label: metric.label,
+                            usesMonospacedDigits: metric.usesMonospacedDigits
+                        )
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
@@ -847,7 +852,7 @@ private struct ActiveSessionCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func supplementalMetric(value: String, label: String) -> some View {
+    private func supplementalMetric(value: String, label: String, usesMonospacedDigits: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(label)
                 .font(.caption.weight(.semibold))
@@ -856,16 +861,29 @@ private struct ActiveSessionCard: View {
 
             Spacer(minLength: 6)
 
+            supplementalMetricValue(value, usesMonospacedDigits: usesMonospacedDigits)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func supplementalMetricValue(_ value: String, usesMonospacedDigits: Bool) -> some View {
+        if usesMonospacedDigits {
             Text(value)
                 .font(.subheadline.weight(.heavy))
                 .foregroundStyle(.primary)
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.86)
+                .minimumScaleFactor(0.78)
+        } else {
+            Text(value)
+                .font(.subheadline.weight(.heavy))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
