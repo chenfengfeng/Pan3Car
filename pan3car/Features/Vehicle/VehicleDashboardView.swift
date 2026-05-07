@@ -14,6 +14,7 @@ struct VehicleDashboardView: View {
     let snapshot: VehicleDashboardSnapshot
     
     @State private var animatedRange: Int = 0
+    @State private var hasAnimatedInitialRange = false
     @State private var animatedSOC: Int = 0
     @State private var animatedMileage: Double = 0
     @State private var isHeroCarPresented = false
@@ -53,7 +54,7 @@ struct VehicleDashboardView: View {
         .navigationBarTitleDisplayMode(.large)
         .accessibilityIdentifier("vehicle.dashboard")
         .task(id: snapshot.availableRangeKm) {
-            await animateRangeFromZeroIfNeeded(to: snapshot.availableRangeKm)
+            await animateRange(to: snapshot.availableRangeKm)
         }
         .task(id: snapshot.soc) {
             await animateSOCIfNeeded(to: snapshot.soc)
@@ -503,23 +504,37 @@ struct VehicleDashboardView: View {
     }
 
     @MainActor
-    private func animateRangeFromZeroIfNeeded(to newValue: Int) async {
+    private func animateRange(to newValue: Int) async {
         if reduceMotion {
             animatedRange = newValue
+            hasAnimatedInitialRange = true
             return
         }
 
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            animatedRange = 0
+        if !hasAnimatedInitialRange {
+            hasAnimatedInitialRange = true
+
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                animatedRange = 0
+            }
+
+            try? await Task.sleep(nanoseconds: 100_000_000)
+
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.bouncy(duration: 1.5)) {
+                animatedRange = newValue
+            }
+
+            return
         }
 
-        try? await Task.sleep(nanoseconds: 100_000_000)
-
         guard !Task.isCancelled else { return }
+        guard animatedRange != newValue else { return }
 
-        withAnimation(.bouncy(duration: 1.5)) {
+        withAnimation(.smooth(duration: 0.8, extraBounce: 0)) {
             animatedRange = newValue
         }
     }
