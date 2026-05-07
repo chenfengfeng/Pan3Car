@@ -7,6 +7,7 @@
 - 主 App 以 SwiftUI-first、iOS 17+ 为基线实现。
 - 新 UI 优先使用 Apple 原生框架：SwiftUI、Observation、SwiftData、MapKit、Swift Charts、ActivityKit、WidgetKit、App Intents、WatchConnectivity、Security、UserNotifications。
 - iOS 26+ 可用时优先采用原生 Liquid Glass 视觉系统，但必须保留 iOS 17-25 fallback。
+- 如果 Apple 已提供更新的 SwiftUI API，主路径优先使用最新稳定 API，并通过 `if #available` 或本地 wrapper 为 iOS 17 fallback；旧 API 只作为兼容分支保留。
 - 旧 UIKit、Storyboard、Core Data、第三方 UI/网络工具只作为迁移参考，不作为新主架构继续扩散。
 - 修改范围保持克制，优先贴合现有文件结构和风格，不做无关重构。
 
@@ -34,6 +35,9 @@
 ## SwiftUI 与状态
 
 - 页面使用 `NavigationStack`、`TabView`、typed routing、`.sheet(item:)` 或明确的局部 sheet state。
+- iOS 18+ 的 Tab 页面优先使用 `Tab(title:systemImage:value:content:)`，iOS 17 fallback 才使用 `.tabItem` / `.tag`。
+- Toolbar 可见性优先使用 iOS 18+ `toolbarVisibility(_:for:)` 与 `toolbarBackgroundVisibility(_:for:)`；iOS 17 fallback 才使用旧的 `.toolbar(_:for:)` / `.toolbarBackground(_:for:)` visibility 写法。
+- iOS 26+ 可以使用 `tabBarMinimizeBehavior(_:)` 调整主 TabBar 的系统最小化行为，但必须保证 iOS 17-25 布局不变。
 - 从 Tab 首页进入的二级页面必须隐藏 TabBar，统一使用 `pan3SecondaryPage()` modifier。
 - 视图保持声明式，小组件优先抽成专用 `View`，避免巨大 `body` 或复杂 computed view 堆叠。
 - 视图内副作用放在 `.task`、`.task(id:)`、显式 action 方法中，避免在 `body` 中触发副作用。
@@ -87,6 +91,7 @@
 - UI 改动优先在模拟器或 Preview 中验证布局、暗黑模式、文字截断和交互状态。
 - 涉及 Widget、Watch、Live Activities、App Intents、Push Service 或共享契约时，构建所有受影响目标。
 - 每次完成修改后都要创建一次 Git 提交，提交信息和最终说明都要写清楚修改内容、原因和验证结果。
+- 最终说明必须写清新 API 路径、fallback 路径以及构建/UI 验证结果。
 - 不提交或回滚与当前任务无关的用户改动。
 
 ## 协作习惯

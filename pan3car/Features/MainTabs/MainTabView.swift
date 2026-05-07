@@ -11,40 +11,83 @@ struct MainTabView: View {
     @State private var selectedTab = AppTab.vehicle
 
     var body: some View {
+        if #available(iOS 18.0, *) {
+            modernTabView
+        } else {
+            legacyTabView
+        }
+    }
+
+    @available(iOS 18.0, *)
+    private var modernTabView: some View {
         TabView(selection: $selectedTab) {
-            NavigationStack {
-                VehicleDashboardView(snapshot: .mock)
+            Tab(AppTab.vehicle.title, systemImage: AppTab.vehicle.systemImage, value: AppTab.vehicle) {
+                tabContent(for: .vehicle)
             }
+
+            Tab(AppTab.trips.title, systemImage: AppTab.trips.systemImage, value: AppTab.trips) {
+                tabContent(for: .trips)
+            }
+
+            Tab(AppTab.charge.title, systemImage: AppTab.charge.systemImage, value: AppTab.charge) {
+                tabContent(for: .charge)
+            }
+
+            Tab(AppTab.profile.title, systemImage: AppTab.profile.systemImage, value: AppTab.profile) {
+                tabContent(for: .profile)
+            }
+        }
+        .pan3TabBarBehavior()
+        .accessibilityIdentifier("main.tabView")
+    }
+
+    private var legacyTabView: some View {
+        TabView(selection: $selectedTab) {
+            tabContent(for: .vehicle)
             .tabItem {
                 Label(AppTab.vehicle.title, systemImage: AppTab.vehicle.systemImage)
             }
             .tag(AppTab.vehicle)
 
-            NavigationStack {
-                TripsPlaceholderView()
-            }
+            tabContent(for: .trips)
             .tabItem {
                 Label(AppTab.trips.title, systemImage: AppTab.trips.systemImage)
             }
             .tag(AppTab.trips)
 
-            NavigationStack {
-                ChargePlaceholderView()
-            }
+            tabContent(for: .charge)
             .tabItem {
                 Label(AppTab.charge.title, systemImage: AppTab.charge.systemImage)
             }
             .tag(AppTab.charge)
 
-            NavigationStack {
-                ProfilePlaceholderView()
-            }
+            tabContent(for: .profile)
             .tabItem {
                 Label(AppTab.profile.title, systemImage: AppTab.profile.systemImage)
             }
             .tag(AppTab.profile)
         }
         .accessibilityIdentifier("main.tabView")
+    }
+
+    private func tabContent(for tab: AppTab) -> some View {
+        NavigationStack {
+            tabRoot(for: tab)
+        }
+    }
+
+    @ViewBuilder
+    private func tabRoot(for tab: AppTab) -> some View {
+        switch tab {
+        case .vehicle:
+            VehicleDashboardView(snapshot: .mock)
+        case .trips:
+            TripsPlaceholderView()
+        case .charge:
+            ChargePlaceholderView()
+        case .profile:
+            ProfilePlaceholderView()
+        }
     }
 }
 
@@ -78,6 +121,24 @@ private enum AppTab: Hashable {
         case .profile:
             "person.crop.circle.fill"
         }
+    }
+}
+
+private struct Pan3TabBarBehaviorModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .tabBarMinimizeBehavior(.automatic)
+        } else {
+            content
+        }
+    }
+}
+
+private extension View {
+    func pan3TabBarBehavior() -> some View {
+        modifier(Pan3TabBarBehaviorModifier())
     }
 }
 

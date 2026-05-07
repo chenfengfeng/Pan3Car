@@ -7,7 +7,7 @@ description: Strict Pan3 main iOS app rewrite rules for SwiftUI-first, iOS 17+ i
 
 ## Core Contract
 
-Build the Pan3 main iOS app as a clean iOS 17+ SwiftUI app with an iOS 26-first Liquid Glass visual direction. Treat old UIKit code as reference behavior, not architecture to preserve. Prefer Apple-native frameworks and the newest stable API available for the configured deployment target.
+Build the Pan3 main iOS app as a clean iOS 17+ SwiftUI app with an iOS 26-first Liquid Glass visual direction. Treat old UIKit code as reference behavior, not architecture to preserve. Prefer Apple-native frameworks and the newest stable API available in the current SDK, using explicit availability gates for iOS 17 compatibility.
 
 Before using a SwiftUI, Liquid Glass, SwiftData, Observation, WidgetKit, ActivityKit, App Intents, MapKit, or CloudKit API whose best practice may have changed, verify current Apple Developer documentation. If the existing code and Apple guidance conflict, follow Apple guidance and call out the migration impact.
 
@@ -17,12 +17,16 @@ Read `references/liquid-glass.md` before new screen implementation or any visual
 ## Non-Negotiable Requirements
 
 - Set the main app deployment target to iOS 17.0 or newer.
+- When Apple provides a newer SwiftUI API, use it on the newest supported OS path and keep older APIs only inside `#available` fallback branches or small local wrappers.
 - Prefer iOS 26 Liquid Glass APIs for new visual surfaces, controls, tab-adjacent chrome, floating actions, and status cards, with iOS 17 fallback UI.
 - Use SwiftUI App lifecycle for the rewritten main app.
 - Use SwiftData as the app database for new persistent models.
 - Use Observation (`@Observable`, `@State`, `@Environment`) for app and feature state.
 - Use `async/await`, structured concurrency, and `URLSession` for new service code.
 - Use enum-driven `NavigationStack`, `TabView`, `.sheet(item:)`, and typed routing.
+- Use iOS 18+ `Tab(title:systemImage:value:content:)` for tab content when available; use `.tabItem` and `.tag` only as iOS 17 fallback.
+- Use iOS 18+ `toolbarVisibility(_:for:)` and `toolbarBackgroundVisibility(_:for:)`; use the older `.toolbar(_:for:)` or `.toolbarBackground(_:for:)` visibility overloads only as fallback.
+- Use iOS 26+ `tabBarMinimizeBehavior(_:)` when it improves tabbed root screens without changing iOS 17-25 layout.
 - Use Apple-native frameworks first: SwiftUI, SwiftData, Swift Charts, MapKit, ActivityKit, WidgetKit, App Intents, WatchConnectivity, Security, UserNotifications.
 - Keep Widget, Watch, Live Activity, App Intents, and Push Service targets compatible through explicit shared data contracts.
 - Add previews, mock services, loading states, empty states, error states, accessibility identifiers, and both iOS 26 glass/fallback visual coverage for new user-facing SwiftUI screens.
@@ -111,12 +115,15 @@ Use narrow state ownership:
 Use modern SwiftUI equivalents:
 
 - `NavigationStack` plus `.navigationDestination(for:)` instead of `NavigationView`.
+- `Tab(title:systemImage:value:content:)` on iOS 18+ instead of `.tabItem`, with an iOS 17 fallback branch when needed.
+- `toolbarVisibility(_:for:)` and `toolbarBackgroundVisibility(_:for:)` on iOS 18+ instead of the older toolbar visibility overload names.
 - `@Environment(\.dismiss)` instead of `presentationMode`.
 - `.onChange(of:initial:)` with the iOS 17 closure forms instead of deprecated `onChange` overloads.
 - `ContentUnavailableView` for empty/error surfaces when it fits.
 - `scrollPosition`, `scrollTargetLayout`, `containerRelativeFrame`, and `safeAreaInset` for modern scroll/layout behavior where appropriate.
 - SwiftUI `Map` with typed camera/selection state before wrapping `MKMapView`.
 - iOS 26 Liquid Glass APIs before custom materials for foreground surfaces and controls, with iOS 17 fallback.
+- iOS 26 `.buttonStyle(.glass)` / `.buttonStyle(.glassProminent)` before bordered fallback button styles for glass-adjacent actions.
 
 Async work must be cancellable and lifecycle-aware:
 
@@ -162,4 +169,5 @@ Reject or revise code when any item is true:
 - It stores secrets in App Groups or `UserDefaults`.
 - It makes Widget/Watch/Live Activity data contracts implicit or stringly typed.
 - It depends on undocumented behavior or stale API assumptions without checking Apple documentation.
+- It uses deprecated or renamed SwiftUI API as the primary path when a newer API is available and can be safely availability-gated.
 - It lacks loading, empty, error, preview, or accessibility coverage for new UI.

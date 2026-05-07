@@ -288,7 +288,7 @@ struct VehicleDashboardView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .liquidGlass(cornerRadius: 24)
+                    .liquidGlass(cornerRadius: 24, isInteractive: true)
                     .animation(.spring(response: 0.34, dampingFraction: 0.68), value: isHighlighted)
                     .animation(.spring(response: 0.3, dampingFraction: 0.72), value: systemImage)
                     .accessibilityLabel(title)
@@ -306,7 +306,7 @@ struct VehicleDashboardView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .liquidGlass(cornerRadius: 24)
+                    .liquidGlass(cornerRadius: 24, isInteractive: true)
                     .animation(.spring(response: 0.34, dampingFraction: 0.68), value: isHighlighted)
                     .animation(.spring(response: 0.3, dampingFraction: 0.72), value: systemImage)
                     .accessibilityLabel(title)
@@ -1499,14 +1499,25 @@ private struct StatusTile: View {
 
 struct LiquidGlassStyle: ViewModifier {
     var cornerRadius: CGFloat
+    var isInteractive = false
     @Environment(\.colorScheme) var colorScheme
     
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(
+                    isInteractive ? .regular.interactive() : .regular,
+                    in: .rect(cornerRadius: cornerRadius)
+                )
+                .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.06), radius: 18, x: 0, y: 9)
+        } else {
+            content
+                .background(.ultraThinMaterial, in: shape)
+                .overlay {
+                    shape.stroke(
                         LinearGradient(
                             colors: [
                                 colorScheme == .dark ? .white.opacity(0.3) : .white.opacity(0.8),
@@ -1518,14 +1529,15 @@ struct LiquidGlassStyle: ViewModifier {
                         ),
                         lineWidth: 1
                     )
-            }
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 20, x: 0, y: 10)
+                }
+                .shadow(color: .black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 20, x: 0, y: 10)
+        }
     }
 }
 
 extension View {
-    func liquidGlass(cornerRadius: CGFloat = 24) -> some View {
-        self.modifier(LiquidGlassStyle(cornerRadius: cornerRadius))
+    func liquidGlass(cornerRadius: CGFloat = 24, isInteractive: Bool = false) -> some View {
+        self.modifier(LiquidGlassStyle(cornerRadius: cornerRadius, isInteractive: isInteractive))
     }
 }
 

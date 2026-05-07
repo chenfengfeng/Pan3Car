@@ -72,7 +72,7 @@ struct VehicleLocationMapView: View {
                         Label(locationService.actionTitle, systemImage: "location.fill")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
+                    .pan3MapActionButtonStyle()
 
                     Button {
                         openWalkingNavigation()
@@ -80,7 +80,7 @@ struct VehicleLocationMapView: View {
                         Label("步行导航", systemImage: "figure.walk")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .pan3MapActionButtonStyle(isProminent: true)
                 }
                 .controlSize(.large)
             }
@@ -305,6 +305,37 @@ private final class VehicleLocationService: NSObject, CLLocationManagerDelegate 
         } catch {
             detailedAddress = "已获取坐标，暂未解析出详细地址"
         }
+    }
+}
+
+private struct Pan3MapActionButtonStyleModifier: ViewModifier {
+    var isProminent = false
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            if isProminent {
+                content
+                    .buttonStyle(.glassProminent)
+            } else {
+                content
+                    .buttonStyle(.glass)
+            }
+        } else {
+            if isProminent {
+                content
+                    .buttonStyle(.borderedProminent)
+            } else {
+                content
+                    .buttonStyle(.bordered)
+            }
+        }
+    }
+}
+
+private extension View {
+    func pan3MapActionButtonStyle(isProminent: Bool = false) -> some View {
+        modifier(Pan3MapActionButtonStyleModifier(isProminent: isProminent))
     }
 }
 
