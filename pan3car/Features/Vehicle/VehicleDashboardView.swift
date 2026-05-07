@@ -256,6 +256,10 @@ struct VehicleDashboardView: View {
                 secondaryLabel: "增加续航",
                 systemImage: "bolt.fill",
                 tint: .green,
+                supplementalMetrics: [
+                    ActiveSessionSupplementalMetric(value: "1:25", label: "距离充满"),
+                    ActiveSessionSupplementalMetric(value: "20:35", label: "预计充满")
+                ],
                 accessibilityID: "vehicle.activeCharging"
             )
         }
@@ -744,6 +748,12 @@ private struct SegmentOptionLabel: View {
     }
 }
 
+private struct ActiveSessionSupplementalMetric: Identifiable {
+    let id = UUID()
+    let value: String
+    let label: String
+}
+
 private struct ActiveSessionCard: View {
     let title: String
     let primaryValue: String
@@ -752,10 +762,11 @@ private struct ActiveSessionCard: View {
     let secondaryLabel: String
     let systemImage: String
     let tint: Color
+    var supplementalMetrics: [ActiveSessionSupplementalMetric] = []
     let accessibilityID: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .center, spacing: 12) {
                 Image(systemName: systemImage)
                     .font(.headline.weight(.bold))
@@ -790,14 +801,34 @@ private struct ActiveSessionCard: View {
                 metric(value: secondaryValue, label: secondaryLabel)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
+
+            if !supplementalMetrics.isEmpty {
+                Divider()
+                    .overlay(Color.primary.opacity(0.1))
+
+                HStack(spacing: 14) {
+                    ForEach(supplementalMetrics) { metric in
+                        supplementalMetric(value: metric.value, label: metric.label)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity, minHeight: 132, alignment: .leading)
+        .padding(.vertical, supplementalMetrics.isEmpty ? 16 : 18)
+        .frame(maxWidth: .infinity, minHeight: supplementalMetrics.isEmpty ? 132 : 178, alignment: .leading)
         .liquidGlass(cornerRadius: 28)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title) \(primaryLabel) \(primaryValue) \(secondaryLabel) \(secondaryValue)")
+        .accessibilityLabel(accessibilityText)
         .accessibilityIdentifier(accessibilityID)
+    }
+
+    private var accessibilityText: String {
+        let supplementalText = supplementalMetrics
+            .map { "\($0.label) \($0.value)" }
+            .joined(separator: " ")
+
+        return "\(title) \(primaryLabel) \(primaryValue) \(secondaryLabel) \(secondaryValue) \(supplementalText)"
     }
 
     private func metric(value: String, label: String) -> some View {
@@ -814,6 +845,27 @@ private struct ActiveSessionCard: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func supplementalMetric(value: String, label: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Spacer(minLength: 6)
+
+            Text(value)
+                .font(.subheadline.weight(.heavy))
+                .foregroundStyle(.primary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.86)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
