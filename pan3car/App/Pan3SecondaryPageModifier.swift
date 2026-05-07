@@ -8,9 +8,15 @@
 import SwiftUI
 
 private struct Pan3SecondaryPageModifier: ViewModifier {
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .toolbar(.hidden, for: .tabBar)
+        if #available(iOS 18.0, *) {
+            content
+                .toolbarVisibility(.hidden, for: .tabBar)
+        } else {
+            content
+                .toolbar(.hidden, for: .tabBar)
+        }
     }
 }
 
