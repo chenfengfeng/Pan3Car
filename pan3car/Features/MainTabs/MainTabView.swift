@@ -129,7 +129,7 @@ private struct Pan3TabBarBehaviorModifier: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content
-                .tabBarMinimizeBehavior(.automatic)
+                .tabBarMinimizeBehavior(.onScrollDown)
         } else {
             content
         }
