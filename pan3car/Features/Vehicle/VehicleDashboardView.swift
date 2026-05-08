@@ -1190,12 +1190,7 @@ private struct DoorStatusCard: View {
 
                     Spacer()
 
-                    Image(systemName: heroSymbol)
-                        .font(.system(size: 64, weight: .semibold))
-                        .foregroundStyle(summaryTint)
-                        .symbolRenderingMode(.hierarchical)
-                        .contentTransition(.symbolEffect(.replace))
-                        .accessibilityHidden(true)
+                    heroIcon
                 }
 
                 Divider()
@@ -1220,11 +1215,28 @@ private struct DoorStatusCard: View {
             return "car.side.rear.open"
         }
 
-        if openItems.isEmpty {
-            return "car.side"
-        }
+        return "car.top.no_door"
+    }
 
-        return "car.side"
+    @ViewBuilder
+    private var heroIcon: some View {
+        if openItems.isEmpty {
+            Image("car.top.no_door")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 72, height: 72)
+                .foregroundStyle(summaryTint)
+                .contentTransition(.opacity)
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: heroSymbol)
+                .font(.system(size: 64, weight: .semibold))
+                .foregroundStyle(summaryTint)
+                .symbolRenderingMode(.hierarchical)
+                .contentTransition(.symbolEffect(.replace))
+                .accessibilityHidden(true)
+        }
     }
 
     private var doorStatusRows: some View {
