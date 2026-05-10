@@ -114,7 +114,7 @@ struct VehicleLocationMapView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "ellipsis")
                         .font(.title3.weight(.semibold))
                 }
                 .accessibilityLabel("更多导航方式")
