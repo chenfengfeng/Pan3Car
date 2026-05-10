@@ -13,6 +13,7 @@ import SwiftUI
 struct VehicleLocationMapView: View {
     let location: VehicleLocationSnapshot
 
+    @Namespace private var mapScope
     @State private var locationService = VehicleLocationService()
     @State private var cameraPosition: MapCameraPosition
     @State private var walkingRoute: MKRoute?
@@ -37,7 +38,7 @@ struct VehicleLocationMapView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Map(position: $cameraPosition) {
+            Map(position: $cameraPosition, scope: mapScope) {
                 Marker("车辆位置", systemImage: "car.fill", coordinate: destinationCoordinate)
                     .tint(.cyan)
 
@@ -50,45 +51,55 @@ struct VehicleLocationMapView: View {
             }
             .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .excludingAll))
             .mapControls {
-                MapUserLocationButton()
                 MapCompass()
                 MapScaleView()
             }
             .ignoresSafeArea(edges: .bottom)
 
-            VStack(alignment: .leading, spacing: 14) {
-                locationSummary
+            VStack(alignment: .trailing, spacing: 18) {
+                MapUserLocationButton(scope: mapScope)
+                    .frame(width: 52, height: 52)
+                    .background(.white, in: Circle())
+                    .clipShape(Circle())
+                    .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+                    .accessibilityLabel("显示当前位置")
+                    .accessibilityIdentifier("vehicle.location.map.userLocationButton")
 
-                if let routeErrorMessage {
-                    Text(routeErrorMessage)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.orange)
-                }
+                VStack(alignment: .leading, spacing: 14) {
+                    locationSummary
 
-                HStack(spacing: 12) {
-                    Button {
-                        locationService.requestCurrentLocation()
-                    } label: {
-                        Label(locationService.actionTitle, systemImage: "location.fill")
-                            .frame(maxWidth: .infinity)
+                    if let routeErrorMessage {
+                        Text(routeErrorMessage)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.orange)
                     }
-                    .pan3MapActionButtonStyle()
 
-                    Button {
-                        openWalkingNavigation()
-                    } label: {
-                        Label("步行导航", systemImage: "figure.walk")
-                            .frame(maxWidth: .infinity)
+                    HStack(spacing: 12) {
+                        Button {
+                            locationService.requestCurrentLocation()
+                        } label: {
+                            Label(locationService.actionTitle, systemImage: "location.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .pan3MapActionButtonStyle()
+
+                        Button {
+                            openWalkingNavigation()
+                        } label: {
+                            Label("步行导航", systemImage: "figure.walk")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .pan3MapActionButtonStyle(isProminent: true)
                     }
-                    .pan3MapActionButtonStyle(isProminent: true)
+                    .controlSize(.large)
                 }
-                .controlSize(.large)
+                .padding(18)
+                .liquidGlass(cornerRadius: 28)
             }
-            .padding(18)
-            .liquidGlass(cornerRadius: 28)
             .padding(.horizontal, 18)
             .padding(.bottom, 18)
         }
+        .mapScope(mapScope)
         .navigationTitle("车辆位置")
         .navigationBarTitleDisplayMode(.inline)
         .pan3SecondaryPage()
