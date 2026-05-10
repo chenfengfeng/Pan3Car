@@ -1358,6 +1358,9 @@ private struct TirePressureCard: View {
                 .padding(.leading, 4)
 
             ZStack {
+                TirePressureGuideLines()
+                    .accessibilityHidden(true)
+
                 Image("car.top.no_door")
                     .renderingMode(.template)
                     .resizable()
@@ -1449,6 +1452,51 @@ private struct TirePressureCard: View {
         }
 
         return Int(number.rounded())
+    }
+}
+
+private struct TirePressureGuideLines: View {
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let height = proxy.size.height
+            let centerX = width / 2
+            let centerY = height / 2
+            let carLeft = centerX - 58
+            let carRight = centerX + 58
+            let carTop = centerY - 64
+            let carBottom = centerY + 64
+            let leftStartX: CGFloat = 32
+            let rightStartX = max(width - 32, leftStartX)
+            let topStartY = max(carTop - 4, 90)
+            let bottomStartY = min(height - 34, carBottom + 44)
+
+            Path { path in
+                path.move(to: CGPoint(x: leftStartX, y: topStartY))
+                path.addLine(to: CGPoint(x: max(carLeft - 72, leftStartX + 58), y: topStartY - 10))
+                path.addLine(to: CGPoint(x: max(carLeft - 52, leftStartX + 74), y: carTop + 14))
+                path.addLine(to: CGPoint(x: max(carLeft - 20, leftStartX + 98), y: carTop + 34))
+
+                path.move(to: CGPoint(x: rightStartX, y: topStartY))
+                path.addLine(to: CGPoint(x: min(carRight + 72, rightStartX - 58), y: topStartY - 10))
+                path.addLine(to: CGPoint(x: min(carRight + 52, rightStartX - 74), y: carTop + 14))
+                path.addLine(to: CGPoint(x: min(carRight + 20, rightStartX - 98), y: carTop + 34))
+
+                path.move(to: CGPoint(x: leftStartX, y: bottomStartY))
+                path.addLine(to: CGPoint(x: max(carLeft - 72, leftStartX + 58), y: bottomStartY - 4))
+                path.addLine(to: CGPoint(x: max(carLeft - 52, leftStartX + 74), y: carBottom - 16))
+                path.addLine(to: CGPoint(x: max(carLeft - 20, leftStartX + 98), y: carBottom - 34))
+
+                path.move(to: CGPoint(x: rightStartX, y: bottomStartY))
+                path.addLine(to: CGPoint(x: min(carRight + 72, rightStartX - 58), y: bottomStartY - 4))
+                path.addLine(to: CGPoint(x: min(carRight + 52, rightStartX - 74), y: carBottom - 16))
+                path.addLine(to: CGPoint(x: min(carRight + 20, rightStartX - 98), y: carBottom - 34))
+            }
+            .stroke(
+                Color.blue.opacity(0.45),
+                style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
+            )
+        }
     }
 }
 
