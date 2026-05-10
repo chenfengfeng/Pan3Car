@@ -1456,6 +1456,8 @@ private struct TirePressureCard: View {
 }
 
 private struct TirePressureGuideLines: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
@@ -1466,35 +1468,47 @@ private struct TirePressureGuideLines: View {
             let carRight = centerX + 58
             let carTop = centerY - 64
             let carBottom = centerY + 64
-            let leftStartX: CGFloat = 32
-            let rightStartX = max(width - 32, leftStartX)
-            let topStartY = max(carTop - 4, 90)
-            let bottomStartY = min(height - 34, carBottom + 44)
+            let leftEdge: CGFloat = 38
+            let rightEdge = width - 38
+            let topLineY = max(carTop - 8, 92)
+            let bottomLineY = min(height - 38, carBottom + 44)
 
             Path { path in
-                path.move(to: CGPoint(x: leftStartX, y: topStartY))
-                path.addLine(to: CGPoint(x: max(carLeft - 72, leftStartX + 58), y: topStartY - 10))
-                path.addLine(to: CGPoint(x: max(carLeft - 52, leftStartX + 74), y: carTop + 14))
-                path.addLine(to: CGPoint(x: max(carLeft - 20, leftStartX + 98), y: carTop + 34))
+                path.move(to: CGPoint(x: leftEdge, y: topLineY))
+                path.addLine(to: CGPoint(x: carLeft - 66, y: topLineY))
+                path.addCurve(
+                    to: CGPoint(x: carLeft - 10, y: carTop + 36),
+                    control1: CGPoint(x: carLeft - 48, y: topLineY),
+                    control2: CGPoint(x: carLeft - 34, y: carTop + 28)
+                )
 
-                path.move(to: CGPoint(x: rightStartX, y: topStartY))
-                path.addLine(to: CGPoint(x: min(carRight + 72, rightStartX - 58), y: topStartY - 10))
-                path.addLine(to: CGPoint(x: min(carRight + 52, rightStartX - 74), y: carTop + 14))
-                path.addLine(to: CGPoint(x: min(carRight + 20, rightStartX - 98), y: carTop + 34))
+                path.move(to: CGPoint(x: rightEdge, y: topLineY))
+                path.addLine(to: CGPoint(x: carRight + 66, y: topLineY))
+                path.addCurve(
+                    to: CGPoint(x: carRight + 10, y: carTop + 36),
+                    control1: CGPoint(x: carRight + 48, y: topLineY),
+                    control2: CGPoint(x: carRight + 34, y: carTop + 28)
+                )
 
-                path.move(to: CGPoint(x: leftStartX, y: bottomStartY))
-                path.addLine(to: CGPoint(x: max(carLeft - 72, leftStartX + 58), y: bottomStartY - 4))
-                path.addLine(to: CGPoint(x: max(carLeft - 52, leftStartX + 74), y: carBottom - 16))
-                path.addLine(to: CGPoint(x: max(carLeft - 20, leftStartX + 98), y: carBottom - 34))
+                path.move(to: CGPoint(x: leftEdge, y: bottomLineY))
+                path.addLine(to: CGPoint(x: carLeft - 66, y: bottomLineY))
+                path.addCurve(
+                    to: CGPoint(x: carLeft - 10, y: carBottom - 36),
+                    control1: CGPoint(x: carLeft - 48, y: bottomLineY),
+                    control2: CGPoint(x: carLeft - 34, y: carBottom - 28)
+                )
 
-                path.move(to: CGPoint(x: rightStartX, y: bottomStartY))
-                path.addLine(to: CGPoint(x: min(carRight + 72, rightStartX - 58), y: bottomStartY - 4))
-                path.addLine(to: CGPoint(x: min(carRight + 52, rightStartX - 74), y: carBottom - 16))
-                path.addLine(to: CGPoint(x: min(carRight + 20, rightStartX - 98), y: carBottom - 34))
+                path.move(to: CGPoint(x: rightEdge, y: bottomLineY))
+                path.addLine(to: CGPoint(x: carRight + 66, y: bottomLineY))
+                path.addCurve(
+                    to: CGPoint(x: carRight + 10, y: carBottom - 36),
+                    control1: CGPoint(x: carRight + 48, y: bottomLineY),
+                    control2: CGPoint(x: carRight + 34, y: carBottom - 28)
+                )
             }
             .stroke(
-                Color.blue.opacity(0.45),
-                style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
+                Color.cyan.opacity(colorScheme == .dark ? 0.38 : 0.24),
+                style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
             )
         }
     }
