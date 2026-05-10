@@ -1468,43 +1468,32 @@ private struct TirePressureGuideLines: View {
             let carRight = centerX + 58
             let carTop = centerY - 64
             let carBottom = centerY + 64
-            let leftEdge: CGFloat = 38
-            let rightEdge = width - 38
-            let topLineY = max(carTop - 8, 92)
-            let bottomLineY = min(height - 38, carBottom + 44)
+            let leftOuterX: CGFloat = 38
+            let rightOuterX = width - 38
+            let leftJointX = max(carLeft - 82, leftOuterX + 70)
+            let rightJointX = min(carRight + 82, rightOuterX - 70)
+            let topHorizontalY = max(carTop - 10, 92)
+            let bottomHorizontalY = min(height - 38, carBottom + 46)
+            let topInnerY = carTop + 34
+            let bottomInnerY = carBottom - 34
+            let innerInset: CGFloat = 16
 
             Path { path in
-                path.move(to: CGPoint(x: leftEdge, y: topLineY))
-                path.addLine(to: CGPoint(x: carLeft - 66, y: topLineY))
-                path.addCurve(
-                    to: CGPoint(x: carLeft - 10, y: carTop + 36),
-                    control1: CGPoint(x: carLeft - 48, y: topLineY),
-                    control2: CGPoint(x: carLeft - 34, y: carTop + 28)
-                )
+                path.move(to: CGPoint(x: leftOuterX, y: topHorizontalY))
+                path.addLine(to: CGPoint(x: leftJointX, y: topHorizontalY))
+                path.addLine(to: CGPoint(x: carLeft - innerInset, y: topInnerY))
 
-                path.move(to: CGPoint(x: rightEdge, y: topLineY))
-                path.addLine(to: CGPoint(x: carRight + 66, y: topLineY))
-                path.addCurve(
-                    to: CGPoint(x: carRight + 10, y: carTop + 36),
-                    control1: CGPoint(x: carRight + 48, y: topLineY),
-                    control2: CGPoint(x: carRight + 34, y: carTop + 28)
-                )
+                path.move(to: CGPoint(x: rightOuterX, y: topHorizontalY))
+                path.addLine(to: CGPoint(x: rightJointX, y: topHorizontalY))
+                path.addLine(to: CGPoint(x: carRight + innerInset, y: topInnerY))
 
-                path.move(to: CGPoint(x: leftEdge, y: bottomLineY))
-                path.addLine(to: CGPoint(x: carLeft - 66, y: bottomLineY))
-                path.addCurve(
-                    to: CGPoint(x: carLeft - 10, y: carBottom - 36),
-                    control1: CGPoint(x: carLeft - 48, y: bottomLineY),
-                    control2: CGPoint(x: carLeft - 34, y: carBottom - 28)
-                )
+                path.move(to: CGPoint(x: leftOuterX, y: bottomHorizontalY))
+                path.addLine(to: CGPoint(x: leftJointX, y: bottomHorizontalY))
+                path.addLine(to: CGPoint(x: carLeft - innerInset, y: bottomInnerY))
 
-                path.move(to: CGPoint(x: rightEdge, y: bottomLineY))
-                path.addLine(to: CGPoint(x: carRight + 66, y: bottomLineY))
-                path.addCurve(
-                    to: CGPoint(x: carRight + 10, y: carBottom - 36),
-                    control1: CGPoint(x: carRight + 48, y: bottomLineY),
-                    control2: CGPoint(x: carRight + 34, y: carBottom - 28)
-                )
+                path.move(to: CGPoint(x: rightOuterX, y: bottomHorizontalY))
+                path.addLine(to: CGPoint(x: rightJointX, y: bottomHorizontalY))
+                path.addLine(to: CGPoint(x: carRight + innerInset, y: bottomInnerY))
             }
             .stroke(
                 Color.cyan.opacity(colorScheme == .dark ? 0.38 : 0.24),
