@@ -1358,9 +1358,6 @@ private struct TirePressureCard: View {
                 .padding(.leading, 4)
 
             ZStack {
-                TirePressureGuideLines()
-                    .accessibilityHidden(true)
-
                 Image("car.top.no_door")
                     .renderingMode(.template)
                     .resizable()
@@ -1452,54 +1449,6 @@ private struct TirePressureCard: View {
         }
 
         return Int(number.rounded())
-    }
-}
-
-private struct TirePressureGuideLines: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let height = proxy.size.height
-            let centerX = width / 2
-            let centerY = height / 2
-            let carLeft = centerX - 58
-            let carRight = centerX + 58
-            let carTop = centerY - 64
-            let carBottom = centerY + 64
-            let leftOuterX: CGFloat = 38
-            let rightOuterX = width - 38
-            let leftJointX = max(carLeft - 82, leftOuterX + 70)
-            let rightJointX = min(carRight + 82, rightOuterX - 70)
-            let topHorizontalY = max(carTop - 10, 92)
-            let bottomHorizontalY = min(height - 38, carBottom + 46)
-            let topInnerY = carTop + 34
-            let bottomInnerY = carBottom - 34
-            let innerInset: CGFloat = 16
-
-            Path { path in
-                path.move(to: CGPoint(x: leftOuterX, y: topHorizontalY))
-                path.addLine(to: CGPoint(x: leftJointX, y: topHorizontalY))
-                path.addLine(to: CGPoint(x: carLeft - innerInset, y: topInnerY))
-
-                path.move(to: CGPoint(x: rightOuterX, y: topHorizontalY))
-                path.addLine(to: CGPoint(x: rightJointX, y: topHorizontalY))
-                path.addLine(to: CGPoint(x: carRight + innerInset, y: topInnerY))
-
-                path.move(to: CGPoint(x: leftOuterX, y: bottomHorizontalY))
-                path.addLine(to: CGPoint(x: leftJointX, y: bottomHorizontalY))
-                path.addLine(to: CGPoint(x: carLeft - innerInset, y: bottomInnerY))
-
-                path.move(to: CGPoint(x: rightOuterX, y: bottomHorizontalY))
-                path.addLine(to: CGPoint(x: rightJointX, y: bottomHorizontalY))
-                path.addLine(to: CGPoint(x: carRight + innerInset, y: bottomInnerY))
-            }
-            .stroke(
-                Color.cyan.opacity(colorScheme == .dark ? 0.38 : 0.24),
-                style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
-            )
-        }
     }
 }
 
