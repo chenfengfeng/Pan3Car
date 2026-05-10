@@ -1358,10 +1358,12 @@ private struct TirePressureCard: View {
                 .padding(.leading, 4)
 
             ZStack {
-                Image(systemName: "rectangle.portrait")
-                    .font(.system(size: 116, weight: .semibold))
+                Image("car.top.no_door")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 116, height: 128)
                     .foregroundStyle(.primary.opacity(0.18))
-                    .symbolRenderingMode(.hierarchical)
                     .accessibilityHidden(true)
 
                 VStack {
