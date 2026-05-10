@@ -13,6 +13,7 @@ import SwiftUI
 struct VehicleLocationMapView: View {
     let location: VehicleLocationSnapshot
 
+    @Environment(\.openURL) private var openURL
     @Namespace private var mapScope
     @State private var locationService = VehicleLocationService()
     @State private var cameraPosition: MapCameraPosition
@@ -102,6 +103,24 @@ struct VehicleLocationMapView: View {
         .mapScope(mapScope)
         .navigationTitle("车辆位置")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    ForEach(ExternalMapNavigationOption.allCases) { option in
+                        Button {
+                            openExternalNavigation(with: option)
+                        } label: {
+                            Label(option.title, systemImage: option.systemImage)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3.weight(.semibold))
+                }
+                .accessibilityLabel("更多导航方式")
+                .accessibilityIdentifier("vehicle.location.map.moreNavigation")
+            }
+        }
         .pan3SecondaryPage()
         .task {
             locationService.requestCurrentLocation()
@@ -186,6 +205,164 @@ struct VehicleLocationMapView: View {
                 MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeWalking
             ]
         )
+    }
+
+    private func openExternalNavigation(with option: ExternalMapNavigationOption) {
+        let appURL = option.appURL(destination: destinationCoordinate, name: location.address)
+        let fallbackURL = option.webURL(destination: destinationCoordinate, name: location.address)
+
+        openURL(appURL) { accepted in
+            guard !accepted else { return }
+            openURL(fallbackURL)
+        }
+    }
+}
+
+private enum ExternalMapNavigationOption: String, CaseIterable, Identifiable {
+    case baidu
+    case amap
+    case tencent
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .baidu:
+            "百度地图"
+        case .amap:
+            "高德地图"
+        case .tencent:
+            "腾讯地图"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .baidu:
+            "map.fill"
+        case .amap:
+            "location.north.line.fill"
+        case .tencent:
+            "point.3.connected.trianglepath.dotted"
+        }
+    }
+
+    func appURL(destination: CLLocationCoordinate2D, name: String) -> URL {
+        switch self {
+        case .baidu:
+            return makeURL(
+                scheme: "baidumap",
+                host: "map",
+                path: "/direction",
+                queryItems: [
+                    .init(name: "origin", value: "{{我的位置}}"),
+                    .init(name: "destination", value: "latlng:\(coordinatePair(destination))|name:\(name)"),
+                    .init(name: "mode", value: "walking"),
+                    .init(name: "coord_type", value: "wgs84"),
+                    .init(name: "src", value: "pan3car")
+                ]
+            )
+        case .amap:
+            return makeURL(
+                scheme: "iosamap",
+                host: "path",
+                queryItems: [
+                    .init(name: "sourceApplication", value: "pan3car"),
+                    .init(name: "dlat", value: formattedCoordinate(destination.latitude)),
+                    .init(name: "dlon", value: formattedCoordinate(destination.longitude)),
+                    .init(name: "dname", value: name),
+                    .init(name: "dev", value: "1"),
+                    .init(name: "t", value: "2")
+                ]
+            )
+        case .tencent:
+            return makeURL(
+                scheme: "qqmap",
+                host: "map",
+                path: "/routeplan",
+                queryItems: [
+                    .init(name: "type", value: "walk"),
+                    .init(name: "from", value: "我的位置"),
+                    .init(name: "to", value: name),
+                    .init(name: "tocoord", value: coordinatePair(destination)),
+                    .init(name: "coord_type", value: "1"),
+                    .init(name: "referer", value: "pan3car")
+                ]
+            )
+        }
+    }
+
+    func webURL(destination: CLLocationCoordinate2D, name: String) -> URL {
+        switch self {
+        case .baidu:
+            return makeURL(
+                scheme: "https",
+                host: "api.map.baidu.com",
+                path: "/direction",
+                queryItems: [
+                    .init(name: "origin", value: "{{我的位置}}"),
+                    .init(name: "destination", value: "latlng:\(coordinatePair(destination))|name:\(name)"),
+                    .init(name: "mode", value: "walking"),
+                    .init(name: "coord_type", value: "wgs84"),
+                    .init(name: "output", value: "html"),
+                    .init(name: "src", value: "pan3car")
+                ]
+            )
+        case .amap:
+            return makeURL(
+                scheme: "https",
+                host: "uri.amap.com",
+                path: "/navigation",
+                queryItems: [
+                    .init(name: "to", value: "\(formattedCoordinate(destination.longitude)),\(formattedCoordinate(destination.latitude)),\(name)"),
+                    .init(name: "mode", value: "walk"),
+                    .init(name: "coordinate", value: "wgs84"),
+                    .init(name: "src", value: "pan3car"),
+                    .init(name: "callnative", value: "1")
+                ]
+            )
+        case .tencent:
+            return makeURL(
+                scheme: "https",
+                host: "apis.map.qq.com",
+                path: "/uri/v1/routeplan",
+                queryItems: [
+                    .init(name: "type", value: "walk"),
+                    .init(name: "from", value: "我的位置"),
+                    .init(name: "to", value: name),
+                    .init(name: "tocoord", value: coordinatePair(destination)),
+                    .init(name: "coord_type", value: "1"),
+                    .init(name: "referer", value: "pan3car")
+                ]
+            )
+        }
+    }
+
+    private func makeURL(
+        scheme: String,
+        host: String,
+        path: String = "",
+        queryItems: [URLQueryItem]
+    ) -> URL {
+        var components = URLComponents()
+        components.scheme = scheme
+        components.host = host
+        components.path = path
+        components.queryItems = queryItems
+
+        guard let url = components.url else {
+            preconditionFailure("Invalid external map URL for \(title)")
+        }
+
+        return url
+    }
+
+    private func coordinatePair(_ coordinate: CLLocationCoordinate2D) -> String {
+        "\(formattedCoordinate(coordinate.latitude)),\(formattedCoordinate(coordinate.longitude))"
+    }
+
+    private func formattedCoordinate(_ value: CLLocationDegrees) -> String {
+        String(format: "%.6f", value)
     }
 }
 
